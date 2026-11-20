@@ -18,10 +18,12 @@
       ? ['Hi! Are you available for a short interview this week?', 'Thanks for applying! Please bring a copy of your résumé.', 'What time works best for a quick call?']
       : ['Hi! I am available for an interview.', 'Thank you for shortlisting me! When is a good time to talk?', 'Could you share the exact interview location or link?'];
     if (cur) {
-      const msgs = await JM.q(JM.sb.from('messages').select('id,sender_id,body,created_at').eq('conversation_id', id).order('created_at'));
+      const rawMsgs = await JM.q(JM.sb.from('messages').select('id,sender_id,body,created_at,edited_at,unsent_at,hidden_by').eq('conversation_id', id).order('created_at'));
+      const msgs = rawMsgs.filter(function (m) { return !Array.isArray(m.hidden_by) || m.hidden_by.indexOf(JM.me.id) < 0; });
+      JM.curMsgs = {}; msgs.forEach(function (m) { JM.curMsgs[m.id] = m; });
       JM.rpc('mark_conversation_read', { p_conv: id }).then(function () { JM.loadMe().then(JM.updateBadges); });
       const iBlocked = JM.myBlocks.indexOf(cur.other_id) >= 0;
-      const freeSeekerWait = JM.me.role === 'seeker' && JM.me.seeker.plan !== 'pro' && !msgs.some(function (m) { return m.sender_id !== JM.me.id; });
+      const freeSeekerWait = JM.me.role === 'seeker' && JM.me.seeker.plan !== 'pro' && !rawMsgs.some(function (m) { return m.sender_id !== JM.me.id; });
       thread = '<div class="pane thread-pane"><div class="row" style="padding:12px 16px;border-bottom:1px solid var(--line)"><a class="iconbtn chat-back" href="#/messages" aria-label="Back to conversations">' + ic('left') + '</a>' + JM.avatar(cur.other_name) + '<div class="grow"><b>' + esc(cur.other_name) + '</b><div class="xs muted">' + esc(cur.job_title) + '</div></div>' +
         '<button class="iconbtn" data-act="reportuser" data-id="' + cur.other_id + '" aria-label="Report" title="Report">' + ic('flag', 16) + '</button><button class="btn secondary sm" data-act="' + (iBlocked ? 'unblock' : 'block') + '" data-id="' + cur.other_id + '">' + (iBlocked ? 'Unblock' : 'Block') + '</button></div>' +
         '<div class="bubbles" id="bubbles">' + (msgs.length ? msgs.map(bubble).join('') : '<p class="center small muted" style="margin:auto">Say hello. Keep it professional.</p>') + '</div>' +
@@ -61,13 +63,47 @@
     });
   };
   function bubble(m) {
+    JM.curMsgs = JM.curMsgs || {};
+    JM.curMsgs[m.id] = m;
     const me = m.sender_id === JM.me.id;
-    return '<div class="bub ' + (me ? 'me' : '') + '" data-mid="' + m.id + '">' + esc(m.body) + '<small>' + new Date(m.created_at).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' }) + (me ? '' : ' · <button class="chip" style="height:auto;padding:0 6px;font-size:11px;border-radius:6px" data-act="reportmsg" data-id="' + m.id + '">Report</button>') + '</small></div>';
+    const unsent = !!m.unsent_at;
+    const timeStr = new Date(m.created_at).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });
+    const editedTag = (!unsent && m.edited_at) ? ' · <span class="msg-edited">edited</span>' : '';
+    const btns = [];
+    if (!unsent) {
+      btns.push('<button type="button" class="msg-act" data-act="replymsg" data-id="' + m.id + '">Reply</button>');
+      if (me) {
+        btns.push('<button type="button" class="msg-act" data-act="editmsg" data-id="' + m.id + '">Edit</button>');
+        btns.push('<button type="button" class="msg-act" data-act="unsendmsg" data-id="' + m.id + '">Unsend</button>');
+      }
+    }
+    btns.push('<button type="button" class="msg-act" data-act="rmmsgme" data-id="' + m.id + '">Remove for you</button>');
+    if (!me && !unsent) {
+      btns.push('<button type="button" class="msg-act" data-act="reportmsg" data-id="' + m.id + '">Report</button>');
+    }
+    const textHtml = unsent
+      ? '<span class="msg-unsent">' + (me ? 'You unsent a message' : 'This message was unsent') + '</span>'
+      : '<div class="msg-body">' + esc(m.body) + '</div>';
+    return '<div class="bub ' + (me ? 'me' : '') + (unsent ? ' unsent' : '') + '" data-mid="' + m.id + '">' +
+      textHtml +
+      '<small class="msg-meta"><span>' + timeStr + editedTag + '</span><span class="msg-actions">' + btns.join('') + '</span></small></div>';
   }
   JM.appendBubble = function (m) {
-    const box = document.getElementById('bubbles'); if (!box || box.querySelector('[data-mid="' + m.id + '"]')) return;
+    if (Array.isArray(m.hidden_by) && m.hidden_by.indexOf(JM.me.id) >= 0) return;
+    const box = document.getElementById('bubbles'); if (!box) return;
+    const existing = box.querySelector('[data-mid="' + m.id + '"]');
+    if (existing) { existing.outerHTML = bubble(m); return; }
     const empty = box.querySelector('p'); if (empty) empty.remove();
     box.insertAdjacentHTML('beforeend', bubble(m)); box.scrollTop = box.scrollHeight;
+  };
+  JM.updateBubble = function (m) {
+    const box = document.getElementById('bubbles'); if (!box) return;
+    if (Array.isArray(m.hidden_by) && m.hidden_by.indexOf(JM.me.id) >= 0) {
+      const el = box.querySelector('[data-mid="' + m.id + '"]'); if (el) el.remove();
+      return;
+    }
+    const el = box.querySelector('[data-mid="' + m.id + '"]');
+    if (el) el.outerHTML = bubble(m);
   };
   JM.afterChat = function () { const b = document.getElementById('bubbles'); if (b) b.scrollTop = b.scrollHeight; };
   JM.forms.send = async function (form, d) {
@@ -77,6 +113,68 @@
       const r = await JM.rpc('send_message', { p_conv: JM.curConv.id, p_body: body });
       JM.appendBubble({ id: r.id, sender_id: JM.me.id, body: body, created_at: new Date().toISOString() });
     } catch (e) { input.value = body; JM.toast(JM.err(e), 'bad'); }
+  };
+  JM.actions.replymsg = function (el) {
+    const m = (JM.curMsgs || {})[el.dataset.id]; if (!m || m.unsent_at) return;
+    const inp = document.getElementById('chat-input'); if (!inp) return;
+    const snippet = String(m.body || '').replace(/\s+/g, ' ').slice(0, 60);
+    inp.value = 'Re: "' + snippet + (m.body.length > 60 ? '…' : '') + '" — ';
+    inp.focus();
+  };
+  JM.actions.editmsg = function (el) {
+    const m = (JM.curMsgs || {})[el.dataset.id]; if (!m || m.unsent_at) return;
+    JM.modal('<h2>Edit message</h2><p class="small muted mt">Update your message text below.</p>' +
+      '<form data-form="editmsg" data-id="' + m.id + '" class="mt">' +
+      '<div class="field"><textarea name="body" rows="3" minlength="1" maxlength="2000" required>' + esc(m.body) + '</textarea></div>' +
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">Save changes</button></div></form>');
+  };
+  JM.forms.editmsg = async function (form, d) {
+    const id = form.dataset.id, body = String(d.body || '').trim();
+    if (!body) return JM.toast('Message cannot be empty.', 'bad');
+    const r = await JM.rpc('edit_message', { p_msg: id, p_body: body });
+    const cur = (JM.curMsgs || {})[id] || { id: id, sender_id: JM.me.id, created_at: new Date().toISOString() };
+    cur.body = r.body || body;
+    cur.edited_at = r.edited_at || new Date().toISOString();
+    JM.updateBubble(cur);
+    JM.close();
+    JM.toast('Message edited.', 'ok');
+  };
+  JM.actions.unsendmsg = function (el) {
+    const id = el.dataset.id;
+    JM.confirm({
+      title: 'Unsend this message?',
+      text: 'This message will be unsent for everyone in the chat.',
+      ok: 'Unsend',
+      danger: true,
+      onOk: function () {
+        JM.busy(null, async function () {
+          const r = await JM.rpc('unsend_message', { p_msg: id });
+          const cur = (JM.curMsgs || {})[id] || { id: id, sender_id: JM.me.id, created_at: new Date().toISOString() };
+          cur.body = 'This message was unsent';
+          cur.unsent_at = r.unsent_at || new Date().toISOString();
+          JM.updateBubble(cur);
+          JM.toast('Message unsent.');
+        });
+      }
+    });
+  };
+  JM.actions.rmmsgme = function (el) {
+    const id = el.dataset.id;
+    JM.confirm({
+      title: 'Remove for you?',
+      text: 'This message will be removed from your view. Other participants in the chat will still be able to see it.',
+      ok: 'Remove for me',
+      danger: true,
+      onOk: function () {
+        JM.busy(null, async function () {
+          await JM.rpc('remove_message_for_me', { p_msg: id });
+          const node = document.querySelector('[data-mid="' + id + '"]');
+          if (node) node.remove();
+          delete (JM.curMsgs || {})[id];
+          JM.toast('Removed for you.');
+        });
+      }
+    });
   };
   JM.actions.block = function (el) { JM.confirm({ title: 'Block this person?', text: 'Neither of you will be able to message the other. You can unblock later.', ok: 'Block', danger: true, onOk: async function () { await JM.busy(null, async function () { await JM.q(JM.sb.from('blocks').insert({ blocker_id: JM.me.id, blocked_id: el.dataset.id })); JM.toast('Blocked.'); JM.render(); }); } }); };
   JM.actions.unblock = async function (el) { await JM.busy(el, async function () { await JM.q(JM.sb.from('blocks').delete().eq('blocker_id', JM.me.id).eq('blocked_id', el.dataset.id)); JM.toast('Unblocked.'); JM.render(); }); };

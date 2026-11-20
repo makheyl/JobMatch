@@ -72,6 +72,12 @@
           JM.appendBubble(m); JM.rpc('mark_conversation_read', { p_conv: m.conversation_id }).catch(function () {});
         } else { JM.loadMe().then(JM.updateBadges); JM.toast('New message'); }
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, function (p) {
+        const m = p.new;
+        if (JM.curConv && JM.curConv.id === m.conversation_id && JM.updateBubble) {
+          JM.updateBubble(m);
+        }
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + JM.me.id }, function (p) {
         JM.loadMe().then(JM.updateBadges);
         if (p.new.type !== 'message') JM.toast(p.new.title);

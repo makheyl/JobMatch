@@ -1814,11 +1814,75 @@ a.card:hover,button.card:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);border-c
   color: #fff
 }
 
+.bub.unsent {
+  background: #F1F5F9;
+  border: 1px dashed var(--line2);
+  color: var(--muted);
+  font-style: italic
+}
+
+.bub.me.unsent {
+  background: #EEF2F7;
+  border-color: var(--line2);
+  color: var(--muted)
+}
+
 .bub small {
   display: block;
-  opacity: .7;
+  opacity: .85;
   font-size: 11px;
-  margin-top: 3px
+  margin-top: 4px
+}
+
+.msg-meta {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px
+}
+
+.msg-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center
+}
+
+.msg-act {
+  border: 1px solid rgba(15, 23, 42, .16);
+  background: rgba(255, 255, 255, .85);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 550;
+  font-style: normal;
+  padding: 1px 7px;
+  border-radius: 6px;
+  line-height: 1.4;
+  transition: background .12s, border-color .12s
+}
+
+.msg-act:hover {
+  background: #fff;
+  border-color: var(--brand);
+  color: var(--brand)
+}
+
+.bub.me:not(.unsent) .msg-act {
+  background: rgba(255, 255, 255, .18);
+  border-color: rgba(255, 255, 255, .35);
+  color: #fff
+}
+
+.bub.me:not(.unsent) .msg-act:hover {
+  background: rgba(255, 255, 255, .32);
+  border-color: #fff;
+  color: #fff
+}
+
+.msg-edited {
+  font-style: italic
 }
 
 .bars {
