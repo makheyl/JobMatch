@@ -438,8 +438,33 @@
     await JM.q(JM.sb.from('seeker_profiles').update({ filters: f }).eq('user_id', JM.me.id));
     JM.me.seeker.filters = f; JM.render();
   };
-  JM.actions.requeue = async function (el) {
-    if (JM.me.seeker.plan !== 'pro') return JM.modal('<h2>Upgrade to review passed jobs</h2><p class="muted mt">Free plan accounts cannot undo or re-run passed selections. Upgrade to the Monthly or Annual Plan to unlock this feature.</p><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button><a class="btn" href="#/pro" data-act="close">View plans</a></div>');
+  async function returnPreviousCard(el) {
+    if (busy) return;
+    await JM.busy(el, async function () {
+      const r = await JM.rpc('undo_swipe');
+      if (!r.ok) return JM.toast('No more previous cards to return.');
+      JM.me.seeker.stars_left = r.stars_left;
+      const j = r.job || await JM.rpc('get_job', { p_job: r.job_id });
+      if (j) {
+        JM.deckItems = (JM.deckItems || []).filter(function (x) { return x.id !== j.id; });
+        JM.deckItems.unshift(j);
+      }
+      drawDeck();
+      const top = document.querySelector('#deck .jcard.top');
+      if (top) {
+        top.style.transform = r.dir === 'right' ? 'translate(120px,10px) rotate(6deg)' : r.dir === 'star' ? 'translate(0,-120px)' : 'translate(-120px,10px) rotate(-6deg)';
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            top.classList.add('snap');
+            top.style.transform = '';
+          });
+        });
+      }
+    });
+  }
+  JM.actions.requeue = returnPreviousCard;
+  JM.actions.undo = returnPreviousCard;
+  JM.actions.requeueall = async function (el) {
     await JM.busy(el, async function () {
       const r = await JM.rpc('requeue_passed_jobs');
       JM.close();
@@ -457,19 +482,7 @@
         const b = lbl[r.dir] || [r.dir, ''];
         return '<div class="li" style="padding:10px 4px"><div class="grow"><a class="bold" href="#/jobs/' + r.job_id + '" data-act="close">' + esc(r.title) + '</a><div class="xs muted">' + esc(r.company) + ' · ' + esc(r.type) + ' · ' + JM.ago(r.swiped_at) + '</div></div>' + (r.score ? '<b class="num small">' + r.score + '%</b>' : '') + JM.badge(b[0], b[1]) + '</div>';
       }).join('') + '</div>' : '<p class="muted mt">No swipes recorded yet.</p>';
-      JM.modal('<h2>Swipe history</h2><p class="small muted mt">All jobs you swiped on, including passed listings.</p>' + list + '<div class="row wrap mt-l" style="justify-content:space-between"><button class="btn secondary sm" data-act="requeue">Re-run passed jobs</button><button class="btn" data-act="close">Close</button></div>', 'wide');
-    });
-  };
-  JM.actions.undo = async function (el) {
-    if (JM.me.seeker.plan !== 'pro') return JM.modal('<h2>Undo requires Monthly or Annual Plan</h2><p class="muted mt">Free plan users cannot undo previous selections. Upgrade to undo swipes anytime.</p><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button><a class="btn" href="#/pro" data-act="close">View plans</a></div>');
-    if (busy) return;
-    await JM.busy(el, async function () {
-      const r = await JM.rpc('undo_swipe');
-      if (!r.ok) return JM.toast(r.reason === 'applied' ? 'You already applied to that job.' : 'Nothing to undo.');
-      JM.me.seeker.stars_left = r.stars_left;
-      const j = await JM.rpc('get_job', { p_job: r.job_id });
-      if (j) { JM.deckItems = JM.deckItems.filter(function (x) { return x.id !== j.id; }); JM.deckItems.unshift(j); }
-      drawDeck();
+      JM.modal('<h2>Swipe history</h2><p class="small muted mt">All jobs you swiped on, including passed listings.</p>' + list + '<div class="row wrap mt-l" style="justify-content:space-between"><button class="btn secondary sm" data-act="requeueall">Re-run passed jobs</button><button class="btn" data-act="close">Close</button></div>', 'wide');
     });
   };
   JM.actions.deckrefresh = async function (el) { await JM.busy(el, async function () { JM.deckItems = await JM.rpc('get_deck', { p_limit: 30 }); drawDeck(); }); };
@@ -505,13 +518,13 @@
     const typeBar = '<div class="chips mb">' + [''].concat(TYPES).map(function (t) {
       return '<button type="button" class="chip' + ((f.type || '') === t ? ' on' : '') + '" data-act="quicktype" data-t="' + esc(t) + '">' + (t || 'All work types') + '</button>';
     }).join('') + '</div>';
-    return '<div class="page narrow">' + ivBox + '<div class="row between wrap mb"><div><h1 style="font-size:22px">Discover</h1><div class="small muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic(isPaid ? 'undo' : 'lock', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
+    return '<div class="page narrow">' + ivBox + '<div class="row between wrap mb"><div><h1 style="font-size:22px">Discover</h1><div class="small muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic('undo', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
       typeBar +
       '<div class="deckwrap"><div class="deck" id="deck"></div>' +
-      '<div class="actions" id="deck-tools"><button class="rbtn sm" data-act="undo" aria-label="Undo last swipe">' + ic(isPaid ? 'undo' : 'lock') + '</button><button class="rbtn no" data-act="swipe" data-dir="left" aria-label="Pass">' + ic('x') + '</button><button class="rbtn star" data-act="swipe" data-dir="star" aria-label="Star as top pick">' + ic('star') + '</button><button class="rbtn yes" data-act="swipe" data-dir="right" aria-label="Save to preferred">' + ic('heart') + '</button></div>' +
+      '<div class="actions" id="deck-tools"><button class="rbtn sm" data-act="undo" aria-label="Undo last swipe">' + ic('undo') + '</button><button class="rbtn no" data-act="swipe" data-dir="left" aria-label="Pass">' + ic('x') + '</button><button class="rbtn star" data-act="swipe" data-dir="star" aria-label="Star as top pick">' + ic('star') + '</button><button class="rbtn yes" data-act="swipe" data-dir="right" aria-label="Save to preferred">' + ic('heart') + '</button></div>' +
       '<p class="xs muted center" id="deck-hint">Swipe right to save, left to pass, up to star. Tap a card for details. Arrow keys work too.</p>' +
       '<div id="deck-empty" class="hide">' + JM.empty('layers', 'You are all caught up', nf ? 'No more jobs match your filters. Loosen them or review passed jobs.' : 'You have seen every job for now. You can review previously passed jobs or check back later.',
-        '<div class="row wrap" style="justify-content:center">' + (nf ? '<button class="btn secondary" data-act="filters">Change filters</button>' : '') + '<button class="btn secondary" data-act="requeue">Review passed jobs</button><button class="btn" data-act="deckrefresh">Refresh</button></div>') + '</div></div></div>';
+        '<div class="row wrap" style="justify-content:center">' + (nf ? '<button class="btn secondary" data-act="filters">Change filters</button>' : '') + '<button class="btn secondary" data-act="requeue">Previous card</button><button class="btn secondary" data-act="requeueall">Review all passed</button><button class="btn" data-act="deckrefresh">Refresh</button></div>') + '</div></div></div>';
   }, after: drawDeck });
   JM.actions.ivstatus = async function (el) {
     await JM.busy(el, async function () {
