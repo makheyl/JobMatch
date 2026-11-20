@@ -356,12 +356,12 @@
   function cardHtml(j, pos) {
     const m = j.match || {}, cls = pos === 0 ? 'top' : pos === 1 ? 'b1' : 'b2';
     return '<article class="jcard ' + cls + '" data-id="' + j.id + '" aria-label="' + esc(j.title) + '"><div class="stamp no">PASS</div><div class="stamp yes">SAVE</div><div class="stamp top">TOP PICK</div>' +
-      '<div class="row" style="align-items:flex-start"><div class="grow"><div class="row gap-s wrap">' + (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + (j.custom_role ? JM.badge(j.custom_role) : '') + '</div>' +
+      '<div class="jcard-in"><div class="row" style="align-items:flex-start"><div class="grow"><div class="row gap-s wrap">' + (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + (j.custom_role ? JM.badge(j.custom_role) : '') + '</div>' +
       '<h2 style="font-size:21px;margin-top:10px">' + esc(j.title) + '</h2><div class="row gap-s small muted" style="margin-top:4px">' + esc(j.company.name) + (j.company.verified ? '<span title="Verified business" style="color:var(--ok);display:inline-flex">' + ic('check', 15) + '</span>' : '') + '</div></div>' + JM.ring(m.score || 0, 58, scoreColor(m.score || 0)) + '</div>' +
       '<div class="row wrap small" style="color:var(--ink2);gap:14px"><span class="row gap-s">' + ic('pin', 15) + esc(JM.area(j.area_id)) + (m.dist != null ? ' · ' + m.dist + ' km' : '') + '</span><span class="bold">' + JM.salary(j) + '</span></div>' +
       (j.intern_requirements ? '<div class="xs" style="color:var(--brand-d)"><b>Requirements:</b> ' + esc(j.intern_requirements) + '</div>' : '') +
       '<div class="chips">' + JM.skillChips(j) + '</div><p class="small muted" style="margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">' + esc(j.description) + '</p>' +
-      '<div class="why"><b>Why this match:</b> ' + esc((m.why || []).slice(0, 3).join(', ')) + '.</div></article>';
+      '<div class="why"><b>Why this match:</b> ' + esc((m.why || []).slice(0, 3).join(', ')) + '.</div></div></article>';
   }
   function drawDeck() {
     const root = document.getElementById('deck'); if (!root) return;
@@ -404,7 +404,13 @@
         return;
       }
       JM.me.seeker.stars_left = res.stars_left;
-      if (top) { top.classList.add('fly'); top.style.transform = dir === 'star' ? 'translate(0,-640px)' : 'translate(' + (dir === 'right' ? 640 : -640) + 'px,60px) rotate(' + (dir === 'right' ? 18 : -18) + 'deg)'; top.style.opacity = 0; }
+      if (top) {
+        const st = top.querySelector(dir === 'right' ? '.stamp.yes' : dir === 'left' ? '.stamp.no' : '.stamp.top');
+        if (st) st.style.opacity = 1;
+        top.classList.add('fly');
+        top.style.transform = dir === 'star' ? 'translate(0,-640px)' : 'translate(' + (dir === 'right' ? 640 : -640) + 'px,60px) rotate(' + (dir === 'right' ? 18 : -18) + 'deg)';
+        top.style.opacity = 0;
+      }
       JM.lastSwipe = true;
       await new Promise(function (r) { setTimeout(r, 230); });
       JM.deckItems.shift(); drawDeck();

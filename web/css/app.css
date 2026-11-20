@@ -1400,12 +1400,13 @@ div.brand img {
 
 /* deck */
 .deckwrap{display:flex;flex-direction:column;align-items:center;gap:16px}
-.deck{position:relative;width:100%;max-width:400px;height:min(540px,calc(100vh - 300px));min-height:440px;touch-action:none;user-select:none;margin-bottom:30px}
-.jcard{position:absolute;inset:0;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.12);padding:20px;display:flex;flex-direction:column;gap:12px;overflow:hidden;cursor:grab;will-change:transform}
+.deck{position:relative;width:100%;max-width:400px;height:min(540px,calc(100vh - 300px));min-height:440px;touch-action:none;user-select:none;margin-top:38px;margin-bottom:30px}
+.jcard{position:absolute;inset:0;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.12);padding:20px;display:flex;flex-direction:column;gap:12px;overflow:visible;cursor:grab;will-change:transform}
+.jcard-in{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:hidden}
 .jcard.b1{transform:scale(.95) translateY(26px);pointer-events:none;opacity:.96}.jcard.b2{transform:scale(.9) translateY(50px);pointer-events:none;opacity:.85}
 .jcard.fly{transition:transform .26s ease-out,opacity .26s}.jcard.snap{transition:transform .2s}
-.stamp{position:absolute;top:20px;padding:5px 12px;border:2px solid;border-radius:8px;font-weight:750;font-size:15px;letter-spacing:.06em;opacity:0;background:rgba(255,255,255,.9);pointer-events:none}
-.stamp.no{right:18px;color:var(--bad);border-color:var(--bad)}.stamp.yes{left:18px;color:var(--brand);border-color:var(--brand)}.stamp.top{left:50%;margin-left:-60px;top:70px;color:#9A5B00;border-color:var(--star)}
+.stamp{position:absolute;top:-44px;z-index:5;padding:6px 16px;border:2px solid transparent;border-radius:10px;font-weight:800;font-size:14px;letter-spacing:.08em;opacity:0;pointer-events:none;box-shadow:0 8px 20px rgba(15,23,42,.18);white-space:nowrap}
+.stamp.no{right:12px;background:var(--bad);color:#fff;border-color:var(--bad)}.stamp.yes{left:12px;background:var(--brand);color:#fff;border-color:var(--brand)}.stamp.top{left:50%;transform:translateX(-50%);top:-44px;background:var(--star);color:#3B2600;border-color:var(--star)}
 .why{margin-top:auto;background:#F5F7FA;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink2)}
 .actions{display:flex;gap:14px;align-items:center;justify-content:center}
 .rbtn{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center;box-shadow:var(--sh);color:var(--ink2)}
@@ -1475,6 +1476,7 @@ a.card:hover,button.card:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);border-c
   min-height: 440px;
   touch-action: none;
   user-select: none;
+  margin-top: 38px;
   margin-bottom: 30px
 }
 
@@ -1489,9 +1491,18 @@ a.card:hover,button.card:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);border-c
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: hidden;
+  overflow: visible;
   cursor: grab;
   will-change: transform
+}
+
+.jcard-in {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden
 }
 
 .jcard.b1 {
@@ -1516,35 +1527,40 @@ a.card:hover,button.card:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);border-c
 
 .stamp {
   position: absolute;
-  top: 20px;
-  padding: 5px 12px;
-  border: 2px solid;
-  border-radius: 8px;
-  font-weight: 750;
-  font-size: 15px;
-  letter-spacing: .06em;
+  top: -44px;
+  z-index: 5;
+  padding: 6px 16px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: .08em;
   opacity: 0;
-  background: rgba(255, 255, 255, .9);
-  pointer-events: none
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .18);
+  white-space: nowrap
 }
 
 .stamp.no {
-  right: 18px;
-  color: var(--bad);
+  right: 12px;
+  background: var(--bad);
+  color: #fff;
   border-color: var(--bad)
 }
 
 .stamp.yes {
-  left: 18px;
-  color: var(--brand);
+  left: 12px;
+  background: var(--brand);
+  color: #fff;
   border-color: var(--brand)
 }
 
 .stamp.top {
   left: 50%;
-  margin-left: -60px;
-  top: 70px;
-  color: #9A5B00;
+  transform: translateX(-50%);
+  top: -44px;
+  background: var(--star);
+  color: #3B2600;
   border-color: var(--star)
 }
 
