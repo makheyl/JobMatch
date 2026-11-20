@@ -74,3 +74,37 @@ end $$;
 
 revoke all on function public.candidate_job_matches(uuid) from public, anon, authenticated;
 grant execute on function public.candidate_job_matches(uuid) to authenticated;
+
+-- Include resume_link in employer_application when applicant is shortlisted/hired
+create or replace function public.employer_application(p_app uuid) returns jsonb language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid(); a public.applications; j public.jobs; e public.employers; sp public.seeker_profiles; pr public.profiles;
+        named boolean; ranked boolean; m jsonb; em text;
+begin
+  select * into a from public.applications where id = p_app;
+  select * into j from public.jobs where id = a.job_id;
+  if not found or j.employer_id <> uid then raise exception 'not found'; end if;
+  select * into e from public.employers where user_id = uid;
+  select * into sp from public.seeker_profiles where user_id = a.user_id;
+  select * into pr from public.profiles where id = a.user_id;
+  named := a.status in ('shortlisted', 'hired'); ranked := e.plan <> 'starter';
+  if a.viewed_at is null then update public.applications set viewed_at = now() where id = p_app; end if;
+  m := app.match(a.user_id, a.job_id);
+  select email into em from auth.users where id = a.user_id;
+  return jsonb_build_object(
+    'id', a.id, 'status', a.status, 'created_at', a.created_at, 'job', jsonb_build_object('id', j.id, 'title', j.title, 'skills', to_jsonb(j.skills)),
+    'name', app.mask_name(pr.full_name, named), 'named', named, 'starred', case when ranked then a.starred else false end,
+    'score', case when ranked then a.score end, 'why', case when ranked then m->'why' end, 'missing', case when ranked then m->'missing' end,
+    'skills', (select coalesce(jsonb_agg(jsonb_build_object('name', k.skill, 'level', k.level) order by k.level desc), '[]') from public.seeker_skills k where k.user_id = a.user_id),
+    'education', jsonb_build_object('level', sp.edu_level, 'school', sp.school, 'course', sp.course),
+    'experience', sp.experience, 'resume_mode', sp.resume_mode, 'resume_summary', sp.resume_summary,
+    'resume_path', case when named then sp.resume_path end,
+    'resume_link', case when named then nullif(sp.resume_link, '') end,
+    'area_id', sp.area_id,
+    'age', case when named and sp.birth_year is not null then extract(year from now())::int - sp.birth_year end,
+    'gender', case when named then nullif(sp.gender, '') end,
+    'contact', case when named then jsonb_build_object('email', em, 'phone', pr.phone, 'full_name', pr.full_name) end,
+    'conversation_id', (select c.id from public.conversations c where c.application_id = a.id));
+end $$;
+
+-- Reload PostgREST schema cache so new columns (e.g. resume_link, logo_path, strengths/weaknesses) are immediately visible
+notify pgrst, 'reload schema';
