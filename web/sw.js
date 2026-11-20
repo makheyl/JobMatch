@@ -9,7 +9,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(fetch(e.request).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return r; }).catch(() => caches.match(e.request).then((m) => m || caches.match('index.html'))));
 });
 self.addEventListener('push', (e) => {
-  let d = { title: 'JobMatch', body: '' }; try { d = e.data.json(); } catch (x) {}
+  let d = { title: 'JobMatch', body: '' }; try { d = e.data.json(); } catch (x) { }
   e.waitUntil(self.registration.showNotification(d.title, { body: d.body, icon: 'assets/icon-192.png', badge: 'assets/icon-192.png', data: { url: d.url || './' } }));
 });
 self.addEventListener('notificationclick', (e) => { e.notification.close(); e.waitUntil(clients.openWindow(e.notification.data.url || './')); });
