@@ -791,7 +791,7 @@
       '<div class="row wrap small" style="color:var(--ink2);gap:12px"><span class="row gap-s">' + ic(isRemote ? 'globe' : 'pin', 14) + locStr + '</span><span class="bold">' + JM.salary(j) + '</span></div>' +
       (j.intern_requirements ? '<div class="xs" style="color:var(--brand-d)"><b>Requirements:</b> ' + esc(j.intern_requirements) + '</div>' : '') +
       '<div class="chips">' + JM.skillChips(j, 4) + '</div>' +
-      '<p class="small muted" style="margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(j.description) + '</p>' +
+      '<p class="small muted jdesc" style="margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">' + esc(j.description) + '</p>' +
       '<div class="why"><b>Why this match:</b> ' + esc((m.why || []).slice(0, 3).join(', ')) + '.</div></div></div></article>';
   }
   function preloadNext(items) {
@@ -893,16 +893,6 @@
     } finally { JM.deckLoading = false; }
   }
   JM.actions.swipe = function (el) { decide(el.dataset.dir); };
-  JM.actions.quicktype = async function (el) {
-    const f = Object.assign({}, JM.me.seeker.filters || {}, { type: el.dataset.t || '' });
-    await JM.q(JM.sb.from('seeker_profiles').update({ filters: f }).eq('user_id', JM.me.id));
-    JM.me.seeker.filters = f; JM.render();
-  };
-  JM.actions.quicksetup = async function (el) {
-    const f = Object.assign({}, JM.me.seeker.filters || {}, { setup: el.dataset.s || '' });
-    await JM.q(JM.sb.from('seeker_profiles').update({ filters: f }).eq('user_id', JM.me.id));
-    JM.me.seeker.filters = f; JM.render();
-  };
   async function returnPreviousCard(el) {
     if (busy) return;
     await JM.busy(el, async function () {
@@ -992,14 +982,7 @@
         return '<div class="card flat card-b mb" style="padding:12px;margin-bottom:8px"><div class="row wrap between"><div><b>' + esc(iv.job_title) + '</b> <span class="small muted">· ' + esc(iv.employer_name) + '</span><div class="xs muted mt" style="margin-top:4px">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + JM.badge(iv.interview_type, 'brand') + ' · ' + loc + '</div></div><div class="row gap-s">' + JM.badge(iv.status, stCls) + (iv.status === 'scheduled' ? '<button class="btn ok sm" data-act="ivstatus" data-id="' + iv.id + '" data-s="confirmed">Confirm</button>' : '') + '</div></div></div>';
       }).join('') + '</div>' : '';
     const f = JM.me.seeker.filters || {}, nf = (f.nearMe ? 1 : 0) + (f.type ? 1 : 0) + (f.setup ? 1 : 0) + (f.area ? 1 : 0) + (f.minSalary ? 1 : 0), isPaid = JM.me.seeker.plan === 'pro';
-    const setupBar = '<div class="chips deck-chips" style="margin-bottom:6px">' + [''].concat(SETUPS).map(function (s) {
-      return '<button type="button" class="chip' + ((f.setup || '') === s ? ' on' : '') + '" data-act="quicksetup" data-s="' + esc(s) + '">' + (s ? ic(JM.setupIcon(s), 13) + esc(s) : 'All setups') + '</button>';
-    }).join('') + '</div>';
-    const typeBar = '<div class="chips deck-chips" style="margin-bottom:10px">' + [''].concat(TYPES).map(function (t) {
-      return '<button type="button" class="chip' + ((f.type || '') === t ? ' on' : '') + '" data-act="quicktype" data-t="' + esc(t) + '">' + (t || 'All work types') + '</button>';
-    }).join('') + '</div>';
-    return '<div class="page narrow">' + ivBox + '<div class="row between wrap mb"><div><h1 style="font-size:22px">Discover</h1><div class="small muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic('undo', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
-      setupBar + typeBar +
+    return '<div class="page deck-page">' + ivBox + '<div class="row between wrap deck-head"><div><h1 style="font-size:21px">Discover</h1><div class="xs muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic('undo', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
       '<div class="deckwrap"><div class="deck" id="deck"></div>' +
       '<div class="actions" id="deck-tools"><button class="rbtn sm" data-act="undo" aria-label="Undo last swipe">' + ic('undo') + '</button><button class="rbtn no" data-act="swipe" data-dir="left" aria-label="Pass">' + ic('x') + '</button><button class="rbtn star" data-act="swipe" data-dir="star" aria-label="Star as top pick">' + ic('star') + '</button><button class="rbtn yes" data-act="swipe" data-dir="right" aria-label="Save to preferred">' + ic('heart') + '</button></div>' +
       '<p class="xs muted center" id="deck-hint">Swipe right to save, left to pass, up to star. Tap a card for details. Arrow keys work too.</p>' +
