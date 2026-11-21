@@ -77,7 +77,21 @@
     const btn = form.querySelector('[type=submit]'); btn.disabled = true;
     try {
       JM.me = await JM.rpc('register_employer', { p_name: d.name, p_type: d.type.trim(), p_area: d.area, p_address: d.address, p_cname: d.cname, p_cemail: d.cemail, p_cphone: d.cphone, p_about: d.about || '', p_docs: Object.keys(JM.docs).map(function (k) { return { kind: k, path: JM.docs[k].path, name: JM.docs[k].name }; }) });
-      JM.go('/employer'); JM.toast('Submitted. We will review your documents shortly.', 'ok');
+      JM.go('/employer');
+      if (JM.reward) {
+        JM.reward({
+          id: 'employer_docs_submitted',
+          tier: 2,
+          repeatTier: 2,
+          emotion: 'scanning',
+          prop: 'magnifying-glass',
+          animation: 'scan',
+          title: 'Documents submitted — Under review',
+          copy: 'Our verification team will review your permits within 1 business day. You can draft jobs now!'
+        });
+      } else {
+        JM.toast('Submitted. We will review your documents shortly.', 'ok');
+      }
     } catch (e) { err(JM.err(e)); btn.disabled = false; }
   };
   JM.actions.resubmit = function () {
@@ -85,13 +99,114 @@
   };
   JM.forms.resubmit = async function () {
     if (!JM.docs['DTI certificate'] || !JM.docs["Mayor's permit"] || !JM.docs['Valid ID']) return JM.toast('Upload DTI certificate, Mayor\'s permit, and valid ID.', 'bad');
-    JM.me = await JM.rpc('resubmit_docs', { p_docs: Object.keys(JM.docs).map(function (k) { return { kind: k, path: JM.docs[k].path, name: JM.docs[k].name }; }) }); JM.close(); JM.toast('Resubmitted for review.', 'ok'); JM.render();
+    JM.me = await JM.rpc('resubmit_docs', { p_docs: Object.keys(JM.docs).map(function (k) { return { kind: k, path: JM.docs[k].path, name: JM.docs[k].name }; }) }); JM.close();
+    if (JM.reward) {
+      JM.reward({
+        id: 'employer_docs_resubmitted_' + Date.now(),
+        tier: 2,
+        repeatTier: 2,
+        emotion: 'scanning',
+        prop: 'magnifying-glass',
+        animation: 'scan',
+        title: 'Documents resubmitted — Under review',
+        copy: 'Thank you! An administrator will re-verify your updated documents shortly.'
+      });
+    } else {
+      JM.toast('Resubmitted for review.', 'ok');
+    }
+    JM.render();
   };
+  function mountEmployerBannerMascots() {
+    document.querySelectorAll('.jobi-emp-rejected-mascot').forEach(function (slot) {
+      if (slot._jobiMounted || !JM.mascot) return;
+      slot._jobiMounted = true;
+      JM.mascot.mount(slot, {
+        emotion: 'comforting',
+        prop: 'clipboard',
+        animation: 'nod',
+        size: 68,
+        ariaLabel: 'Comforting Jobi with verification checklist'
+      });
+    });
+  }
+  function checkApplicantMilestones(totalCount) {
+    const cnt = Number(totalCount) || 0;
+    if (!JM.reward || !JM.milestones || cnt < 1) return;
+    const milestones = [
+      [50, 'cheering', 'trophy', 'cheer', true, '50 Applicants Milestone!', '50 candidates have applied to your listings!'],
+      [10, 'cheering', 'megaphone', 'bounce', false, '10th Applicant Reached!', 'Your job listings are gaining strong local traction.'],
+      [1, 'star_eyes', 'clipboard', 'peek', false, 'Your first applicant!', 'Open Applicants to review their skills and match breakdown.']
+    ];
+    for (let i = 0; i < milestones.length; i++) {
+      const m = milestones[i];
+      const key = 'employer_applicants_milestone_' + m[0];
+      if (cnt >= m[0] && !JM.milestones.has(key)) {
+        JM.reward({
+          id: key,
+          tier: 2,
+          repeatTier: null,
+          emotion: m[1],
+          prop: m[2],
+          animation: m[3],
+          confetti: m[4],
+          title: m[5],
+          copy: m[6]
+        });
+        break;
+      }
+    }
+  }
   function banner() {
     const e = JM.me.employer;
-    if (e.verification_status === 'verified') return '';
-    if (e.verification_status === 'rejected') return '<div class="notice bad mb">' + ic('flag') + '<div class="grow"><b>Verification was not approved.</b> ' + esc(e.verification_reason || '') + '</div><button class="btn sm" data-act="resubmit">Resubmit documents</button></div>';
-    return '<div class="notice warn mb">' + ic('clock') + '<div><b>Verification pending.</b> You can draft jobs now. Publishing unlocks once an administrator approves your documents.</div></div>';
+    if (e.verification_status === 'verified') {
+      if (JM.reward && JM.milestones && !JM.milestones.has('employer_verified_' + JM.me.id)) {
+        setTimeout(function () {
+          JM.reward({
+            id: 'employer_verified_' + JM.me.id,
+            tier: 3,
+            repeatTier: null,
+            emotion: 'proud',
+            prop: 'shield',
+            animation: 'cheer',
+            badge: 'Verified Employer',
+            title: e.name + ' is now Verified!',
+            copy: 'Your business documents were approved. You now carry the Verified badge and can publish live job listings.',
+            confetti: true,
+            cta: { label: 'Post a job listing', onClick: function () { JM.go('/employer/jobs/new'); } }
+          });
+        }, 120);
+      }
+      return '';
+    }
+    if (e.verification_status === 'rejected') {
+      setTimeout(mountEmployerBannerMascots, 30);
+      if (JM.reward && JM.milestones && !JM.milestones.has('employer_rejected_seen_' + (e.verification_reason || '1'))) {
+        setTimeout(function () {
+          JM.reward({
+            id: 'employer_rejected_seen_' + (e.verification_reason || '1'),
+            tier: 2,
+            repeatTier: null,
+            emotion: 'comforting',
+            prop: 'clipboard',
+            animation: 'nod',
+            confetti: false,
+            title: 'Verification needs a quick update',
+            copy: 'See the "What to fix" checklist on your dashboard and resubmit anytime.'
+          });
+        }, 140);
+      }
+      return '<div class="jobi-emp-rejected-card" role="region" aria-label="Verification feedback and what to fix">' +
+        '<div class="jobi-emp-rejected-mascot"></div>' +
+        '<div class="grow"><b>Verification needs an update — here is what to fix:</b>' +
+        (e.verification_reason ? '<div class="small" style="margin-top:4px;color:#7C2D12"><b>Reviewer note:</b> ' + esc(e.verification_reason) + '</div>' : '') +
+        '<ul class="jobi-emp-fix-list">' +
+        '<li>Ensure the business name on your <b>DTI / SEC Certificate</b> matches your <b>Mayor’s Permit</b>.</li>' +
+        '<li>Check that all 4 corners, registration numbers, and validity dates are clearly legible.</li>' +
+        '<li>Include a clear photo or scan of the owner’s valid government-issued ID.</li>' +
+        '</ul></div>' +
+        '<button class="btn sm" data-act="resubmit">Resubmit documents</button></div>';
+    }
+    return '<div class="notice warn mb">' + ic('clock') + '<div><b>Verification pending (Under review).</b> You can draft jobs now. Publishing unlocks once an administrator approves your documents.</div></div>';
   }
 
   // ---------- overview ----------
@@ -101,11 +216,22 @@
       let interviews = [];
       try { interviews = await JM.rpc('employer_interviews'); } catch (x) { interviews = []; }
       const upcomingIv = interviews.filter(function (iv) { return iv.status !== 'cancelled' && iv.status !== 'completed'; });
+      checkApplicantMilestones(o.applicants);
+      const newlyConfirmedIv = upcomingIv.find(function (iv) { return iv.status === 'confirmed' && JM.milestones && !JM.milestones.has('employer_iv_confirmed_' + iv.id); });
+      if (newlyConfirmedIv && JM.milestones) {
+        JM.milestones.mark('employer_iv_confirmed_' + newlyConfirmedIv.id);
+        setTimeout(function () {
+          const cardEl = document.querySelector('[data-emp-iv="' + newlyConfirmedIv.id + '"]');
+          if (JM.micro && JM.micro.stampPop) {
+            JM.micro.stampPop(cardEl, 'Candidate Confirmed ✓', 'green');
+          }
+        }, 160);
+      }
       const ivCard = '<div class="card mt"><div class="card-h"><h3 class="grow">Scheduled Interviews</h3><span class="badge brand">' + upcomingIv.length + ' upcoming</span></div>' +
         (upcomingIv.length ? '<div class="list">' + upcomingIv.map(function (iv) {
           const stCls = iv.status === 'confirmed' ? 'ok' : iv.status === 'rescheduled' ? 'warn' : 'brand';
-          return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + esc(iv.applicant_name) + '</b> <span class="small muted">· ' + esc(iv.job_title) + '</span><div class="xs muted">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + esc(iv.interview_type) + (iv.location_or_link ? ' · ' + esc(iv.location_or_link) : '') + '</div></div>' +
-            JM.badge(iv.status, stCls) + '<button class="btn secondary sm" data-act="empivstatus" data-id="' + iv.id + '" data-s="completed">Complete</button><button class="btn ghost sm danger" data-act="empivstatus" data-id="' + iv.id + '" data-s="cancelled">Cancel</button></div>';
+          return '<div class="li" data-emp-iv="' + iv.id + '" style="flex-wrap:wrap"><div class="grow"><b>' + esc(iv.applicant_name) + '</b> <span class="small muted">· ' + esc(iv.job_title) + '</span><div class="xs muted">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + esc(iv.interview_type) + (iv.location_or_link ? ' · ' + esc(iv.location_or_link) : '') + '</div></div>' +
+            JM.badge(iv.status === 'confirmed' ? 'Confirmed ✓' : iv.status, stCls) + '<button class="btn secondary sm" data-act="empivstatus" data-id="' + iv.id + '" data-s="completed">Complete</button><button class="btn ghost sm danger" data-act="empivstatus" data-id="' + iv.id + '" data-s="cancelled">Cancel</button></div>';
         }).join('') + '</div>' : '<div class="card-b small muted">No upcoming interviews scheduled. Open any shortlisted applicant to schedule an interview.</div>') + '</div>';
       return '<div class="page">' + JM.pageHead('Welcome, ' + esc(e.name), 'Here is what is happening with your hiring.', '<a class="btn" href="#/employer/jobs/new">' + ic('plus', 16) + 'Post a job</a>') + banner() +
         '<div class="grid g4 mb">' + stat(o.live, 'Live jobs') + stat(o.applicants, 'Applicants') + stat(o.matched, 'Shortlisted or hired') + stat(o.views, 'Job views') + '</div>' +
@@ -139,6 +265,25 @@
         (jobs.length ? '<div class="card"><div class="tablewrap"><table><thead><tr><th>Job</th><th>Status</th><th>Applicants</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' : '<div class="card">' + JM.empty('briefcase', 'No jobs yet', 'Post your first job. It takes about three minutes.', '<a class="btn" href="#/employer/jobs/new">Post a job</a>') + '</div>') + '</div>';
     }
   });
+  function celebrateJobPublished(jobTitle) {
+    if (!JM.reward) {
+      JM.toast('Job is live.', 'ok');
+      return;
+    }
+    JM.reward({
+      id: 'employer_first_job_published',
+      tier: 3,
+      repeatTier: 2,
+      emotion: 'cheering',
+      prop: 'megaphone',
+      animation: 'cheer',
+      badge: 'Listing Live',
+      title: (jobTitle ? '"' + jobTitle + '"' : 'Your job') + ' is now live!',
+      copy: 'Matching candidates in Biñan and nearby areas can now discover and apply to your listing.',
+      confetti: true,
+      cta: { label: 'View my jobs', onClick: function () { JM.go('/employer/jobs'); } }
+    });
+  }
   JM.actions.jobstatus = async function (el) {
     await JM.busy(el, async function () {
       const r = await JM.rpc('set_job_status', { p_job: el.dataset.id, p_status: el.dataset.s });
@@ -146,7 +291,9 @@
         if (r.reason === 'verify_required') return JM.toast('Your business must be verified before publishing.', 'bad');
         if (r.reason === 'plan_limit') return JM.modal('<h2>Listing limit reached</h2><p class="muted mt">Your plan allows ' + r.limit + ' live listings. Pause or close one, or upgrade for more.</p><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button><a class="btn" href="#/employer/billing" data-act="close">See plans</a></div>');
       }
-      JM.toast(el.dataset.s === 'published' ? 'Job is live.' : 'Job updated.', 'ok'); JM.render();
+      if (el.dataset.s === 'published') celebrateJobPublished('');
+      else JM.toast('Job updated.', 'ok', { targetEl: el });
+      JM.render();
     });
   };
   JM.actions.jobdel = function (el) { JM.confirm({ title: 'Delete this draft?', text: 'This cannot be undone.', ok: 'Delete', danger: true, onOk: function () { JM.busy(null, async function () { await JM.q(JM.sb.from('jobs').delete().eq('id', el.dataset.id)); JM.render(); }); } }); };
@@ -172,14 +319,72 @@
     } catch (e) { /* ignore */ }
     JM.drawDraft();
   }
+  // Real validation check map for jobForm required fields & listing strength meter
+  function getJobValidationState(d) {
+    d = d || {};
+    const valid = {
+      title: String(d.title || '').trim().length >= 3,
+      work_setup: SETUPS.indexOf(d.work_setup) >= 0,
+      category: String(d.category || '').trim().length > 0,
+      area_id: String(d.area_id || '').trim().length > 0,
+      salary_min: Number(d.salary_min) > 0,
+      salary_max: Number(d.salary_max) > 0 && Number(d.salary_max) >= Number(d.salary_min || 0),
+      description: String(d.description || '').trim().length >= 20,
+      skills: Array.isArray(d.skills) && d.skills.length >= 1
+    };
+    const keys = Object.keys(valid);
+    const done = keys.filter(function (k) { return valid[k]; }).length;
+    const pct = Math.round((done / keys.length) * 100);
+    return { valid: valid, done: done, total: keys.length, pct: pct };
+  }
+  function checkJobFieldProgress(changedKey, targetEl) {
+    if (!JM.jd) return;
+    const prev = JM._jdValidSnap || {};
+    const st = getJobValidationState(JM.jd);
+    JM._jdValidSnap = st.valid;
+    if (changedKey && !prev[changedKey] && st.valid[changedKey]) {
+      const tickEl = document.querySelector('[data-jtick="' + changedKey + '"]');
+      if (tickEl) tickEl.classList.remove('hide');
+      if (JM.reward && targetEl) {
+        JM.reward({ tier: 1, title: 'Field complete ✓', targetEl: targetEl });
+      }
+    }
+    const barFill = document.querySelector('#job-strength-bar i');
+    const pctText = document.getElementById('job-strength-pct');
+    if (barFill) barFill.style.width = st.pct + '%';
+    if (pctText) pctText.textContent = st.pct + '%';
+    if (st.pct >= 100 && !JM._jd100Celebrated && JM.reward) {
+      JM._jd100Celebrated = true;
+      JM.reward({
+        id: 'employer_listing_strength_100',
+        tier: 2,
+        repeatTier: 1,
+        emotion: 'proud',
+        prop: 'clipboard',
+        animation: 'nod',
+        title: 'Listing strength at 100%!',
+        copy: 'Every required field and matching skill is validated and ready to publish.'
+      });
+    } else if (st.pct < 100) {
+      JM._jd100Celebrated = false;
+    }
+  }
   function jobForm(j, isNew) {
     JM.jd = Object.assign(blankJob(), j, { role_other: !j.role_id && !!j.custom_role });
     JM.jerr = {};
+    const initSt = getJobValidationState(JM.jd);
+    JM._jdValidSnap = initSt.valid;
+    JM._jd100Celebrated = initSt.pct >= 100;
     const req = '<span class="req" aria-hidden="true">*</span>';
+    const fTick = function (k) {
+      const ok = JM.jd && getJobValidationState(JM.jd).valid[k];
+      return '<span class="jobi-field-tick' + (ok ? '' : ' hide') + '" data-jtick="' + k + '" title="Required field complete" aria-label="Completed">✓</span>';
+    };
     const ferr = function (k) { return JM.jerr && JM.jerr[k] ? '<div class="ferr">' + esc(JM.jerr[k]) + '</div>' : ''; };
     const fcls = function (k) { return JM.jerr && JM.jerr[k] ? ' field-err' : ''; };
     JM.draftRender = function () {
       const d = JM.jd, emp = JM.me.employer;
+      const vState = getJobValidationState(d);
       const rolePk = JM.rolePicker({
         id: 'job-role-rp',
         value: d.role_id,
@@ -196,8 +401,8 @@
         minChars: 0,
         placeholder: 'Select or type a category…',
         source: (JM.categories || []).map(function (c) { return { value: c, label: c }; }),
-        onType: function (v) { JM.jd.category = v; },
-        onPick: function (it) { JM.jd.category = it.value; }
+        onType: function (v) { JM.jd.category = v; checkJobFieldProgress('category'); },
+        onPick: function (it) { JM.jd.category = it.value; checkJobFieldProgress('category'); }
       });
       const areaTa = JM.typeahead({
         id: 'job-area-ta',
@@ -206,7 +411,7 @@
         minChars: 0,
         placeholder: 'Type city or barangay…',
         source: JM.areaItems || [],
-        onPick: function (it) { JM.jd.area_id = it.value; }
+        onPick: function (it) { JM.jd.area_id = it.value; checkJobFieldProgress('area_id'); }
       });
       const setupSeg = '<div class="grid g3">' + SETUPS.map(function (s) {
         return '<label class="opt setup-opt"><input type="radio" name="work_setup" value="' + s + '" data-in="jdsetup"' + ((d.work_setup || 'On-site') === s ? ' checked' : '') + '>' +
@@ -219,7 +424,7 @@
         '<button type="button" class="btn secondary sm" data-act="jddays" data-d="1">+</button>' +
         '<span class="xs muted">days on-site</span></div>'
         : '';
-      const photoPreview = '<div class="jmedia jmedia-form">' +
+      const photoPreview = '<div class="jmedia jmedia-form' + (JM._justSnappedJobPhoto ? ' jobi-photo-frame-snap' : '') + '">' +
         JM.img({ bucket: 'job-photos', path: d.photo_path, directUrl: d._photoBlob, uploading: !!d._photoUploading, shape: 'cover43', focus: d.photo_focus || '50% 50%', fallback: 'placeholder', name: d.category || d.title || 'Listing preview', icon: 'image', alt: 'Job listing photo preview' }) +
         '<div class="jlogo">' + JM.img({ bucket: 'company-logos', path: emp.logo_path, shape: 'circle', size: 54, name: emp.name }) + '</div></div>';
       const photoBlock = '<div class="field"><label class="label">Listing photo (shown on Discover cards, 4:3)</label>' +
@@ -240,6 +445,7 @@
           if (JM.jd.skills.indexOf(name) >= 0) return;
           if (JM.jd.skills.length >= 8) return JM.toast('Pick up to 8 skills.');
           JM.jd.skills.push(name); JM.drawDraft();
+          checkJobFieldProgress('skills', document.querySelector('[data-sp-root="job-sp"]'));
         },
         onToggle: function (name) {
           const i = JM.jd.skills.indexOf(name);
@@ -247,35 +453,45 @@
           else if (JM.jd.skills.length < 8) JM.jd.skills.push(name);
           else return JM.toast('Pick up to 8 skills.');
           JM.drawDraft();
+          checkJobFieldProgress('skills', document.querySelector('[data-sp-root="job-sp"]'));
         },
         onRemove: function (name) {
           const i = JM.jd.skills.indexOf(name);
           if (i >= 0) JM.jd.skills.splice(i, 1);
           JM.drawDraft();
+          checkJobFieldProgress('skills');
         },
         onRedraw: function () { JM.drawDraft(); }
       });
 
-      return '<div class="card card-b"><p class="xs muted mb">Fields marked with <span class="req">*</span> are required.</p>' +
-        '<div class="field' + fcls('title') + '"><label class="label">Job title ' + req + '</label><input type="text" data-in="jd" data-k="title" value="' + esc(d.title) + '" maxlength="120" placeholder="e.g. Barista">' + ferr('title') + '</div>' +
+      const strengthBarHtml = '<div class="card flat card-b mb" style="padding:12px 14px">' +
+        '<div class="row between mb" style="margin-bottom:6px"><span class="small bold">Listing strength (validated required fields)</span><b class="small num" id="job-strength-pct">' + vState.pct + '%</b></div>' +
+        '<div id="job-strength-bar">' + JM.bar(vState.pct, 'ok') + '</div></div>';
+
+      return '<div class="card card-b">' + strengthBarHtml + '<p class="xs muted mb">Fields marked with <span class="req">*</span> are required.</p>' +
+        '<div class="field' + fcls('title') + '"><label class="label">Job title ' + req + fTick('title') + '</label><input type="text" data-in="jd" data-k="title" value="' + esc(d.title) + '" maxlength="120" placeholder="e.g. Barista">' + ferr('title') + '</div>' +
         '<div class="field"><label class="label">Career role</label>' + rolePk +
         (d.role_other || d.custom_role ? '<input type="text" class="mt" style="margin-top:8px" data-in="jd" data-k="custom_role" value="' + esc(d.custom_role || '') + '" maxlength="120" placeholder="Specify custom career role">' : '') +
         '<div class="help">Pick a role for automatic roadmaps and skill suggestions, or pick "Other / not listed" to specify.</div></div>' +
-        '<div class="field' + fcls('work_setup') + '"><label class="label">Work setup ' + req + '</label>' + setupSeg + hybridDays + ferr('work_setup') + '</div>' +
-        '<div class="grid g2"><div class="field' + fcls('category') + '"><label class="label">Category ' + req + '</label>' + catTa + ferr('category') + '</div>' +
+        '<div class="field' + fcls('work_setup') + '"><label class="label">Work setup ' + req + fTick('work_setup') + '</label>' + setupSeg + hybridDays + ferr('work_setup') + '</div>' +
+        '<div class="grid g2"><div class="field' + fcls('category') + '"><label class="label">Category ' + req + fTick('category') + '</label>' + catTa + ferr('category') + '</div>' +
         '<div class="field"><label class="label">Employment type ' + req + '</label><select data-in="jd" data-k="type">' + opts(JM.TYPES, d.type) + '</select></div>' +
-        '<div class="field' + fcls('area_id') + '"><label class="label">' + (d.work_setup === 'Remote' ? 'Hiring area / company base' : 'Location') + ' ' + req + '</label>' + areaTa + (d.work_setup === 'Remote' ? '<div class="help">Remote jobs are shown to seekers regardless of commute distance.</div>' : '') + ferr('area_id') + '</div>' +
-        '<div class="grid g2 keep" style="gap:10px"><div class="field' + fcls('salary_min') + '"><label class="label">Min pay (₱/mo) ' + req + '</label><input type="number" data-in="jd" data-k="salary_min" value="' + esc(d.salary_min) + '" min="1" step="500">' + ferr('salary_min') + '</div><div class="field' + fcls('salary_max') + '"><label class="label">Max pay (₱/mo) ' + req + '</label><input type="number" data-in="jd" data-k="salary_max" value="' + esc(d.salary_max) + '" min="1" step="500">' + ferr('salary_max') + '</div></div></div>' +
+        '<div class="field' + fcls('area_id') + '"><label class="label">' + (d.work_setup === 'Remote' ? 'Hiring area / company base' : 'Location') + ' ' + req + fTick('area_id') + '</label>' + areaTa + (d.work_setup === 'Remote' ? '<div class="help">Remote jobs are shown to seekers regardless of commute distance.</div>' : '') + ferr('area_id') + '</div>' +
+        '<div class="grid g2 keep" style="gap:10px"><div class="field' + fcls('salary_min') + '"><label class="label">Min pay (₱/mo) ' + req + fTick('salary_min') + '</label><input type="number" data-in="jd" data-k="salary_min" value="' + esc(d.salary_min) + '" min="1" step="500">' + ferr('salary_min') + '</div><div class="field' + fcls('salary_max') + '"><label class="label">Max pay (₱/mo) ' + req + fTick('salary_max') + '</label><input type="number" data-in="jd" data-k="salary_max" value="' + esc(d.salary_max) + '" min="1" step="500">' + ferr('salary_max') + '</div></div></div>' +
         photoBlock +
         '<div class="field"><label class="label">Specific requirements / Intern &amp; OJT details (optional)</label><input type="text" data-in="jd" data-k="intern_requirements" value="' + esc(d.intern_requirements || '') + '" maxlength="300" placeholder="e.g. BSIT/ABM students, 300 OJT hours, or specific shift/credential"></div>' +
-        '<div class="field' + fcls('description') + '"><label class="label">Description ' + req + '</label><textarea data-in="jd" data-k="description" style="min-height:140px" maxlength="5000" placeholder="What the person will do, hours, and what you are looking for.">' + esc(d.description) + '</textarea>' + ferr('description') + '</div>' +
-        '<div class="field' + fcls('skills') + '"><label class="label">Skills needed (1 to 8) ' + req + '</label>' + skillPk + ferr('skills') + '</div>' +
+        '<div class="field' + fcls('description') + '"><label class="label">Description ' + req + fTick('description') + '</label><textarea data-in="jd" data-k="description" style="min-height:140px" maxlength="5000" placeholder="What the person will do, hours, and what you are looking for.">' + esc(d.description) + '</textarea>' + ferr('description') + '</div>' +
+        '<div class="field' + fcls('skills') + '"><label class="label">Skills needed (1 to 8) ' + req + fTick('skills') + '</label>' + skillPk + ferr('skills') + '</div>' +
         '<div class="notice bad hide" id="form-err" role="alert"></div><div class="row wrap mt" style="justify-content:flex-end"><a class="btn ghost" href="#/employer/jobs">Cancel</a><button class="btn secondary" data-act="jobsave" data-publish="0">Save draft</button><button class="btn" data-act="jobsave" data-publish="1">' + (isNew || j.status === 'draft' ? 'Publish' : 'Save changes') + '</button></div></div>';
     };
     return '<div class="page narrow">' + JM.pageHead(isNew ? 'Post a job' : 'Edit job') + banner() + '<div id="draft-root">' + JM.draftRender() + '</div></div>';
   }
-  JM.inputs.jd = function (el) { JM.jd[el.dataset.k] = el.type === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value; };
-  JM.inputs.jdsetup = function (el) { JM.jd.work_setup = el.value; if (el.value === 'Hybrid' && !JM.jd.onsite_days) JM.jd.onsite_days = 3; JM.drawDraft(); };
+  JM.inputs.jd = function (el) {
+    const k = el.dataset.k;
+    JM.jd[k] = el.type === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value;
+    checkJobFieldProgress(k, el);
+  };
+  JM.inputs.jdsetup = function (el) { JM.jd.work_setup = el.value; if (el.value === 'Hybrid' && !JM.jd.onsite_days) JM.jd.onsite_days = 3; JM.drawDraft(); checkJobFieldProgress('work_setup', el); };
   JM.actions.jddays = function (el) { JM.jd.onsite_days = Math.max(1, Math.min(5, Number(JM.jd.onsite_days || 3) + Number(el.dataset.d))); JM.drawDraft(); };
   JM.inputs.jobphoto = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
@@ -304,9 +520,15 @@
       JM.jd.photo_focus = '50% 50%';
       JM.jd._photoBlob = null;
       JM.jd._photoUploading = false;
+      JM._justSnappedJobPhoto = true;
       JM.drawDraft();
+      setTimeout(function () { JM._justSnappedJobPhoto = false; }, 900);
       if (preloaded && blobUrl) URL.revokeObjectURL(blobUrl);
-      JM.toast('Listing photo uploaded.', 'ok');
+      if (JM.reward) {
+        JM.reward({ tier: 1, title: '4:3 listing photo & logo badge snapped into place ✓', targetEl: document.querySelector('.jmedia-form') || el });
+      } else {
+        JM.toast('Listing photo uploaded.', 'ok');
+      }
     } catch (e) {
       JM.jd._photoBlob = null;
       JM.jd._photoUploading = false;
@@ -373,8 +595,12 @@
       if (publish && (!d.status || d.status === 'draft' || d.status === 'paused' || d.status === 'closed')) {
         const r = await JM.rpc('set_job_status', { p_job: id, p_status: 'published' });
         if (!r.ok) { JM.toast(r.reason === 'verify_required' ? 'Saved as a draft. Publishing unlocks after verification.' : 'Saved as a draft. You reached your live listing limit.', 'bad'); return JM.go('/employer/jobs'); }
-        JM.toast('Job is live.', 'ok');
-      } else JM.toast('Saved.', 'ok');
+        celebrateJobPublished(d.title.trim());
+      } else if (!publish && JM.reward) {
+        JM.reward({ tier: 1, title: 'Draft saved ✓', targetEl: el });
+      } else {
+        JM.toast('Saved.', 'ok', { targetEl: el });
+      }
       JM.go('/employer/jobs');
     });
   };
@@ -383,10 +609,11 @@
   JM.sel = {};
   JM.route('/employer/jobs/:id/applicants', {
     auth: 'employer', title: 'Applicants', render: async function (p) {
-      const job = await JM.q(JM.sb.from('jobs').select('id,title,work_setup,onsite_days').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
+      const job = await JM.q(JM.sb.from('jobs').select('id,title,work_setup,onsite_days,posted_at,created_at').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
       if (!job) return '<div class="page">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
-      const r = await JM.rpc('employer_applicants', { p_job: p.id }); JM.sel = {}; JM.apps = r.items; JM.appJob = p.id; JM.filterStatus = JM.filterStatus || 'all';
+      const r = await JM.rpc('employer_applicants', { p_job: p.id }); JM.sel = {}; JM.apps = r.items; JM.appJob = p.id; JM.appJobObj = job; JM.filterStatus = JM.filterStatus || 'all';
       JM.appRanked = r.ranked;
+      checkApplicantMilestones(r.items.length);
       return '<div class="page"><a class="small row gap-s" href="#/employer/jobs" style="margin-bottom:14px">' + ic('left', 16) + 'Jobs</a>' + JM.pageHead(esc(job.title) + ' ' + JM.setupBadge(job.work_setup, job.onsite_days), r.items.length + ' applicants' + (r.ranked ? ', ranked by match score' : ''), '') +
         (!r.ranked ? '<div class="notice mb">' + ic('sparkle') + '<span>Applicants are in the order received. <a href="#/employer/billing">Upgrade to Growth</a> to rank them by match score and see starred candidates first.</span></div>' : '') +
         '<div class="tabs" id="app-tabs">' + [['all', 'All'], ['applied', 'New'], ['shortlisted', 'Shortlisted'], ['hired', 'Hired'], ['rejected', 'Rejected']].map(function (t) { return '<button data-act="afilter" data-s="' + t[0] + '" class="' + (JM.filterStatus === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>' +
@@ -414,7 +641,36 @@
     const ids = Object.keys(JM.sel), s = el.dataset.s;
     JM.confirm({
       title: (s === 'shortlisted' ? 'Shortlist ' : 'Reject ') + ids.length + ' applicants?', text: s === 'shortlisted' ? 'They are notified, you see their full profile and contact details, and a chat opens.' : 'They are notified that they were not selected.', ok: s === 'shortlisted' ? 'Shortlist' : 'Reject', danger: s === 'rejected',
-      onOk: function () { JM.busy(null, async function () { for (const id of ids) { try { await JM.rpc('set_application_status', { p_app: id, p_status: s }); } catch (e) { /* skip */ } } JM.toast('Updated ' + ids.length + ' applicants.', 'ok'); JM.render(); }); }
+      onOk: function () {
+        JM.busy(null, async function () {
+          const firstApp = (JM.apps || []).find(function (x) { return String(x.id) === String(ids[0]); });
+          const maskedName = (firstApp && firstApp.name) || 'Candidate';
+          for (const id of ids) {
+            try { await JM.rpc('set_application_status', { p_app: id, p_status: s }); } catch (e) { /* skip */ }
+          }
+          if (s === 'shortlisted' && JM.micro && JM.micro.fairHiringReveal) {
+            let unmaskedName = maskedName;
+            if (ids[0]) {
+              try {
+                const u = await JM.rpc('employer_application', { p_app: ids[0] });
+                if (u) unmaskedName = (u.contact && u.contact.full_name) || u.name || maskedName;
+              } catch (e) {}
+            }
+            JM.micro.fairHiringReveal({
+              id: ids[0],
+              maskedName: maskedName,
+              fullName: ids.length > 1 ? (unmaskedName + ' +' + (ids.length - 1) + ' more') : unmaskedName,
+              jobTitle: (JM.appJobObj && JM.appJobObj.title) || 'your listing',
+              score: firstApp && firstApp.score
+            });
+          } else if (s === 'rejected') {
+            JM.toast('Updated ' + ids.length + ' applicants.');
+          } else {
+            JM.toast('Updated ' + ids.length + ' applicants.', 'ok');
+          }
+          JM.render();
+        });
+      }
     });
   };
   JM.actions.openapp = async function (el) {
@@ -459,13 +715,68 @@
   JM.forms.schediv = async function (form, d) {
     if (!d.date || !d.time || !String(d.location || '').trim()) return JM.toast('Fill in date, time, and location/link.', 'bad');
     await JM.rpc('schedule_interview', { p_app: form.dataset.app, p_date: d.date, p_time: d.time, p_type: d.type || 'Online', p_location: d.location, p_notes: d.notes || '' });
-    JM.close(); JM.toast('Interview scheduled and applicant notified!', 'ok');
+    JM.close();
+    if (JM.micro && JM.micro.calendarFlip) {
+      JM.micro.calendarFlip({
+        candidateName: (JM.curApp && JM.curApp.name) || 'Candidate',
+        date: JM.date(d.date),
+        time: d.time,
+        type: d.type || 'Online'
+      });
+    } else {
+      JM.toast('Interview scheduled and applicant notified!', 'ok');
+    }
   };
   JM.actions.appstatus = function (el) {
     const s = el.dataset.s, a = JM.curApp;
     JM.confirm({
       title: s === 'shortlisted' ? 'Shortlist this applicant?' : s === 'hired' ? 'Mark as hired?' : 'Reject this applicant?', text: s === 'shortlisted' ? 'They are notified, you see their full profile and contact details, and a chat opens.' : s === 'hired' ? 'They are notified. Close the job if the position is filled.' : 'They are notified that they were not selected.', ok: s === 'rejected' ? 'Reject' : 'Confirm', danger: s === 'rejected',
-      onOk: function () { JM.busy(null, async function () { await JM.rpc('set_application_status', { p_app: a.id, p_status: s }); JM.toast('Updated.', 'ok'); JM.close(); JM.render(); }); }
+      onOk: function () {
+        JM.busy(null, async function () {
+          const maskedName = a.name || 'Candidate';
+          await JM.rpc('set_application_status', { p_app: a.id, p_status: s });
+          let unmasked = null;
+          if (s === 'shortlisted' || s === 'hired') {
+            try { unmasked = await JM.rpc('employer_application', { p_app: a.id }); } catch (e) {}
+          }
+          const fullName = (unmasked && ((unmasked.contact && unmasked.contact.full_name) || unmasked.name)) || a.name || 'Candidate';
+          JM.close();
+          if (s === 'hired' && JM.reward) {
+            const jobRef = JM.appJobObj || (a.job) || {};
+            const startTs = jobRef.posted_at || jobRef.created_at || a.created_at || new Date().toISOString();
+            const daysToFill = Math.max(1, Math.round((Date.now() - new Date(startTs).getTime()) / 86400000));
+            const daysLabel = daysToFill === 1 ? '1 day to fill' : (daysToFill + ' days to fill');
+            JM.reward({
+              id: 'employer_hired_' + a.id,
+              tier: 3,
+              forceTier: true,
+              repeatTier: 2,
+              emotion: 'cheering',
+              prop: 'trophy',
+              animation: 'cheer',
+              badge: '🙌 Position Filled!',
+              title: 'Position filled! You hired ' + fullName + '!',
+              copy: 'High five! ' + fullName + ' has been notified for ' + (a.job && a.job.title ? a.job.title : 'the role') + '.',
+              extraHtml: '<div class="jobi-days-to-fill-pill">⏱️ ' + esc(daysLabel) + '</div>',
+              confetti: true
+            });
+          } else if (s === 'shortlisted' && JM.micro && JM.micro.fairHiringReveal) {
+            JM.micro.fairHiringReveal({
+              id: a.id,
+              maskedName: maskedName,
+              fullName: fullName,
+              jobTitle: a.job && a.job.title,
+              score: a.score
+            });
+          } else if (s === 'rejected') {
+            // Guardrail: keep rejections neutral
+            JM.toast('Applicant status updated.');
+          } else {
+            JM.toast('Updated.', 'ok');
+          }
+          JM.render();
+        });
+      }
     });
   };
   JM.actions.resumedl = async function (el) {
@@ -491,7 +802,12 @@
   const csScoreCol = function (s) { return s >= 75 ? '#14804F' : s >= 50 ? '#0C70F8' : '#9A5B00'; };
   const csMatchRow = function (title, score, on) { return '<div class="skill"><div class="row between small"><span>' + (on ? '<b>' + esc(title) + '</b> ' + JM.badge('Selected', 'brand') : esc(title)) + '</span><b class="num" style="color:' + csScoreCol(score) + '">' + score + '%</b></div>' + JM.bar(score, score >= 70 ? 'ok' : '') + '</div>'; };
   JM.forms.csearch = async function (form, d) {
-    const out = document.getElementById('cs-out'); out.innerHTML = '<div class="skel" style="height:120px"></div>';
+    const out = document.getElementById('cs-out');
+    if (JM.micro && JM.micro.mountRadarLoader) {
+      JM.micro.mountRadarLoader(out, 'Scanning opted-in candidates…');
+    } else {
+      out.innerHTML = '<div class="skel" style="height:120px"></div>';
+    }
     const r = await JM.rpc('candidate_search', { p_q: d.q || '', p_area: d.area || '', p_job: d.job || null, p_setup: d.setup || '' });
     JM.cs.job = d.job || (r[0] && r[0].ref_job_id) || null;
     JM.cs.results = r;
@@ -561,7 +877,12 @@
   JM.actions.invite = async function (el, ev) {
     if (ev) ev.stopPropagation();
     if (!JM.cs.job) return JM.toast('Publish a job and select it in "Match against job position" first, then invite.', 'bad');
-    await JM.busy(el, async function () { await JM.rpc('invite_candidate', { p_seeker: el.dataset.id, p_job: JM.cs.job }); el.outerHTML = '<span class="badge ok">Invited</span>'; JM.toast('Invitation sent.', 'ok'); });
+    await JM.busy(el, async function () {
+      await JM.rpc('invite_candidate', { p_seeker: el.dataset.id, p_job: JM.cs.job });
+      if (JM.micro && JM.micro.planeFly) JM.micro.planeFly(el);
+      el.outerHTML = '<span class="badge ok">Invited</span>';
+      JM.toast('Invitation sent.', 'ok');
+    });
   };
 
   // ---------- analytics (v2: real DB data, trends chart, insights, exports) ----------
@@ -631,6 +952,39 @@
       if (!suggestions.length && rows.length) suggestions.push('Your listings are receiving steady engagement across ' + rng.start + ' to ' + rng.end + '.');
       JM.anData.insights = { mostViewed: mostViewed, mostSaved: mostSaved, mostApplied: mostApplied, highestRate: highestRate, zeroApps: zeroApps, suggestions: suggestions };
 
+      // Analytics milestones (100+ views, best week / high conversion)
+      let trophyBannerHtml = '';
+      const bestTrend = (data.trends || []).slice().sort(function (a, b) { return (b.views + b.applications * 3) - (a.views + a.applications * 3); })[0];
+      if (s.views >= 100 || (bestTrend && (bestTrend.views >= 25 || bestTrend.applications >= 5))) {
+        const milestoneVal = s.views >= 100 ? s.views : (bestTrend ? bestTrend.views : s.views);
+        const milestoneLbl = s.views >= 100
+          ? '100+ Views Milestone Reached!'
+          : ('Best Day Peak (' + (bestTrend ? bestTrend.day : rng.end) + ')');
+        trophyBannerHtml = '<div class="jobi-analytics-trophy-bar" role="status">' +
+          '<span class="badge star">🏆 Analytics Milestone</span>' +
+          '<div class="grow"><b>' + esc(milestoneLbl) + '</b> · <span class="num bold" id="an-trophy-num" data-count-to="' + milestoneVal + '">' + milestoneVal + '</span> total views &amp; ' + s.applications + ' applications</div>' +
+          '</div>';
+        if (JM.reward && JM.milestones) {
+          const mKey = s.views >= 100 ? 'employer_analytics_views_100' : 'employer_analytics_best_week';
+          if (!JM.milestones.has(mKey)) {
+            setTimeout(function () {
+              const numEl = document.getElementById('an-trophy-num');
+              JM.reward({
+                id: mKey,
+                tier: 2,
+                repeatTier: 1,
+                emotion: 'proud',
+                prop: 'trophy',
+                animation: 'cheer',
+                title: milestoneLbl + ' 🏆',
+                copy: s.views + ' job views and ' + s.applications + ' applications across your active listings.',
+                targetEl: numEl
+              });
+            }, 140);
+          }
+        }
+      }
+
       const rangeBar = '<div class="row wrap gap-s mb">' +
         [['7', 'Last 7 Days'], ['30', 'Last 30 Days'], ['90', 'Last 90 Days']].map(function (p) {
           return '<button type="button" class="chip' + (JM.anRange.preset === p[0] ? ' on' : '') + '" data-act="anpreset" data-p="' + p[0] + '">' + p[1] + '</button>';
@@ -639,7 +993,7 @@
 
       const exportBar = '<div class="row gap-s wrap"><button class="btn secondary sm" data-act="anexport" data-fmt="pdf">' + ic('download', 14) + 'PDF</button><button class="btn secondary sm" data-act="anexport" data-fmt="xls">' + ic('download', 14) + 'Excel</button><button class="btn secondary sm" data-act="anexport" data-fmt="csv">' + ic('download', 14) + 'CSV</button></div>';
 
-      return '<div class="page print">' + JM.pageHead('Analytics', 'Recruitment performance (' + rng.start + ' to ' + rng.end + ')', exportBar) + rangeBar +
+      return '<div class="page print">' + JM.pageHead('Analytics', 'Recruitment performance (' + rng.start + ' to ' + rng.end + ')', exportBar) + trophyBannerHtml + rangeBar +
         '<div class="grid g4 mb">' + stat(s.views, 'Total Job Views') + stat(s.applications, 'Total Applications') + stat(s.saved, 'Total Saved Jobs') + stat(s.app_rate + '%', 'Application Rate') + '</div>' +
         '<div class="card card-b mb"><h3 class="mb">Application Trends</h3>' + svgLineChart(data.trends || []) + '</div>' +
         (rows.length ? '<div class="card mb"><div class="card-h"><h3 class="grow">Funnel by Listing</h3><span class="xs muted">Click any job title for detailed metrics</span></div><div class="tablewrap"><table><thead><tr><th>Listing</th><th class="num" title="Unique seekers who viewed this listing">Views</th><th class="num" title="Seekers who swiped left / skipped">Skipped</th><th class="num" title="Seekers who saved to Preferred">Saved</th><th class="num" title="Seekers who starred as top choice">Starred</th><th class="num" title="Total applications received">Applied</th><th class="num" title="Shortlisted or hired applicants">Matched</th><th class="num" title="Applied / Views">App Rate</th><th class="num" title="Matched / Applied">Conv Rate</th></tr></thead><tbody>' +
@@ -722,9 +1076,34 @@
   });
 
   // ---------- company ----------
+  function getCompanyProfileStrength(e) {
+    e = e || {};
+    const fields = ['name', 'type', 'area_id', 'address', 'contact_name', 'contact_phone', 'contact_email', 'about', 'logo_path'];
+    const done = fields.filter(function (k) { return String(e[k] || '').trim().length > 0; }).length;
+    return Math.round((done / fields.length) * 100);
+  }
+  function checkCompanyProfile100() {
+    const e = JM.me && JM.me.employer;
+    if (!e || !JM.reward || !JM.milestones) return;
+    const pct = getCompanyProfileStrength(e);
+    if (pct >= 100 && !JM.milestones.has('employer_company_100_' + JM.me.id)) {
+      JM.reward({
+        id: 'employer_company_100_' + JM.me.id,
+        tier: 2,
+        repeatTier: 1,
+        emotion: 'proud',
+        prop: 'medal',
+        animation: 'cheer',
+        confetti: true,
+        title: 'Company profile 100% complete! 🏅',
+        copy: 'Your logo, business details, and contact info are 100% complete.'
+      });
+    }
+  }
   JM.route('/employer/company', {
     auth: 'employer', title: 'Company and team', render: async function () {
       const e = JM.me.employer, team = await JM.q(JM.sb.from('employer_team').select('*').eq('employer_id', JM.me.id).order('name')), docs = await JM.q(JM.sb.from('employer_docs').select('*').eq('employer_id', JM.me.id).order('created_at')), n = e.notif || {};
+      const compPct = getCompanyProfileStrength(e);
       const sw = function (k, t) { return '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><b class="grow">' + t + '</b><span class="switch"><input type="checkbox" data-act="enotif" data-k="' + k + '"' + (n[k] !== false ? ' checked' : '') + '><i></i></span></label>'; };
       const findDoc = function (k) { return docs.find(function (d) { return d.kind === k; }); };
       const docRow = function (kind, label) {
@@ -735,7 +1114,10 @@
       };
       const bizTa = JM.typeahead({ id: 'comp-biz-ta', name: 'type', value: e.type || '', label: e.type || '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type…', source: BIZ_ITEMS });
       const areaTa = JM.typeahead({ id: 'comp-area-ta', name: 'area_id', value: e.area_id, label: JM.area(e.area_id), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [] });
-      return '<div class="page narrow">' + JM.pageHead('Company and team') +
+      const compStrengthCard = '<div class="card card-b mb"><div class="row" style="gap:14px">' +
+        JM.ring(compPct, 58, compPct >= 100 ? '#F5A524' : '#0C70F8', compPct >= 100 ? 'jobi-gold-ring-flash' : '') +
+        '<div class="grow"><b>Company profile strength</b><div class="small muted">' + (compPct >= 100 ? '100% complete — your brand stands out on Discover cards!' : 'Add your company logo, about description, and contact details to reach 100%.') + '</div></div></div></div>';
+      return '<div class="page narrow">' + JM.pageHead('Company and team') + compStrengthCard +
         '<div class="card mb"><div class="card-h"><h3 class="grow">Business profile</h3>' + (e.verification_status === 'verified' ? JM.badge('Verified', 'ok') : JM.badge(e.verification_status === 'pending' ? 'Pending review' : 'Not approved', e.verification_status === 'pending' ? 'warn' : 'bad')) + '</div><div class="card-b">' +
         '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)"><span id="emp-logo-slot">' + JM.img({ bucket: 'company-logos', path: e.logo_path, directUrl: JM._logoBlob, uploading: !!JM._logoUploading, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: (e.logo_path && !JM._logoUploading) ? 'imgview' : '', title: 'Company logo' }) + '</span><div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP · square/circle crop · max 5 MB. Shown on your Discover cards and profile.</div></div>' + JM.uploadBtn({ in: 'emplogo', target: 'logo', label: e.logo_path ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Crop company logo' }) + '</div>' +
         '<form data-form="company"><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" value="' + esc(e.name) + '" required></div><div class="field"><label class="label">Type</label>' + bizTa + '</div>' +
@@ -756,7 +1138,7 @@
     try {
       await JM.q(JM.sb.from('employers').update({ auto_renew: el.checked }).eq('user_id', JM.me.id));
       await JM.loadMe();
-      JM.toast(el.checked ? 'Auto-renew on. Your plan renews monthly.' : 'Auto-renew off. Your plan stays active until the next billing date.');
+      JM.toast(el.checked ? 'Auto-renew on. Your plan renews monthly.' : 'Auto-renew off. Your plan stays active until the next billing date.', 'ok', { targetEl: el });
     } catch (e) { el.checked = !el.checked; JM.toast(JM.err(e), 'bad'); }
   };
   function refreshEmpLogoSlot() {
@@ -799,8 +1181,19 @@
       JM._shellAvatarUploading = false;
       refreshEmpLogoSlot();
       JM.refreshShellAvatar();
+      if (JM.micro && JM.micro.logoCardPreview) {
+        const eNow = JM.me && JM.me.employer;
+        JM.micro.logoCardPreview({
+          logoUrl: pubUrl || blobUrl,
+          companyName: (eNow && eNow.name) || 'Your Business',
+          areaName: JM.area(eNow && eNow.area_id),
+          type: (eNow && eNow.type) || 'Verified Employer'
+        });
+      } else {
+        JM.toast('Company logo updated.', 'ok');
+      }
+      checkCompanyProfile100();
       if (preloaded && blobUrl) URL.revokeObjectURL(blobUrl);
-      JM.toast('Company logo updated.', 'ok');
     } catch (e) {
       JM._logoBlob = null;
       JM._logoUploading = false;
@@ -820,13 +1213,30 @@
     try {
       const up = await uploadDoc(f);
       await JM.rpc('employer_upsert_doc', { p_kind: el.dataset.kind, p_path: up.path, p_name: up.name });
-      JM.toast(el.dataset.kind + ' uploaded.', 'ok'); JM.render();
+      if (JM.reward) {
+        JM.reward({
+          id: 'employer_doc_upload_' + el.dataset.kind,
+          tier: 2,
+          repeatTier: 1,
+          emotion: 'scanning',
+          prop: 'magnifying-glass',
+          animation: 'scan',
+          title: el.dataset.kind + ' uploaded — Under review',
+          copy: 'Your verification document has been saved securely.'
+        });
+      } else {
+        JM.toast(el.dataset.kind + ' uploaded.', 'ok');
+      }
+      JM.render();
     } catch (e) { JM.toast(JM.err(e), 'bad'); }
     finally { if (blobUrl) URL.revokeObjectURL(blobUrl); el.value = ''; }
   };
   JM.forms.company = async function (form, d) {
     await JM.q(JM.sb.from('employers').update({ name: d.name.trim(), type: d.type, area_id: d.area_id, address: d.address.trim(), contact_name: d.contact_name.trim(), contact_phone: d.contact_phone.trim(), contact_email: d.contact_email.trim(), about: d.about.trim() }).eq('user_id', JM.me.id));
-    await JM.loadMe(); JM.toast('Saved.', 'ok');
+    await JM.loadMe();
+    checkCompanyProfile100();
+    JM.toast('Saved.', 'ok');
+    JM.render();
   };
   JM.actions.enotif = async function (el) { const n = Object.assign({}, JM.me.employer.notif || {}); n[el.dataset.k] = el.checked; try { await JM.q(JM.sb.from('employers').update({ notif: n }).eq('user_id', JM.me.id)); JM.me.employer.notif = n; } catch (e) { el.checked = !el.checked; JM.toast(JM.err(e), 'bad'); } };
   JM.actions.addmember = function () { JM.modal('<h2>Add team member</h2><form data-form="member" class="mt"><div class="field"><label class="label">Name</label><input type="text" name="name" required></div><div class="field"><label class="label">Email</label><input type="email" name="email" required></div><div class="field"><label class="label">Role</label><select name="role"><option>Recruiter</option><option>Admin</option></select></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">Add</button></div></form>'); };

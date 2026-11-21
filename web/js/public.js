@@ -185,12 +185,34 @@
     if ((d.password || '').length < 8) return formErr(form, 'Use at least 8 characters.');
     const r = await JM.sb.auth.updateUser({ password: d.password });
     if (r.error) return formErr(form, JM.err(r.error));
-    JM.toast('Password updated.', 'ok'); JM.go(JM.home());
+    if (JM.reward) {
+      JM.reward({ tier: 1, prop: 'shield', title: 'Password updated securely 🛡️', targetEl: form.querySelector('[type=submit]') });
+    } else {
+      JM.toast('Password updated.', 'ok');
+    }
+    JM.go(JM.home());
   };
 
   // ---------- role + consent ----------
+  function welcomeJobiIfConfirmed() {
+    if (JM.reward && JM.milestones && !JM.milestones.has('seeker_account_confirmed')) {
+      setTimeout(function () {
+        JM.reward({
+          id: 'seeker_account_confirmed',
+          tier: 2,
+          repeatTier: null,
+          emotion: 'waving',
+          prop: 'none',
+          animation: 'wave',
+          title: "Hi, I'm Jobi!",
+          copy: 'Account confirmed! I’ll help you match with verified local jobs.'
+        });
+      }, 120);
+    }
+  }
   JM.route('/role', { auth: 'any', plain: true, pre: true, title: 'Choose account type', render: function () {
     if (JM.me.role) { JM.go(JM.home()); return ''; }
+    welcomeJobiIfConfirmed();
     const card = function (role, icon, t, p) { return '<button class="card card-b" data-act="pickrole" data-role="' + role + '" style="text-align:left;width:100%;cursor:pointer"><div class="avatar" style="margin-bottom:14px;border-radius:10px;width:42px;height:42px">' + ic(icon) + '</div><h3>' + t + '</h3><p class="muted small" style="margin:6px 0 0">' + p + '</p></button>'; };
     return '<div class="auth-main" style="min-height:100vh;background:var(--bg)"><div class="auth-box" style="max-width:640px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:0 0 24px"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<h2 style="font-size:24px">How will you use JobMatch?</h2><p class="muted mt mb">This cannot be changed later, so pick the one that fits.</p>' +
@@ -202,6 +224,7 @@
   };
   JM.route('/consent', { auth: 'any', plain: true, pre: true, title: 'Privacy consent', render: function () {
     if (!JM.me.role) { JM.go('/role'); return ''; } if (JM.me.consent_at) { JM.go(JM.home()); return ''; }
+    welcomeJobiIfConfirmed();
     return '<div class="auth-main" style="min-height:100vh;background:var(--bg)"><div class="auth-box" style="max-width:560px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:0 0 24px"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<div class="card card-b"><h2>Before you continue</h2><p class="muted mt">JobMatch collects the information you enter to match you with jobs. We follow the Data Privacy Act of 2012 (RA 10173).</p>' +
       '<ul class="small" style="padding-left:18px;color:var(--ink2);line-height:1.7"><li>Employers see only a first name, last initial, skills and experience until they shortlist you.</li><li>We never use age, gender or photos to rank you.</li><li>You can download or delete your data at any time in Settings.</li></ul>' +
@@ -211,7 +234,11 @@
   } });
   JM.forms.consent = async function (form, d) {
     if (!d.agree) return formErr(form, 'Please tick the box to continue.');
+    const btn = form.querySelector('[type=submit]');
     await JM.q(JM.sb.from('profiles').update({ consent_at: new Date().toISOString() }).eq('id', JM.me.id));
+    if (JM.reward) {
+      JM.reward({ id: 'seeker_consent_accepted', tier: 1, emotion: 'wink_thumbs_up', title: 'Consent accepted 👍', targetEl: btn });
+    }
     await JM.loadMe(); JM.go(JM.home());
   };
 

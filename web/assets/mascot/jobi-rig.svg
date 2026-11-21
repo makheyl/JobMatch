@@ -1,0 +1,546 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" class="jobi-svg" data-emotion="wink_thumbs_up" role="img" aria-label="Jobi the JobMatch mascot">
+  <defs>
+    <!-- Vibrant saturated palette matching Facebook / logo.png brand reference -->
+    <linearGradient id="jobi-g-shell" x1="0.2" y1="0.02" x2="0.8" y2="0.98">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="58%" stop-color="#F7FAFF"/>
+      <stop offset="100%" stop-color="#C8DDFB"/>
+    </linearGradient>
+    <linearGradient id="jobi-g-shell-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D7E7FD"/>
+      <stop offset="100%" stop-color="#ADCBF6"/>
+    </linearGradient>
+    <radialGradient id="jobi-g-visor" cx="50%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#114BB2"/>
+      <stop offset="50%" stop-color="#082668"/>
+      <stop offset="100%" stop-color="#031135"/>
+    </radialGradient>
+    <linearGradient id="jobi-g-brand" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#338FFF"/>
+      <stop offset="52%" stop-color="#0C70F8"/>
+      <stop offset="100%" stop-color="#0052CC"/>
+    </linearGradient>
+    <linearGradient id="jobi-g-brand-dark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0C70F8"/>
+      <stop offset="100%" stop-color="#063999"/>
+    </linearGradient>
+    <linearGradient id="jobi-g-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD66B"/>
+      <stop offset="100%" stop-color="#F5A524"/>
+    </linearGradient>
+    <!-- Pixel-traced rounded-squircle visor clip path from head.png -->
+    <clipPath id="jobi-clip-visor">
+      <path d="M 100 34.4 C 132 34.4, 149.2 47, 149.2 76 C 149.2 103.5, 133.5 113.4, 100 113.4 C 66.5 113.4, 50.8 103.5, 50.8 76 C 50.8 47, 68 34.4, 100 34.4 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- 1. Reusable spark / pop lines (top-right of logo.png, hidden by default, burst on trigger) -->
+  <g id="jobi-pop-lines" style="transform-origin: 164px 28px;">
+    <line class="jobi-pop-ray jobi-pop-ray-1" x1="154" y1="22" x2="162" y2="5" stroke="var(--jobi-pop-color, #0C70F8)" stroke-width="6.5" stroke-linecap="round"/>
+    <line class="jobi-pop-ray jobi-pop-ray-2" x1="166" y1="30" x2="183" y2="17" stroke="var(--jobi-pop-color, #0C70F8)" stroke-width="6.5" stroke-linecap="round"/>
+    <line class="jobi-pop-ray jobi-pop-ray-3" x1="170" y1="42" x2="190" y2="39" stroke="var(--jobi-pop-color, #0C70F8)" stroke-width="6.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- 2. Ground shadow beneath Jobi (scales inversely during jumps) -->
+  <ellipse id="jobi-ground-shadow" cx="100" cy="206" rx="50" ry="7" fill="#0A2B6D" opacity="0.14" style="transform-origin: 100px 206px;"/>
+
+  <!-- 3. Root full-body squash-and-stretch wrapper -->
+  <g id="jobi-root" style="transform-origin: 100px 198px;">
+
+    <!-- 3A. Torso, structured backpack, articulated legs, shoulder/neck sockets & JobMatch chest emblem -->
+    <g id="jobi-body" style="transform-origin: 100px 158px;">
+
+      <!-- Structured blue backpack peeking behind left torso (from t-pose & side view) -->
+      <g id="jobi-backpack" style="transform-origin: 64px 152px;">
+        <rect x="46" y="126" width="24" height="52" rx="11" fill="url(#jobi-g-brand-dark)" stroke="#05358E" stroke-width="1.5"/>
+        <path d="M 52 134 V 170" fill="none" stroke="#4D9FFF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+        <rect x="48" y="151" width="11" height="18" rx="4" fill="#084BC0" stroke="#042E7D" stroke-width="1.2"/>
+      </g>
+
+      <!-- Individually articulated legs with spherical hip connectors (zero gaps during jumps/runs) -->
+      <g id="jobi-legs">
+        <!-- Left Leg (pivoted at hip 81, 174) -->
+        <g id="jobi-leg-left" style="transform-origin: 81px 174px;">
+          <circle cx="81" cy="174" r="11" fill="#C4DBF9"/>
+          <rect x="68" y="170" width="25" height="26" rx="11" fill="url(#jobi-g-shell-shade)" stroke="#ACC9F3" stroke-width="1.4"/>
+          <path d="M 68 176 Q 80 184 93 179" fill="none" stroke="#96BBEF" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M 63 201 C 62 191, 73 188, 84 189 C 92 190, 96 193, 96 201 C 96 204, 63 204, 63 201 Z" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.6"/>
+          <path d="M 68 197 C 72 193, 81 193, 86 196" fill="none" stroke="#66AEFF" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+        </g>
+
+        <!-- Right Leg (pivoted at hip 119, 174) -->
+        <g id="jobi-leg-right" style="transform-origin: 119px 174px;">
+          <circle cx="119" cy="174" r="11" fill="#C4DBF9"/>
+          <rect x="107" y="170" width="25" height="26" rx="11" fill="url(#jobi-g-shell-shade)" stroke="#ACC9F3" stroke-width="1.4"/>
+          <path d="M 107 179 Q 120 184 132 176" fill="none" stroke="#96BBEF" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M 104 201 C 104 193, 108 190, 116 189 C 127 188, 138 191, 137 201 C 137 204, 104 204, 104 201 Z" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.6"/>
+          <path d="M 114 196 C 119 193, 128 193, 132 197" fill="none" stroke="#66AEFF" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+        </g>
+      </g>
+
+      <!-- Spherical Neck Ball-Joint Connector at (100, 120) -->
+      <ellipse cx="100" cy="120" rx="19" ry="10" fill="#BDD6F8" stroke="#9EC0F0" stroke-width="1.2"/>
+
+      <!-- Spherical Shoulder Socket Rings at Left (134, 136) and Right (66, 136) -->
+      <circle cx="66" cy="136" r="12" fill="#BDD6F8" stroke="#9EC0F0" stroke-width="1.4"/>
+      <circle cx="134" cy="136" r="12" fill="#BDD6F8" stroke="#9EC0F0" stroke-width="1.4"/>
+
+      <!-- Main Rounded Pear/Oval White Robot Torso -->
+      <path d="M 72 119 C 84 116, 116 116, 128 119 C 139 131, 141 160, 133 174 C 124 185, 76 185, 67 174 C 59 160, 61 131, 72 119 Z" fill="url(#jobi-g-shell)" stroke="#B2CEF6" stroke-width="1.6"/>
+
+      <!-- Soft lower belly shading & bright white chest oval -->
+      <path d="M 66 165 C 76 180, 124 180, 134 165 C 133 174, 123 183, 100 183 C 77 183, 67 174, 66 165 Z" fill="#C2DAFA" opacity="0.82"/>
+      <ellipse cx="100" cy="148" rx="26" ry="23" fill="#FFFFFF"/>
+
+      <!-- Vibrant blue backpack straps curving over shoulders -->
+      <path d="M 68 120 C 75 120, 80 133, 78 148 C 76 161, 69 170, 63 172 C 60 166, 63 157, 66 146 C 69 135, 65 124, 62 121 Z" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M 132 120 C 125 120, 120 133, 122 148 C 124 161, 131 170, 137 172 C 140 166, 137 157, 134 146 C 131 135, 135 124, 138 121 Z" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.4" stroke-linejoin="round"/>
+
+      <!-- JobMatch chest wordmark + bold up-right arrow -->
+      <g id="jobi-chest-brand" transform="translate(100, 150)">
+        <text x="-7" y="-3" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="14" fill="var(--jobi-navy, #06215C)" letter-spacing="-0.5">Job</text>
+        <g transform="translate(7, -14.5)">
+          <path d="M 2 10.5 L 10.5 2 M 4 2 L 10.5 2 L 10.5 8.5" fill="none" stroke="var(--jobi-blue, #0C70F8)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <text x="0" y="11" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="13.4" fill="var(--jobi-navy, #06215C)" letter-spacing="-0.5">Match</text>
+      </g>
+    </g>
+
+    <!-- 3C. Right Arm (pivoted at shoulder socket 66, 136 — viewer's left side; hand permanently welded at wrist ball-joint 32, 150) -->
+    <g id="jobi-arm-right" style="transform-origin: 66px 136px;">
+      <!-- Seamless spherical shoulder ball-joint cap centered at (66, 136) -->
+      <circle cx="66" cy="136" r="10.5" fill="url(#jobi-g-shell)"/>
+      <!-- Smooth tapered capsule arm extending outward-left from shoulder (66, 136) to wrist ball-joint (32, 150) -->
+      <path d="M 70 127 C 56 127, 42 134, 30 142 C 23 147, 25 159, 35 159 C 47 159, 60 151, 72 144 C 76 139, 75 128, 70 127 Z" fill="url(#jobi-g-shell)" stroke="#B0CEF6" stroke-width="1.5"/>
+      <!-- Soft underside arm shading -->
+      <path d="M 33 154 C 45 156, 58 150, 70 142" fill="none" stroke="#BDD6F8" stroke-width="3" stroke-linecap="round"/>
+      <!-- Concentric wrist ball-joint socket centered at (32, 150) — guarantees hand never detaches at any rotation -->
+      <circle cx="32" cy="150" r="9.5" fill="#063B9E"/>
+
+      <!-- Prop slot container anchored directly at the wrist center (32, 150) -->
+      <g id="jobi-prop-slot" data-prop="phone" style="transform-origin: 32px 150px;">
+
+        <!-- Prop 0: none -->
+        <g data-prop="none"></g>
+
+        <!-- Prop 1: phone (default from logo.png & Facebook ref) -->
+        <g data-prop="phone">
+          <g transform="translate(26, 143) rotate(-16)">
+            <rect x="-19" y="-27" width="38" height="52" rx="7.5" fill="#0B5ED7" transform="translate(2, 2)"/>
+            <rect x="-19" y="-27" width="38" height="52" rx="7.5" fill="#061E52" stroke="#1E75FF" stroke-width="2"/>
+            <path d="M -6 4 L 6 -8 M -2 -8 L 6 -8 L 6 0" fill="none" stroke="#399BFF" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 2: trophy -->
+        <g data-prop="trophy">
+          <g transform="translate(24, 138) rotate(-10)">
+            <path d="M-13 -17 H13 V-4 C13 6 5.5 12 0 12 C-5.5 12 -13 6 -13 -4 Z" fill="url(#jobi-g-gold)" stroke="#C87D0A" stroke-width="1.5"/>
+            <path d="M-13 -13 H-18 C-18 -5 -15 0 -11 0 M13 -13 H18 C18 -5 15 0 11 0" fill="none" stroke="#F5A524" stroke-width="2.8" stroke-linecap="round"/>
+            <rect x="-3.5" y="12" width="7" height="8" fill="#D98A12"/>
+            <rect x="-10" y="19" width="20" height="5.5" rx="2.5" fill="#0A2B6D"/>
+            <polygon points="0,-11 1.8,-6.5 6.5,-6.5 2.8,-3.8 4,1 0,-1.8 -4,1 -2.8,-3.8 -6.5,-6.5 -1.8,-6.5" fill="#FFF7DC"/>
+          </g>
+        </g>
+
+        <!-- Prop 3: medal -->
+        <g data-prop="medal">
+          <g transform="translate(25, 142) rotate(-8)">
+            <path d="M-8 -18 L-2 -4 L3 -4 L-3 -18 Z" fill="#0C70F8"/>
+            <path d="M8 -18 L2 -4 L-3 -4 L3 -18 Z" fill="#FF7A6B"/>
+            <circle cx="0" cy="6" r="14" fill="url(#jobi-g-gold)" stroke="#C87D0A" stroke-width="1.8"/>
+            <circle cx="0" cy="6" r="10" fill="none" stroke="#FFF3C4" stroke-width="1.2"/>
+            <polygon points="0,-1 2,3.2 6.5,3.8 3.2,7 4,11.5 0,9.4 -4,11.5 -3.2,7 -6.5,3.8 -2,3.2" fill="#FFF9E6"/>
+          </g>
+        </g>
+
+        <!-- Prop 4: clipboard -->
+        <g data-prop="clipboard">
+          <g transform="translate(25, 144) rotate(-14)">
+            <rect x="-16" y="-22" width="32" height="44" rx="5" fill="#FFFFFF" stroke="#0A2B6D" stroke-width="2"/>
+            <rect x="-8" y="-25" width="16" height="6" rx="2" fill="#0C70F8"/>
+            <line x1="-10" y1="-10" x2="10" y2="-10" stroke="#94A3B8" stroke-width="2.4" stroke-linecap="round"/>
+            <line x1="-10" y1="-2" x2="6" y2="-2" stroke="#94A3B8" stroke-width="2.4" stroke-linecap="round"/>
+            <polyline points="-10,8 -5,13 5,3" fill="none" stroke="#14804F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 5: briefcase -->
+        <g data-prop="briefcase">
+          <g transform="translate(24, 148) rotate(-12)">
+            <path d="M-7 -17 V-22 C-7 -24 -5 -25 -3 -25 H3 C5 -25 7 -24 7 -22 V-17" fill="none" stroke="#0A2B6D" stroke-width="2.8"/>
+            <rect x="-20" y="-17" width="40" height="29" rx="5.5" fill="#0A2B6D" stroke="#2B86FF" stroke-width="1.5"/>
+            <path d="M-20 -4 Q0 2 20 -4" fill="none" stroke="#3994FF" stroke-width="1.8"/>
+            <rect x="-3.5" y="-6" width="7" height="5.5" rx="1.5" fill="#F5A524"/>
+          </g>
+        </g>
+
+        <!-- Prop 6: magnifying-glass -->
+        <g data-prop="magnifying-glass">
+          <g transform="translate(24, 138) rotate(-24)">
+            <line x1="0" y1="6" x2="0" y2="23" stroke="#0A2B6D" stroke-width="5.5" stroke-linecap="round"/>
+            <circle cx="0" cy="-7" r="13.5" fill="#EBF3FF" fill-opacity="0.78" stroke="#0C70F8" stroke-width="4"/>
+            <path d="M-6 -12 A7 7 0 0 1 3 -13" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 7: calendar -->
+        <g data-prop="calendar">
+          <g transform="translate(24, 144) rotate(-12)">
+            <rect x="-17" y="-18" width="34" height="34" rx="5.5" fill="#FFFFFF" stroke="#0A2B6D" stroke-width="2"/>
+            <path d="M-17 -8 H17 V-13 C17 -16 15 -18 12 -18 H-12 C-15 -18 -17 -16 -17 -13 Z" fill="#0C70F8"/>
+            <line x1="-8" y1="-21" x2="-8" y2="-15" stroke="#0A2B6D" stroke-width="2.8" stroke-linecap="round"/>
+            <line x1="8" y1="-21" x2="8" y2="-15" stroke="#0A2B6D" stroke-width="2.8" stroke-linecap="round"/>
+            <circle cx="-7" cy="0" r="2" fill="#CBD5E1"/>
+            <circle cx="0" cy="0" r="2" fill="#CBD5E1"/>
+            <circle cx="7" cy="0" r="2" fill="#14804F"/>
+            <circle cx="-7" cy="8" r="2" fill="#CBD5E1"/>
+            <circle cx="0" cy="8" r="2" fill="#0C70F8"/>
+          </g>
+        </g>
+
+        <!-- Prop 8: paper-plane -->
+        <g data-prop="paper-plane">
+          <g transform="translate(22, 138) rotate(-22)">
+            <polygon points="-18,4 16,-13 2,16 -4,5" fill="#EBF3FF" stroke="#0C70F8" stroke-width="2" stroke-linejoin="round"/>
+            <polyline points="-4,5 16,-13 -8,9" fill="none" stroke="#0C70F8" stroke-width="1.8" stroke-linejoin="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 9: megaphone -->
+        <g data-prop="megaphone">
+          <g transform="translate(22, 140) rotate(-20)">
+            <path d="M-15 -14 L6 -6 V2 L-15 10 Z" fill="url(#jobi-g-brand)" stroke="#0A2B6D" stroke-width="1.8" stroke-linejoin="round"/>
+            <rect x="6" y="-7" width="7" height="10" rx="2" fill="#F5A524" stroke="#0A2B6D" stroke-width="1.5"/>
+            <path d="M5 3 L3 12 H8 L10 3" fill="#0A2B6D"/>
+            <path d="M-19 -8 Q-24 -2 -19 4 M-23 -12 Q-30 -2 -23 8" fill="none" stroke="#F5A524" stroke-width="2.4" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 10: graduation-cap -->
+        <g data-prop="graduation-cap">
+          <g transform="translate(23, 138) rotate(-14)">
+            <polygon points="0,-14 21,-4 0,5 -21,-4" fill="#0A2B6D" stroke="#2B86FF" stroke-width="1.5"/>
+            <path d="M-11 1 V10 C-11 13.5 11 13.5 11 10 V1" fill="#0C70F8"/>
+            <path d="M16 -2 V11" fill="none" stroke="#F5A524" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="16" cy="12" r="2.5" fill="#F5A524"/>
+          </g>
+        </g>
+
+        <!-- Prop 11: coffee-mug -->
+        <g data-prop="coffee-mug">
+          <g transform="translate(25, 144) rotate(-8)">
+            <path d="M-11 -8 H-16 C-19 -8 -19 4 -16 4 H-11" fill="none" stroke="#0A2B6D" stroke-width="3"/>
+            <rect x="-11" y="-13" width="23" height="27" rx="5.5" fill="#FFFFFF" stroke="#0A2B6D" stroke-width="2"/>
+            <rect x="-8" y="-4" width="17" height="9" rx="2.5" fill="#0C70F8"/>
+            <path d="M-4 -17 Q-2 -22 -4 -25 M3 -17 Q5 -22 3 -25" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 12: stamp -->
+        <g data-prop="stamp">
+          <g transform="translate(24, 144) rotate(-14)">
+            <rect x="-16" y="-11" width="32" height="22" rx="4.5" fill="#E7F5EE" stroke="#14804F" stroke-width="2.2"/>
+            <polyline points="-7,0 -2,5 8,-5" fill="none" stroke="#14804F" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 13: hard-hat -->
+        <g data-prop="hard-hat">
+          <g transform="translate(23, 142) rotate(-12)">
+            <path d="M-17 4 C-17 -10 17 -10 17 4 Z" fill="url(#jobi-g-gold)" stroke="#C87D0A" stroke-width="1.8"/>
+            <rect x="-3.5" y="-9" width="7" height="13" rx="2" fill="#FFE082"/>
+            <rect x="-20" y="3" width="40" height="4.5" rx="2.2" fill="#F5A524" stroke="#C87D0A" stroke-width="1.4"/>
+          </g>
+        </g>
+
+        <!-- Prop 14: balloons -->
+        <g data-prop="balloons">
+          <g transform="translate(20, 122) rotate(-8)">
+            <path d="M-7 5 Q-3 20 5 30 M7 1 Q6 18 5 30" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+            <ellipse cx="-8" cy="-7" rx="10.5" ry="12.5" fill="#0C70F8"/>
+            <ellipse cx="-11" cy="-10" rx="2.5" ry="4.5" fill="#77B6FF" opacity="0.75"/>
+            <ellipse cx="7" cy="-12" rx="10.5" ry="12.5" fill="#F5A524"/>
+            <ellipse cx="4" cy="-15" rx="2.5" ry="4.5" fill="#FFE699" opacity="0.75"/>
+          </g>
+        </g>
+
+        <!-- Prop 15: map -->
+        <g data-prop="map">
+          <g transform="translate(24, 144) rotate(-12)">
+            <polygon points="-16,-12 -5,-16 5,-12 16,-16 16,12 5,16 -5,12 -16,16" fill="#EBF3FF" stroke="#0C70F8" stroke-width="1.8" stroke-linejoin="round"/>
+            <line x1="-5" y1="-16" x2="-5" y2="12" stroke="#93C5FD" stroke-width="1.4"/>
+            <line x1="5" y1="-12" x2="5" y2="16" stroke="#93C5FD" stroke-width="1.4"/>
+            <path d="M0 -11 C-4.5 -11 -7 -7.5 -7 -4 C-7 1 0 7 0 7 C0 7 7 1 7 -4 C7 -7.5 4.5 -11 0 -11 Z" fill="#FF7A6B" stroke="#FFFFFF" stroke-width="1.1"/>
+            <circle cx="0" cy="-4" r="2" fill="#FFFFFF"/>
+          </g>
+        </g>
+
+        <!-- Prop 16: padlock -->
+        <g data-prop="padlock">
+          <g transform="translate(24, 143) rotate(-10)">
+            <path d="M-7 -7 V-14 C-7 -19 5 -19 7 -14" fill="none" stroke="#14804F" stroke-width="3.2" stroke-linecap="round"/>
+            <rect x="-13.5" y="-7" width="27" height="21" rx="5.5" fill="url(#jobi-g-gold)" stroke="#C87D0A" stroke-width="1.8"/>
+            <circle cx="0" cy="1.5" r="2.5" fill="#0A2B6D"/>
+            <line x1="0" y1="3.5" x2="0" y2="8" stroke="#0A2B6D" stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 17: shield -->
+        <g data-prop="shield">
+          <g transform="translate(24, 143) rotate(-10)">
+            <path d="M0 -16 L14 -11 V0 C14 9.5 7 16 0 18.5 C-7 16 -14 9.5 -14 0 V-11 Z" fill="url(#jobi-g-brand)" stroke="#0A2B6D" stroke-width="1.8"/>
+            <polyline points="-5,1 -1,5 7,-3.5" fill="none" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+
+        <!-- Prop 18: bell -->
+        <g data-prop="bell">
+          <g transform="translate(24, 142) rotate(-12)">
+            <path d="M-12 7 H12 L9 -3 C9 -10 4.5 -14.5 0 -14.5 C-4.5 -14.5 -9 -10 -9 -3 Z" fill="url(#jobi-g-gold)" stroke="#C87D0A" stroke-width="1.8" stroke-linejoin="round"/>
+            <circle cx="0" cy="10" r="3.2" fill="#0A2B6D"/>
+            <circle cx="0" cy="-16" r="2" fill="#C87D0A"/>
+          </g>
+        </g>
+
+      </g>
+
+      <!-- Vibrant blue right hand permanently centered at wrist ball-joint (32, 150) — zero gap possible -->
+      <g id="jobi-hand-right" style="transform-origin: 32px 150px;">
+        <circle cx="32" cy="150" r="12" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.4"/>
+        <circle cx="36" cy="146" r="4.8" fill="#338FFF"/>
+        <path d="M 27 148 Q 32 153 38 149" fill="none" stroke="#05328A" stroke-width="1.6" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <!-- 3B. Left Arm (pivoted at shoulder socket 134, 136 — viewer's right side; hand permanently welded at wrist ball-joint 164, 121) -->
+    <g id="jobi-arm-left" style="transform-origin: 134px 136px;">
+      <!-- Seamless spherical shoulder ball-joint cap centered at (134, 136) -->
+      <circle cx="134" cy="136" r="10.5" fill="url(#jobi-g-shell)"/>
+      <!-- Smooth tapered capsule arm extending outward-right from shoulder (134, 136) to wrist ball-joint (164, 121) -->
+      <path d="M 130 127 C 143 126, 155 120, 162 113 C 169 115, 171 126, 163 132 C 154 139, 142 142, 131 143 Z" fill="url(#jobi-g-shell)" stroke="#B0CEF6" stroke-width="1.5"/>
+      <!-- Soft underside arm shading -->
+      <path d="M 134 139 C 145 138, 155 134, 163 127" fill="none" stroke="#BDD6F8" stroke-width="3" stroke-linecap="round"/>
+      <!-- Concentric wrist ball-joint socket centered at (164, 121) — guarantees hand never detaches at any rotation -->
+      <circle cx="164" cy="121" r="9.5" fill="#063B9E"/>
+      <!-- Vibrant blue gloved hand centered directly on wrist ball-joint (164, 121) with transform-origin: 164px 121px -->
+      <g id="jobi-hand-left" style="transform-origin: 164px 121px;">
+        <!-- Thumb pointing up -->
+        <rect x="158" y="99" width="11" height="17" rx="5.5" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.4"/>
+        <!-- Gloved palm/fist centered over the wrist ball-joint (165, 120) -->
+        <circle cx="165" cy="120" r="12.5" fill="url(#jobi-g-brand)" stroke="#063B9E" stroke-width="1.4"/>
+        <!-- Curled finger details -->
+        <path d="M 161 115.5 C 167 114.5, 171.5 115.5, 173.5 117.5 M 160.5 121 C 166 120, 171.5 121, 173.5 123 M 162 126.5 C 167 125.5, 170.5 126.5, 172.5 127.5" fill="none" stroke="#05328A" stroke-width="1.7" stroke-linecap="round"/>
+        <ellipse cx="162.5" cy="106.5" rx="1.8" ry="3.2" fill="#70B5FF" opacity="0.8"/>
+      </g>
+    </g>
+
+    <!-- 3D. Head (pivoted at neck ball-joint 100, 120 — pixel-traced continuous curvature superellipse from head.png) -->
+    <g id="jobi-head" style="transform-origin: 100px 120px;">
+
+      <!-- 1. Top Headphone Arch & Twin Side Ridges (exact pixel-traced contour from head.png y=15..62) -->
+      <g id="jobi-headband-top">
+        <!-- Center top arch (y=15 at peak, hugging the top dome) -->
+        <path d="M 56 26.5 C 74 13.5, 126 13.5, 144 26.5 L 140 35 C 122 23, 78 23, 60 35 Z" fill="url(#jobi-g-brand-dark)" stroke="#05358E" stroke-width="1.4"/>
+        <!-- Inner arch bevel band (from head.png) -->
+        <path d="M 64 23 C 82 16, 118 16, 136 23" fill="none" stroke="#5AA7FF" stroke-width="3.2" stroke-linecap="round" opacity="0.85"/>
+        <!-- Left top rounded ear-ridge (bulges smoothly from x=35..62, y=24..59) -->
+        <path d="M 35.5 58 C 31.5 39, 41 24.5, 60 24.5 C 50 32, 43 44, 41 59 Z" fill="url(#jobi-g-brand)" stroke="#05358E" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M 39 48 C 41 37, 47 30, 55 27.5" fill="none" stroke="#66AEFF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+        <!-- Right top rounded ear-ridge (bulges smoothly from x=140..164.5, y=24..59) -->
+        <path d="M 164.5 58 C 168.5 39, 159 24.5, 140 24.5 C 150 32, 157 44, 159 59 Z" fill="url(#jobi-g-brand)" stroke="#05358E" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M 161 48 C 159 37, 153 30, 145 27.5" fill="none" stroke="#66AEFF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      </g>
+
+      <!-- 2. Left & Right Multi-Layered Headphone Earcups (pixel-traced from head.png x=26..43 and x=157..174) -->
+      <g id="jobi-earcups">
+        <!-- Left outer glossy white/ice-blue dome cap (x=26..35, y=64..102) -->
+        <path d="M 34 64 C 23.5 66, 23.5 100, 34 102 Z" fill="url(#jobi-g-shell)" stroke="#A5C4F0" stroke-width="1.4"/>
+        <path d="M 29.5 72 C 27.5 78, 27.5 88, 29.5 94" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- Left middle vibrant blue cushion (tapered organic capsule hugging helmet side x=33..44, y=58..105) -->
+        <path d="M 41 58 C 34 58, 32 64, 32 81.5 C 32 99, 34 105, 41 105 C 44 105, 44.5 96, 44.5 81.5 C 44.5 67, 44 58, 41 58 Z" fill="url(#jobi-g-brand)" stroke="#05358E" stroke-width="1.4"/>
+        <path d="M 36.5 65 C 35.5 74, 35.5 88, 36.5 97" fill="none" stroke="#6BB3FF" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+
+        <!-- Right outer glossy white/ice-blue dome cap (x=166..174, y=64..102) -->
+        <path d="M 166 64 C 176.5 66, 176.5 100, 166 102 Z" fill="url(#jobi-g-shell)" stroke="#A5C4F0" stroke-width="1.4"/>
+        <path d="M 170.5 72 C 172.5 78, 172.5 88, 170.5 94" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- Right middle vibrant blue cushion (x=155.5..168, y=58..105) -->
+        <path d="M 159 58 C 166 58, 168 64, 168 81.5 C 168 99, 166 105, 159 105 C 156 105, 155.5 96, 155.5 81.5 C 155.5 67, 156 58, 159 58 Z" fill="url(#jobi-g-brand)" stroke="#05358E" stroke-width="1.4"/>
+        <path d="M 163.5 65 C 164.5 74, 164.5 88, 163.5 97" fill="none" stroke="#6BB3FF" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+      </g>
+
+      <!-- 3. Main White Superellipse Helmet Shell (pixel-traced from head.png: x=40..160, y=23.7..124.5)
+           Zero straight edges — continuous G2 curvature across crown, cheeks, and chin -->
+      <path d="M 100 23.7 C 138.5 23.7, 159.5 39.5, 159.5 75.5 C 159.5 109.5, 140.5 124.2, 100 124.2 C 59.5 124.2, 40.5 109.5, 40.5 75.5 C 40.5 39.5, 61.5 23.7, 100 23.7 Z" fill="url(#jobi-g-shell)" stroke="#ACC9F4" stroke-width="1.6"/>
+      <!-- Soft cool-blue lower chin & cheek 3D rim shading (matching head.png y=104..124) -->
+      <path d="M 44 92 C 48 113, 68 120, 100 120 C 132 120, 152 113, 156 92 C 153 114, 134 123.5, 100 123.5 C 66 123.5, 47 114, 44 92 Z" fill="#BCD5F7" opacity="0.88"/>
+      <!-- Crisp top white specular crown highlight -->
+      <path d="M 62 30 C 80 25.5, 120 25.5, 138 30" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"/>
+
+      <!-- 4. Visor Dark Screen (pixel-traced from head.png: x=50.8..149.2, y=34.4..113.4) -->
+      <g id="jobi-visor-bg">
+        <!-- Outer soft blue bezel rim around visor -->
+        <path d="M 100 33.4 C 133 33.4, 150.4 46.2, 150.4 76 C 150.4 104.4, 134.4 114.5, 100 114.5 C 65.6 114.5, 49.6 104.4, 49.6 76 C 49.6 46.2, 67 33.4, 100 33.4 Z" fill="#8FB5E8"/>
+        <!-- Main deep radial-gradient navy visor screen -->
+        <path d="M 100 34.4 C 132 34.4, 149.2 47, 149.2 76 C 149.2 103.5, 133.5 113.4, 100 113.4 C 66.5 113.4, 50.8 103.5, 50.8 76 C 50.8 47, 68 34.4, 100 34.4 Z" fill="url(#jobi-g-visor)" stroke="#051B4C" stroke-width="1.5"/>
+        <!-- Top inner screen glow arc -->
+        <path d="M 68 41 C 86 37, 114 37, 132 41" fill="none" stroke="#3B96FF" stroke-width="2.2" stroke-linecap="round" opacity="0.32"/>
+        <!-- Scan sweep beam (animated by .jobi-anim-scan) -->
+        <g clip-path="url(#jobi-clip-visor)">
+          <rect id="jobi-scan-beam" x="30" y="32" width="22" height="86" fill="#47A1FF" opacity="0" transform="skewX(-18)"/>
+        </g>
+      </g>
+
+      <!-- 5. 13 Mutually Exclusive Emotion Faces inside Visor (centered around 100, 76) -->
+      <g id="jobi-visor-face" style="transform-origin: 100px 76px;">
+
+        <!-- 1. wink_thumbs_up (Signature look from Facebook color reference & logo.png) -->
+        <g data-emotion="wink_thumbs_up">
+          <path d="M 66 75 C 71 64, 84 64, 89 75" fill="none" stroke="#399BFF" stroke-width="9" stroke-linecap="round" opacity="0.28"/>
+          <path d="M 66 75 C 71 64, 84 64, 89 75" fill="none" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
+          <rect x="114" y="55" width="16" height="25" rx="8" fill="#399BFF" opacity="0.28"/>
+          <rect x="115" y="56" width="14" height="23" rx="7" fill="#FFFFFF"/>
+          <line x1="63" y1="87" x2="60" y2="93" stroke="#42A4FF" stroke-width="4" stroke-linecap="round"/>
+          <line x1="70" y1="87" x2="67" y2="93" stroke="#42A4FF" stroke-width="4" stroke-linecap="round"/>
+          <line x1="130" y1="85" x2="127" y2="91" stroke="#42A4FF" stroke-width="4" stroke-linecap="round"/>
+          <line x1="137" y1="85" x2="134" y2="91" stroke="#42A4FF" stroke-width="4" stroke-linecap="round"/>
+          <path d="M 84 82 H 116 C 116 100, 84 100, 84 82 Z" fill="#031233"/>
+          <path d="M 87 89 Q 100 83 113 89 C 110 98, 90 98, 87 89 Z" fill="#47A1FF"/>
+        </g>
+
+        <!-- 2. happy (Matches head.png with soft eyebrows, glowing oval eyes & smile) -->
+        <g data-emotion="happy">
+          <path d="M 68 53 Q 76 48.5 84 53" fill="none" stroke="#538FD6" stroke-width="3.4" stroke-linecap="round"/>
+          <path d="M 116 53 Q 124 48.5 132 53" fill="none" stroke="#538FD6" stroke-width="3.4" stroke-linecap="round"/>
+          <ellipse cx="76" cy="69" rx="10.5" ry="13" fill="#399BFF" opacity="0.25"/>
+          <ellipse cx="76" cy="69" rx="9" ry="11.5" fill="#FFFFFF"/>
+          <ellipse cx="124" cy="69" rx="10.5" ry="13" fill="#399BFF" opacity="0.25"/>
+          <ellipse cx="124" cy="69" rx="9" ry="11.5" fill="#FFFFFF"/>
+          <line x1="63" y1="87" x2="60" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="70" y1="87" x2="67" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="130" y1="87" x2="127" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="137" y1="87" x2="134" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <path d="M 85 83 H 115 C 115 99, 85 99, 85 83 Z" fill="#031233"/>
+          <path d="M 88 89 Q 100 84 112 89 C 109 97, 91 97, 88 89 Z" fill="#47A1FF"/>
+        </g>
+
+        <!-- 3. star_eyes -->
+        <g data-emotion="star_eyes">
+          <polygon points="76,54 79.8,62.5 89,63.5 82,69.5 83.8,78.5 76,74 68.2,78.5 70,69.5 63,63.5 72.2,62.5" fill="#FFD464"/>
+          <polygon points="124,54 127.8,62.5 137,63.5 130,69.5 131.8,78.5 124,74 116.2,78.5 118,69.5 111,63.5 120.2,62.5" fill="#FFD464"/>
+          <line x1="63" y1="87" x2="60" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="70" y1="87" x2="67" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="130" y1="87" x2="127" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="137" y1="87" x2="134" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <path d="M 84 82 H 116 C 116 100, 84 100, 84 82 Z" fill="#031233"/>
+          <path d="M 87 89 Q 100 83 113 89 C 110 98, 90 98, 87 89 Z" fill="#47A1FF"/>
+        </g>
+
+        <!-- 4. heart_eyes -->
+        <g data-emotion="heart_eyes">
+          <path d="M76 77 C76 77 63 69 63 61.5 C63 57 67 54 71.5 54 C74 54 76 56 76 57.8 C76 56 78 54 80.5 54 C85 54 89 57 89 61.5 C89 69 76 77 76 77 Z" fill="#FF7A6B"/>
+          <path d="M124 77 C124 77 111 69 111 61.5 C111 57 115 54 119.5 54 C122 54 124 56 124 57.8 C124 56 126 54 128.5 54 C133 54 137 57 137 61.5 C137 69 124 77 124 77 Z" fill="#FF7A6B"/>
+          <path d="M 85 83 H 115 C 115 99, 85 99, 85 83 Z" fill="#031233"/>
+          <path d="M 88 89 Q 100 84 112 89 C 109 97, 91 97, 88 89 Z" fill="#47A1FF"/>
+        </g>
+
+        <!-- 5. proud -->
+        <g data-emotion="proud">
+          <path d="M 66 72 C 71 61, 83 61, 88 72" fill="none" stroke="#399BFF" stroke-width="8.5" stroke-linecap="round" opacity="0.26"/>
+          <path d="M 66 72 C 71 61, 83 61, 88 72" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+          <path d="M 112 72 C 117 61, 129 61, 134 72" fill="none" stroke="#399BFF" stroke-width="8.5" stroke-linecap="round" opacity="0.26"/>
+          <path d="M 112 72 C 117 61, 129 61, 134 72" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+          <line x1="63" y1="85" x2="60" y2="91" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="70" y1="85" x2="67" y2="91" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="130" y1="85" x2="127" y2="91" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="137" y1="85" x2="134" y2="91" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <path d="M 87 86 Q 100 96 113 86" fill="none" stroke="#47A1FF" stroke-width="5" stroke-linecap="round"/>
+        </g>
+
+        <!-- 6. cheering -->
+        <g data-emotion="cheering">
+          <path d="M 66 73 C 71 61, 84 61, 89 73" fill="none" stroke="#399BFF" stroke-width="9" stroke-linecap="round" opacity="0.3"/>
+          <path d="M 66 73 C 71 61, 84 61, 89 73" fill="none" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
+          <path d="M 111 73 C 116 61, 129 61, 134 73" fill="none" stroke="#399BFF" stroke-width="9" stroke-linecap="round" opacity="0.3"/>
+          <path d="M 111 73 C 116 61, 129 61, 134 73" fill="none" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
+          <line x1="62" y1="86" x2="59" y2="92" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="69" y1="86" x2="66" y2="92" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="131" y1="86" x2="128" y2="92" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="138" y1="86" x2="135" y2="92" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <path d="M 83 81 H 117 C 117 101, 83 101, 83 81 Z" fill="#031233"/>
+          <path d="M 86 89 Q 100 82 114 89 C 111 99, 89 99, 86 89 Z" fill="#47A1FF"/>
+        </g>
+
+        <!-- 7. thinking -->
+        <g data-emotion="thinking">
+          <path d="M 67 54 Q 76 52 84 55" fill="none" stroke="#538FD6" stroke-width="3.2" stroke-linecap="round"/>
+          <path d="M 114 50 Q 124 45 134 51" fill="none" stroke="#47A1FF" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="76" cy="68" rx="8.5" ry="11" fill="#FFFFFF"/>
+          <rect x="115" y="61" width="17" height="12" rx="6" fill="#FFFFFF"/>
+          <path d="M 89 88 Q 100 85 111 90" fill="none" stroke="#47A1FF" stroke-width="4.5" stroke-linecap="round"/>
+        </g>
+
+        <!-- 8. scanning -->
+        <g data-emotion="scanning">
+          <rect x="64" y="59" width="23" height="15" rx="4.5" fill="none" stroke="#47A1FF" stroke-width="3"/>
+          <circle cx="75.5" cy="66.5" r="3.8" fill="#FFFFFF"/>
+          <rect x="113" y="59" width="23" height="15" rx="4.5" fill="none" stroke="#47A1FF" stroke-width="3"/>
+          <circle cx="124.5" cy="66.5" r="3.8" fill="#FFFFFF"/>
+          <polyline points="81,88 90,88 94,82 100,93 106,84 110,88 119,88" fill="none" stroke="#47A1FF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
+        <!-- 9. curious -->
+        <g data-emotion="curious">
+          <path d="M 67 52 Q 75 48 83 52" fill="none" stroke="#538FD6" stroke-width="3.2" stroke-linecap="round"/>
+          <path d="M 115 49 Q 125 44 134 50" fill="none" stroke="#47A1FF" stroke-width="3.4" stroke-linecap="round"/>
+          <circle cx="75" cy="68" r="9.5" fill="#FFFFFF"/>
+          <circle cx="125" cy="66" r="11.5" fill="#FFFFFF"/>
+          <circle cx="100" cy="88" r="5.5" fill="#47A1FF"/>
+        </g>
+
+        <!-- 10. oops -->
+        <g data-emotion="oops">
+          <path d="M 67 59 L 83 67 L 67 75" fill="none" stroke="#FFFFFF" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 133 59 L 117 67 L 133 75" fill="none" stroke="#FFFFFF" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 86 89 Q 93 84 100 89 Q 107 94 114 89" fill="none" stroke="#FF7A6B" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M 141 52 C 141 52 146 59 146 62.5 C 146 65.5 143.8 67.5 141 67.5 C 138.2 67.5 136 65.5 136 62.5 C 136 59 141 52 141 52 Z" fill="#47A1FF"/>
+        </g>
+
+        <!-- 11. comforting (Exact head.png calm supportive expression: soft eyebrows, glowing white oval eyes, gentle arc smile) -->
+        <g data-emotion="comforting">
+          <path d="M 67 54 Q 76 49.5 85 54" fill="none" stroke="#538FD6" stroke-width="3.6" stroke-linecap="round"/>
+          <path d="M 133 54 Q 124 49.5 115 54" fill="none" stroke="#538FD6" stroke-width="3.6" stroke-linecap="round"/>
+          <ellipse cx="76" cy="69" rx="10.5" ry="13" fill="#399BFF" opacity="0.24"/>
+          <ellipse cx="76" cy="69" rx="9" ry="11.5" fill="#FFFFFF"/>
+          <ellipse cx="124" cy="69" rx="10.5" ry="13" fill="#399BFF" opacity="0.24"/>
+          <ellipse cx="124" cy="69" rx="9" ry="11.5" fill="#FFFFFF"/>
+          <path d="M 88 86 Q 100 94 112 86" fill="none" stroke="#538FD6" stroke-width="4.8" stroke-linecap="round"/>
+        </g>
+
+        <!-- 12. sleepy -->
+        <g data-emotion="sleepy">
+          <path d="M 66 70 Q 76 77 86 70" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+          <path d="M 114 70 Q 124 77 134 70" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="100" cy="88" r="4.5" fill="#47A1FF"/>
+          <text class="jobi-zzz" x="136" y="53" font-family="Inter, sans-serif" font-weight="800" font-size="13" fill="#47A1FF">z</text>
+        </g>
+
+        <!-- 13. waving -->
+        <g data-emotion="waving">
+          <path d="M 68 53 Q 76 48.5 84 53" fill="none" stroke="#538FD6" stroke-width="3.4" stroke-linecap="round"/>
+          <path d="M 116 53 Q 124 48.5 132 53" fill="none" stroke="#538FD6" stroke-width="3.4" stroke-linecap="round"/>
+          <ellipse cx="76" cy="68" rx="9" ry="11.5" fill="#FFFFFF"/>
+          <ellipse cx="124" cy="68" rx="9" ry="11.5" fill="#FFFFFF"/>
+          <line x1="63" y1="87" x2="60" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="70" y1="87" x2="67" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="130" y1="87" x2="127" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <line x1="137" y1="87" x2="134" y2="93" stroke="#42A4FF" stroke-width="3.8" stroke-linecap="round"/>
+          <path d="M 84 82 H 116 C 116 100, 84 100, 84 82 Z" fill="#031233"/>
+          <path d="M 87 89 Q 100 83 113 89 C 110 98, 90 98, 87 89 Z" fill="#47A1FF"/>
+        </g>
+
+      </g>
+    </g>
+
+  </g>
+</svg>

@@ -198,8 +198,16 @@
     if (k === 'commute_km') { const o = document.getElementById('km-out'); if (o) o.textContent = el.value + ' km'; }
     if (k === 'resume_summary') {
       JM.draft.summary_source = 'manual';
-      const wc = document.getElementById('sum-wc'); if (wc) wc.textContent = wordCount(el.value) + ' words · ' + el.value.length + '/2000 chars';
+      const wcNum = wordCount(el.value);
+      const wc = document.getElementById('sum-wc'); if (wc) wc.textContent = wcNum + ' words · ' + el.value.length + '/2000 chars';
       el.style.height = 'auto'; el.style.height = Math.max(150, el.scrollHeight) + 'px';
+      const prevWc = JM._prevSumWc || 0;
+      JM._prevSumWc = wcNum;
+      [30, 80, 120].forEach(function (th) {
+        if (prevWc < th && wcNum >= th && JM.reward) {
+          JM.reward({ tier: 1, title: th + '+ words summary ✨', targetEl: wc || el });
+        }
+      });
     }
   };
   JM.inputs.exp = function (el) { JM.draft.experience[Number(el.dataset.i)][el.dataset.k] = el.value; };
@@ -221,12 +229,25 @@
       if (/^(jpe?g|png)$/.test(ext)) await JM.seedUrl('resumes', path);
       JM._lastResumeText = '';
       if (/\.txt$|\.md$/i.test(f.name)) {
-        try { JM._lastResumeText = await f.text(); } catch (x) {}
+        try { JM._lastResumeText = await f.text(); } catch (x) { }
       }
       if (JM.draft.summary_source !== 'manual' || !String(JM.draft.resume_summary || '').trim()) {
         JM.draft.resume_summary = composeSummary(JM.draft);
       }
-      JM.toast('Résumé uploaded! Click "Update All Info" to extract your full details and summary.', 'ok');
+      if (JM.reward) {
+        JM.reward({
+          id: 'seeker_resume_upload_scan',
+          tier: 2,
+          repeatTier: 2,
+          emotion: 'scanning',
+          prop: 'clipboard',
+          animation: 'scan',
+          title: 'Résumé uploaded & scanned!',
+          copy: 'Click "Update All Info" to auto-fill your profile details and summary.'
+        });
+      } else {
+        JM.toast('Résumé uploaded! Click "Update All Info" to extract your full details and summary.', 'ok');
+      }
       JM.drawDraft();
     } catch (e) { JM.toast(JM.err(e), 'bad'); }
     finally { if (blobUrl) URL.revokeObjectURL(blobUrl); el.value = ''; }
@@ -285,6 +306,18 @@
         '<div class="notice ok mt">' + ic('shield') + '<div><b>Protected personal details were NOT modified:</b> Full Name, Contact Number, Date of Birth, and Email Address remain unchanged.</div></div>' +
         '<p class="xs muted mt">Review your sections and click <b>Save changes</b> when ready.</p>' +
         '<div class="row mt-l" style="justify-content:flex-end"><button class="btn" data-act="close">Got it</button></div>', 'wide');
+    }
+    if (JM.reward) {
+      JM.reward({
+        id: 'seeker_resume_parsed',
+        tier: 2,
+        repeatTier: 2,
+        emotion: 'scanning',
+        prop: 'clipboard',
+        animation: 'scan',
+        title: 'Résumé parsed & synced!',
+        copy: 'Updated ' + (updated.length || 1) + ' section(s). Protected personal info stayed locked.'
+      });
     }
   }
   JM.actions.acceptsummary = function () {
@@ -396,7 +429,28 @@
         JM.drawDraft();
         if (blobUrl) URL.revokeObjectURL(blobUrl);
       }
-      JM.toast('Uploaded.', 'ok');
+      if ((kind === 'avatar' || kind === 'photo') && JM.reward) {
+        if (kind === 'photo' && JM.micro && JM.micro.shutterFlash) {
+          JM.micro.shutterFlash(el);
+        }
+        JM.reward({
+          id: 'seeker_photo_upload_' + kind,
+          tier: 2,
+          repeatTier: 2,
+          emotion: 'wink_thumbs_up',
+          prop: 'phone',
+          animation: 'peek',
+          title: 'Looking good!',
+          copy: 'Your photo stays private until an employer shortlists you.'
+        });
+      } else if (kind === 'cert') {
+        if (JM.micro && JM.micro.stampPop) {
+          JM.micro.stampPop(document.getElementById('cert-title') || el, 'Credential Stamped ★', 'gold');
+        }
+        JM.toast('Credential stamped & saved!', 'ok');
+      } else {
+        JM.toast('Uploaded.', 'ok');
+      }
     } catch (e) {
       if (kind === 'avatar') {
         JM.draft._avatarBlob = null; JM.draft._avatarUploading = false;
@@ -422,36 +476,42 @@
     JM.confirm({ title: 'Remove experience?', text: 'Remove this experience entry?', ok: 'Remove', danger: true, onOk: function () { JM.draft.experience.splice(idx, 1); JM.drawDraft(); } });
   };
   JM.actions.resumerm = function () {
-    JM.confirm({ title: 'Remove résumé file?', text: 'Your uploaded résumé file will be deleted.', ok: 'Remove', danger: true, onOk: function () {
-      if (JM.draft.resume_path) JM.sb.storage.from('resumes').remove([JM.draft.resume_path]);
-      JM.draft.resume_path = null; JM.draft.resume_mode = 'built'; JM.drawDraft();
-    } });
+    JM.confirm({
+      title: 'Remove résumé file?', text: 'Your uploaded résumé file will be deleted.', ok: 'Remove', danger: true, onOk: function () {
+        if (JM.draft.resume_path) JM.sb.storage.from('resumes').remove([JM.draft.resume_path]);
+        JM.draft.resume_path = null; JM.draft.resume_mode = 'built'; JM.drawDraft();
+      }
+    });
   };
   JM.actions.mediarm = function (el) {
     const k = el.dataset.kind;
-    JM.confirm({ title: 'Remove photo?', text: 'Delete this uploaded image?', ok: 'Remove', danger: true, onOk: async function () {
-      const p = k === 'avatar' ? JM.draft.avatar_path : JM.draft.photo_path;
-      if (k === 'avatar') {
-        try { await JM.q(JM.sb.from('seeker_profiles').update({ avatar_path: null }).eq('user_id', JM.me.id)); } catch (e) {}
-        JM.draft.avatar_path = null;
-        if (JM.me && JM.me.seeker) JM.me.seeker.avatar_path = null;
-        JM.refreshShellAvatar();
-      } else {
-        JM.draft.photo_path = null;
+    JM.confirm({
+      title: 'Remove photo?', text: 'Delete this uploaded image?', ok: 'Remove', danger: true, onOk: async function () {
+        const p = k === 'avatar' ? JM.draft.avatar_path : JM.draft.photo_path;
+        if (k === 'avatar') {
+          try { await JM.q(JM.sb.from('seeker_profiles').update({ avatar_path: null }).eq('user_id', JM.me.id)); } catch (e) { }
+          JM.draft.avatar_path = null;
+          if (JM.me && JM.me.seeker) JM.me.seeker.avatar_path = null;
+          JM.refreshShellAvatar();
+        } else {
+          JM.draft.photo_path = null;
+        }
+        if (p) {
+          delete JM.urlCache['seeker-media/' + p];
+          JM.sb.storage.from('seeker-media').remove([p]);
+        }
+        JM.drawDraft();
       }
-      if (p) {
-        delete JM.urlCache['seeker-media/' + p];
-        JM.sb.storage.from('seeker-media').remove([p]);
-      }
-      JM.drawDraft();
-    } });
+    });
   };
   JM.actions.certrm = function (el) {
     const idx = Number(el.dataset.i), c = JM.draft.certificates[idx];
-    JM.confirm({ title: 'Remove certificate?', text: 'Remove "' + (c ? c.title : 'certificate') + '"?', ok: 'Remove', danger: true, onOk: function () {
-      if (c && c.path) JM.sb.storage.from('seeker-media').remove([c.path]);
-      JM.draft.certificates.splice(idx, 1); JM.drawDraft();
-    } });
+    JM.confirm({
+      title: 'Remove certificate?', text: 'Remove "' + (c ? c.title : 'certificate') + '"?', ok: 'Remove', danger: true, onOk: function () {
+        if (c && c.path) JM.sb.storage.from('seeker-media').remove([c.path]);
+        JM.draft.certificates.splice(idx, 1); JM.drawDraft();
+      }
+    });
   };
   JM.actions.certedit = function (el) {
     const idx = Number(el.dataset.i), c = JM.draft.certificates[idx];
@@ -544,6 +604,20 @@
     },
     skills: function (d) {
       const suggested = [].concat(d._roleSkills || [], d._parsedSkills || []);
+      const checkThirdSkill = function (prevCount) {
+        const nowCount = Object.keys(JM.draft.skills || {}).length;
+        if (prevCount < 3 && nowCount === 3 && JM.reward) {
+          setTimeout(function () {
+            JM.reward({
+              id: 'seeker_3_skills_picked',
+              tier: 1,
+              repeatTier: 1,
+              title: '3 / 3 minimum skills picked! ✓',
+              targetEl: document.getElementById('sp-min-badge') || document.querySelector('[data-sp-root="seeker-sp"]')
+            });
+          }, 40);
+        }
+      };
       return JM.skillPicker({
         id: 'seeker-sp',
         mode: 'seeker',
@@ -552,11 +626,18 @@
         suggested: suggested,
         defaultCats: ['core'],
         emptyHint: 'Pick at least three skills you can honestly claim. Be accurate: your level shapes your match scores.',
-        onAdd: function (name) { if (JM.draft.skills[name] == null) JM.draft.skills[name] = 70; JM.drawDraft(); },
+        onAdd: function (name) {
+          const prev = Object.keys(JM.draft.skills || {}).length;
+          if (JM.draft.skills[name] == null) JM.draft.skills[name] = 70;
+          JM.drawDraft();
+          checkThirdSkill(prev);
+        },
         onToggle: function (name) {
+          const prev = Object.keys(JM.draft.skills || {}).length;
           if (JM.draft.skills[name] != null) delete JM.draft.skills[name];
           else JM.draft.skills[name] = 70;
           JM.drawDraft();
+          checkThirdSkill(prev);
         },
         onRemove: function (name) {
           JM.confirm({ title: 'Remove skill?', text: 'Remove "' + name + '" from your profile?', ok: 'Remove', danger: true, onOk: function () { delete JM.draft.skills[name]; JM.drawDraft(); } });
@@ -586,18 +667,18 @@
       const avBox = '<div class="field" style="margin-bottom:0"><label class="label">Profile picture</label>' +
         ((d.avatar_path || d._avatarBlob)
           ? '<div class="row card flat" style="padding:12px">' +
-            JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, uploading: !!d._avatarUploading, shape: 'circle', size: 68, name: d.full_name, alt: 'Profile picture', act: (d.avatar_path && !d._avatarUploading) ? 'mediaview' : '', title: 'Profile picture' }) +
-            '<div class="grow row wrap gap-s">' + (d.avatar_path && !d._avatarUploading ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') +
-            JM.uploadBtn({ in: 'media', kind: 'avatar', target: 'avatar', label: 'Replace', size: 'sm', preview: 'Crop profile picture' }) +
-            '<button type="button" class="btn ghost sm danger" data-act="mediarm" data-kind="avatar">Remove</button></div></div>'
+          JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, uploading: !!d._avatarUploading, shape: 'circle', size: 68, name: d.full_name, alt: 'Profile picture', act: (d.avatar_path && !d._avatarUploading) ? 'mediaview' : '', title: 'Profile picture' }) +
+          '<div class="grow row wrap gap-s">' + (d.avatar_path && !d._avatarUploading ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') +
+          JM.uploadBtn({ in: 'media', kind: 'avatar', target: 'avatar', label: 'Replace', size: 'sm', preview: 'Crop profile picture' }) +
+          '<button type="button" class="btn ghost sm danger" data-act="mediarm" data-kind="avatar">Remove</button></div></div>'
           : JM.uploadBtn({ in: 'media', kind: 'avatar', target: 'avatar', label: 'Upload profile picture', hint: 'JPG, PNG or WEBP · square/circle crop · max 5 MB', preview: 'Crop profile picture' })) + '</div>';
       const phBox = '<div class="field" style="margin-bottom:0"><label class="label">Professional photo (3:4 portrait)</label>' +
         ((d.photo_path || d._photoBlob)
           ? '<div class="row card flat" style="padding:12px">' +
-            JM.img({ bucket: 'seeker-media', path: d.photo_path, directUrl: d._photoBlob, uploading: !!d._photoUploading, shape: 'portrait', name: d.full_name, alt: 'Professional photo', act: (d.photo_path && !d._photoUploading) ? 'mediaview' : '', title: 'Professional photo' }) +
-            '<div class="grow row wrap gap-s">' + (d.photo_path && !d._photoUploading ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.photo_path) + '" data-title="Professional photo">' + ic('eye', 14) + 'Preview</button>' : '') +
-            JM.uploadBtn({ in: 'media', kind: 'photo', target: 'photo', label: 'Replace', size: 'sm', preview: 'Crop professional photo (3:4)' }) +
-            '<button type="button" class="btn ghost sm danger" data-act="mediarm" data-kind="photo">Remove</button></div></div>'
+          JM.img({ bucket: 'seeker-media', path: d.photo_path, directUrl: d._photoBlob, uploading: !!d._photoUploading, shape: 'portrait', name: d.full_name, alt: 'Professional photo', act: (d.photo_path && !d._photoUploading) ? 'mediaview' : '', title: 'Professional photo' }) +
+          '<div class="grow row wrap gap-s">' + (d.photo_path && !d._photoUploading ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.photo_path) + '" data-title="Professional photo">' + ic('eye', 14) + 'Preview</button>' : '') +
+          JM.uploadBtn({ in: 'media', kind: 'photo', target: 'photo', label: 'Replace', size: 'sm', preview: 'Crop professional photo (3:4)' }) +
+          '<button type="button" class="btn ghost sm danger" data-act="mediarm" data-kind="photo">Remove</button></div></div>'
           : JM.uploadBtn({ in: 'media', kind: 'photo', target: 'photo', label: 'Upload professional photo', hint: 'JPG, PNG or WEBP · 3:4 portrait crop · max 5 MB', preview: 'Crop professional photo (3:4)' })) + '</div>';
       return '<div class="grid g2">' + avBox + phBox + '</div>' +
         '<p class="help mt">Photos are never used for match scoring and stay private until an employer shortlists you.</p>';
@@ -624,18 +705,36 @@
         isOther: !!d.goal_other,
         placeholder: 'Search 100+ career roles (e.g. Barista, Front-End Dev, Cashier)…',
         onPick: function (rid) {
+          const changed = JM.draft.goal_role !== rid || !!JM.draft.goal_other;
           JM.draft.goal_role = rid;
           JM.draft.goal_other = false;
           const rObj = (JM.roles || []).find(function (r) { return r.id === rid; });
           if (rObj && rObj.category && JM.draft.interests.indexOf(rObj.category) < 0) JM.draft.interests.push(rObj.category);
           loadRoleSkillsForDraft(rid);
           JM.drawDraft();
+          if (changed && JM.micro && JM.micro.cornerPeek) {
+            JM.micro.cornerPeek({
+              emotion: 'waving',
+              prop: 'map',
+              animation: 'wave',
+              text: 'New journey! ' + (rObj ? rObj.title : '') + ' 🗺️'
+            });
+          }
         },
         onOther: function () {
+          const changed = !JM.draft.goal_other;
           JM.draft.goal_role = '';
           JM.draft.goal_other = true;
           JM.draft._roleSkills = [];
           JM.drawDraft();
+          if (changed && JM.micro && JM.micro.cornerPeek) {
+            JM.micro.cornerPeek({
+              emotion: 'waving',
+              prop: 'map',
+              animation: 'wave',
+              text: 'New journey! Custom career goal 🗺️'
+            });
+          }
         }
       });
       return field('Career goal', rp, 'Your roadmap and readiness score are built around this role. Pick "Other / not listed" to specify your own.') +
@@ -720,42 +819,136 @@
     };
     return '<div class="auth-main" style="min-height:100vh;background:var(--bg);align-items:flex-start"><div style="width:100%;max-width:680px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:8px 0 22px"><img src="assets/logo.png" alt="">JobMatch</a><div id="draft-root">' + JM.draftRender() + '</div></div></div>';
   }
-  JM.route('/onboarding', { auth: 'seeker', plain: true, pre: true, title: 'Set up your profile', render: onboardHtml, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
+  JM.route('/onboarding', {
+    auth: 'seeker', plain: true, pre: true, title: 'Set up your profile', render: onboardHtml, after: function () {
+      JM.mountTypeaheads();
+      JM.hydrateImages();
+      if (JM.reward && JM.milestones && !JM.milestones.has('seeker_account_confirmed')) {
+        JM.reward({
+          id: 'seeker_account_confirmed',
+          tier: 2,
+          repeatTier: null,
+          emotion: 'waving',
+          prop: 'none',
+          animation: 'wave',
+          title: "Hi, I'm Jobi!",
+          copy: 'Let’s set up your skills and preferences in 5 quick steps.'
+        });
+      }
+    }
+  });
   JM.actions.obback = function () { JM.obStep--; JM.drawDraft(); window.scrollTo(0, 0); };
   JM.actions.obgo = function (el) { JM.obStep = Number(el.dataset.i); JM.drawDraft(); };
   JM.actions.obnext = async function (el) {
     const msg = checkStep(JM.obStep), box = document.getElementById('ob-err');
     if (msg) { box.textContent = msg; box.classList.remove('hide'); return; }
-    if (JM.obStep < STEPS.length - 1) { JM.obStep++; JM.drawDraft(); window.scrollTo(0, 0); return; }
-    await JM.busy(el, async function () { await JM.saveDraft(true); JM.obStep = null; JM.draft = null; JM.go('/deck'); JM.toast('Profile ready. Here are your best matches.', 'ok'); });
+    if (JM.obStep < STEPS.length - 1) {
+      JM.obStep++;
+      JM.drawDraft();
+      window.scrollTo(0, 0);
+      if (JM.reward) {
+        const stepBtn = document.querySelector('.steps button.on');
+        JM.reward({
+          tier: 1,
+          title: 'Step ' + (JM.obStep + 1) + ' of ' + STEPS.length + ': ' + STEPS[JM.obStep][1],
+          targetEl: stepBtn || el
+        });
+      }
+      return;
+    }
+    await JM.busy(el, async function () {
+      await JM.saveDraft(true);
+      JM.obStep = null;
+      JM.draft = null;
+      JM.go('/deck');
+      if (JM.reward) {
+        JM.reward({
+          id: 'seeker_onboarding_finished',
+          tier: 3,
+          repeatTier: 2,
+          emotion: 'cheering',
+          prop: 'trophy',
+          animation: 'cheer',
+          badge: 'Profile Ready',
+          title: 'You’re all set to discover jobs!',
+          copy: 'We matched your skills, commute, and work setup preferences with verified employers near you.',
+          confetti: true,
+          cta: { label: 'Explore my top matches', onClick: function () { JM.go('/deck'); } }
+        });
+      } else {
+        JM.toast('Profile ready. Here are your best matches.', 'ok');
+      }
+    });
   };
 
   // ---------- profile (Section 8.5 clean circular hero avatar + camera badge) ----------
-  JM.route('/profile', { auth: 'seeker', title: 'Profile', render: function () {
-    JM.initDraft();
-    JM.draftRender = function () {
-      const s = JM.me.seeker, d = JM.draft, done = ['full_name', 'phone', 'birth_year', 'edu_level', 'resume_summary', 'goal_role'].filter(function (k) { return d[k] || (k === 'goal_role' && d.goal_text); }).length + (Object.keys(d.skills).length >= 3 ? 1 : 0);
-      const pct = Math.round(done / 7 * 100);
-      const camBadge = '<label class="av-cam" title="Change profile picture" aria-label="Change profile picture">' + ic('camera', 14) +
-        '<input type="file" class="upl-input" accept="image/jpeg,image/png,image/webp" data-in="media" data-kind="avatar" data-target="avatar" data-shape="avatar" data-preview="Crop profile picture"></label>';
-      const heroAv = '<div class="av-hero">' +
-        JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, uploading: !!d._avatarUploading, shape: 'circle', size: 92, name: d.full_name || 'Profile', alt: 'Profile picture', act: (d.avatar_path && !d._avatarUploading) ? 'mediaview' : '', title: 'Profile picture' }) +
-        camBadge + '</div>';
-      return JM.pageHead('Your profile', 'Keep this accurate. It shapes every match score.', '<span class="badge ' + (s.plan === 'pro' ? 'star' : '') + '">' + (s.plan === 'pro' ? (s.plan_period === 'yearly' ? 'Annual Plan' : 'Monthly Plan') : 'Free Plan') + '</span>') +
-        '<div class="card card-b mb"><div class="row wrap" style="gap:18px">' + heroAv + '<div class="grow"><h2 style="font-size:20px">' + esc(d.full_name || 'Your Profile') + '</h2><div class="small muted mt" style="margin-top:4px">' + esc(JM.area(d.area_id)) + ' · ' + esc((d.work_setups || SETUPS).join(' / ')) + '</div><div class="xs muted" style="margin-top:4px">' + (d.avatar_path ? 'Click your photo to preview full size, or tap the camera badge to change.' : 'Tap the camera badge to add a circular profile picture.') + '</div></div>' + (d.avatar_path ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') + '</div></div>' +
-        '<div class="card card-b mb"><div class="row"><div class="grow"><b>Profile strength</b><div class="small muted">' + (pct >= 100 ? 'Complete. Nice work.' : 'Fill the remaining fields to improve your matches.') + '</div></div><b>' + pct + '%</b></div>' + JM.bar(pct, 'ok') + '</div>' +
-        [['photos', 'Profile picture & professional photo'], ['about', 'Personal & contact details'], ['resume', 'Résumé & detailed professional summary'], ['edu', 'Education'], ['skills', 'Skills (categorized)'], ['certs', 'Certificates & credentials'], ['goal', 'Goals, work setup & preferences']].map(function (x) { return '<div class="card mb"><div class="card-h"><h3>' + x[1] + '</h3></div><div class="card-b">' + SEC[x[0]](d) + '</div></div>'; }).join('') +
-        '<div class="row" style="justify-content:flex-end"><button class="btn lg" data-act="profilesave">Save changes</button></div>';
-    };
-    return '<div class="page narrow" id="draft-root">' + JM.draftRender() + '</div>';
-  }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
+  function checkProfileStrengthNod(pct) {
+    if (!JM.micro || !JM.micro.cornerPeek || pct >= 100) return;
+    const band = pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
+    if (band > 0) {
+      JM.micro.cornerPeek({
+        id: 'seeker_profile_strength_' + band,
+        once: true,
+        emotion: 'happy',
+        prop: 'clipboard',
+        animation: 'nod',
+        text: 'Profile strength ' + pct + '%! 👍'
+      });
+    }
+  }
+  JM.route('/profile', {
+    auth: 'seeker', title: 'Profile', render: function () {
+      JM.initDraft();
+      JM.draftRender = function () {
+        const s = JM.me.seeker, d = JM.draft, done = ['full_name', 'phone', 'birth_year', 'edu_level', 'resume_summary', 'goal_role'].filter(function (k) { return d[k] || (k === 'goal_role' && d.goal_text); }).length + (Object.keys(d.skills).length >= 3 ? 1 : 0);
+        const pct = Math.round(done / 7 * 100);
+        const prevPct = JM._lastDraftPct;
+        JM._lastDraftPct = pct;
+        if (prevPct != null && pct > prevPct) {
+          checkProfileStrengthNod(pct);
+        }
+        const camBadge = '<label class="av-cam" title="Change profile picture" aria-label="Change profile picture">' + ic('camera', 14) +
+          '<input type="file" class="upl-input" accept="image/jpeg,image/png,image/webp" data-in="media" data-kind="avatar" data-target="avatar" data-shape="avatar" data-preview="Crop profile picture"></label>';
+        const heroAv = '<div class="av-hero">' +
+          JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, uploading: !!d._avatarUploading, shape: 'circle', size: 92, name: d.full_name || 'Profile', alt: 'Profile picture', act: (d.avatar_path && !d._avatarUploading) ? 'mediaview' : '', title: 'Profile picture' }) +
+          camBadge + '</div>';
+        return JM.pageHead('Your profile', 'Keep this accurate. It shapes every match score.', '<span class="badge ' + (s.plan === 'pro' ? 'star' : '') + '">' + (s.plan === 'pro' ? (s.plan_period === 'yearly' ? 'Annual Plan' : 'Monthly Plan') : 'Free Plan') + '</span>') +
+          '<div class="card card-b mb"><div class="row wrap" style="gap:18px">' + heroAv + '<div class="grow"><h2 style="font-size:20px">' + esc(d.full_name || 'Your Profile') + '</h2><div class="small muted mt" style="margin-top:4px">' + esc(JM.area(d.area_id)) + ' · ' + esc((d.work_setups || SETUPS).join(' / ')) + '</div><div class="xs muted" style="margin-top:4px">' + (d.avatar_path ? 'Click your photo to preview full size, or tap the camera badge to change.' : 'Tap the camera badge to add a circular profile picture.') + '</div></div>' + (d.avatar_path ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') + '</div></div>' +
+          '<div class="card card-b mb"><div class="row"><div class="grow"><b>Profile strength</b><div class="small muted">' + (pct >= 100 ? 'Complete. Nice work.' : 'Fill the remaining fields to improve your matches.') + '</div></div><b>' + pct + '%</b></div>' + JM.bar(pct, 'ok') + '</div>' +
+          [['photos', 'Profile picture & professional photo'], ['about', 'Personal & contact details'], ['resume', 'Résumé & detailed professional summary'], ['edu', 'Education'], ['skills', 'Skills (categorized)'], ['certs', 'Certificates & credentials'], ['goal', 'Goals, work setup & preferences']].map(function (x) { return '<div class="card mb"><div class="card-h"><h3>' + x[1] + '</h3></div><div class="card-b">' + SEC[x[0]](d) + '</div></div>'; }).join('') +
+          '<div class="row" style="justify-content:flex-end"><button class="btn lg" data-act="profilesave">Save changes</button></div>';
+      };
+      return '<div class="page narrow" id="draft-root">' + JM.draftRender() + '</div>';
+    }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); }
+  });
   JM.actions.profilesave = async function (el) {
     if (!String(JM.draft.full_name).trim()) return JM.toast('Enter your name.', 'bad');
     if (Object.keys(JM.draft.skills).length < 1) return JM.toast('Keep at least one skill.', 'bad');
     if (!JM.draft.work_setups || !JM.draft.work_setups.length) return JM.toast('Select at least one work setup.', 'bad');
     await JM.busy(el, async function () {
       await JM.saveDraft(false);
-      JM.toast(JM._summaryStale ? 'Profile saved. Tip: regenerate your manual summary if details changed.' : 'Profile saved.', 'ok');
+      const d = JM.draft;
+      const doneCount = ['full_name', 'phone', 'birth_year', 'edu_level', 'resume_summary', 'goal_role'].filter(function (k) { return d[k] || (k === 'goal_role' && d.goal_text); }).length + (Object.keys(d.skills || {}).length >= 3 ? 1 : 0);
+      const pct = Math.round(doneCount / 7 * 100);
+      const is100 = pct >= 100;
+      if (is100 && JM.reward && !JM.milestones.has('seeker_profile_100')) {
+        JM.reward({
+          id: 'seeker_profile_100',
+          tier: 3,
+          repeatTier: 1,
+          emotion: 'star_eyes',
+          prop: 'medal',
+          animation: 'cheer',
+          badge: '100% Profile Strength',
+          title: 'Your profile is 100% complete!',
+          copy: 'Every skill, preference, and summary detail is in place for accurate job matching.',
+          confetti: true,
+          cta: { label: 'Browse matching jobs', onClick: function () { JM.go('/deck'); } }
+        });
+      } else {
+        checkProfileStrengthNod(pct);
+        JM.toast(JM._summaryStale ? 'Profile saved. Tip: regenerate your manual summary if details changed.' : 'Profile saved.', 'ok', { targetEl: el });
+      }
       const stale = JM._summaryStale;
       JM.initDraft(); JM._summaryStale = stale; JM.drawDraft();
     });
@@ -782,10 +975,10 @@
     return '<article class="jcard ' + cls + '" data-id="' + j.id + '" aria-label="' + esc(j.title) + '"><div class="stamp no">PASS</div><div class="stamp yes">SAVE</div><div class="stamp top">TOP PICK</div>' +
       '<div class="jcard-in">' +
       '<div class="row" style="align-items:flex-start"><div class="grow"><div class="row gap-s wrap">' +
-        (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + JM.setupBadge(j.work_setup, j.onsite_days) + (j.custom_role ? JM.badge(j.custom_role) : '') +
+      (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + JM.setupBadge(j.work_setup, j.onsite_days) + (j.custom_role ? JM.badge(j.custom_role) : '') +
       '</div><h2 style="font-size:19.5px;margin-top:8px">' + esc(j.title) + '</h2>' +
       '<div class="row gap-s small muted" style="margin-top:3px">' + esc(j.company.name) + (j.company.verified ? '<span title="Verified business" style="color:var(--ok);display:inline-flex">' + ic('check', 15) + '</span>' : '') + '</div></div>' +
-      JM.ring(m.score || 0, 56, scoreColor(m.score || 0)) + '</div>' +
+      JM.ring(m.score || 0, 56, scoreColor(m.score || 0), (m.score || 0) >= 90 ? 'jobi-ring-shimmer' : '') + '</div>' +
       mediaHtml +
       '<div class="jdetails">' +
       '<div class="row wrap small" style="color:var(--ink2);gap:12px"><span class="row gap-s">' + ic(isRemote ? 'globe' : 'pin', 14) + locStr + '</span><span class="bold">' + JM.salary(j) + '</span></div>' +
@@ -805,13 +998,44 @@
     const items = JM.deckItems || [], stack = items.slice(0, 3);
     root.innerHTML = stack.length ? stack.map(function (j, i) { return cardHtml(j, i); }).reverse().join('') : '';
     root.classList.toggle('hide', !stack.length);
-    const empty = document.getElementById('deck-empty'); if (empty) empty.classList.toggle('hide', !!stack.length);
+    const empty = document.getElementById('deck-empty'); if (empty) {
+      empty.classList.toggle('hide', !!stack.length);
+      if (!stack.length && JM.hydrateEmptyMascots) JM.hydrateEmptyMascots(empty);
+    }
     const tools = document.getElementById('deck-tools'); if (tools) tools.classList.toggle('hide', !stack.length);
     const hint = document.getElementById('deck-hint'); if (hint) hint.classList.toggle('hide', !stack.length);
     const stars = document.getElementById('stars-left'); if (stars) { const n = JM.me.seeker.stars_left; stars.textContent = n >= 999 ? 'Unlimited stars' : n + (n === 1 ? ' star left today' : ' stars left today'); }
     JM.hydrateImages(root);
     preloadNext(items);
     bindTop();
+
+    if (stack.length > 0) {
+      // 1. Discover first visit: curious Jobi demonstrates swipe gestures once (Tier 2)
+      if (JM.reward && JM.milestones && !JM.milestones.has('seeker_discover_first_visit')) {
+        JM.reward({
+          id: 'seeker_discover_first_visit',
+          tier: 2,
+          repeatTier: null,
+          emotion: 'curious',
+          prop: 'phone',
+          animation: 'wave',
+          title: 'Swipe right to save, left to pass, up to star!',
+          copy: 'Tap any job card to inspect your full skill breakdown.'
+        });
+      } else if (stack[0] && stack[0].match && stack[0].match.score >= 90 && JM.micro && JM.micro.cornerPeek) {
+        // 2. Match 90% or higher: match ring shimmer + star_eyes peek (Tier 1)
+        JM._peeked90 = JM._peeked90 || {};
+        if (!JM._peeked90[stack[0].id]) {
+          JM._peeked90[stack[0].id] = 1;
+          JM.micro.cornerPeek({
+            emotion: 'star_eyes',
+            prop: 'magnifying-glass',
+            animation: 'peek',
+            text: stack[0].match.score + '% Top Match! ★'
+          });
+        }
+      }
+    }
   }
   function bindTop() {
     const top = document.querySelector('#deck .jcard.top'); if (!top) return;
@@ -833,7 +1057,7 @@
           return;
         }
         mode = 'swipe';
-        try { top.setPointerCapture(e.pointerId); } catch (err) {}
+        try { top.setPointerCapture(e.pointerId); } catch (err) { }
       }
       if (mode !== 'swipe') return;
       top.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + dx / 20 + 'deg)';
@@ -864,6 +1088,8 @@
         return;
       }
       JM.me.seeker.stars_left = res.stars_left;
+      if (dir === 'right' && JM.micro && JM.micro.heartPop) JM.micro.heartPop(top);
+      if (dir === 'star' && JM.micro && JM.micro.starBurst) JM.micro.starBurst(top);
       if (top) {
         const st = top.querySelector(dir === 'right' ? '.stamp.yes' : dir === 'left' ? '.stamp.no' : '.stamp.top');
         if (st) st.style.opacity = 1;
@@ -872,9 +1098,18 @@
         top.style.opacity = 0;
       }
       JM.lastSwipe = true;
+      // Track 10th, 50th, 100th job reviewed milestone chip
+      try {
+        const k = 'jm.jobi.swipe_count.' + (JM.me ? JM.me.id : 'anon');
+        const cnt = (parseInt(localStorage.getItem(k) || '0', 10) || 0) + 1;
+        localStorage.setItem(k, String(cnt));
+        if ((cnt === 10 || cnt === 50 || cnt === 100) && JM.micro && JM.micro.milestoneChip) {
+          JM.micro.milestoneChip(cnt, top);
+        }
+      } catch (err) { }
       await new Promise(function (r) { setTimeout(r, 230); });
       JM.deckItems.shift(); drawDeck();
-      if (dir === 'right') JM.toast('Saved to Preferred');
+      if (dir === 'right') JM.toast('Saved to Preferred', 'ok');
       if (dir === 'star') JM.toast('Starred as a top pick', 'ok');
       if (JM.deckItems.length < 5 && !JM.deckLoading) refill();
     } catch (e) { snapBack(top); JM.toast(JM.err(e), 'bad'); } finally { busy = false; }
@@ -906,6 +1141,7 @@
       }
       drawDeck();
       const top = document.querySelector('#deck .jcard.top');
+      if (JM.micro && JM.micro.rewindPop) JM.micro.rewindPop(top || el);
       if (top) {
         top.style.transform = r.dir === 'right' ? 'translate(120px,10px) rotate(6deg)' : r.dir === 'star' ? 'translate(0,-120px)' : 'translate(-120px,10px) rotate(-6deg)';
         requestAnimationFrame(function () {
@@ -970,60 +1206,104 @@
     if (/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) return;
     if (e.key === 'ArrowRight') decide('right'); else if (e.key === 'ArrowLeft') decide('left'); else if (e.key === 'ArrowUp') { e.preventDefault(); decide('star'); }
   });
-  JM.route('/deck', { auth: 'seeker', title: 'Discover', render: async function () {
-    JM.deckItems = await JM.rpc('get_deck', { p_limit: 30 }); JM.me.seeker.stars_left = (await JM.rpc('me')).seeker.stars_left;
-    let interviews = [];
-    try { interviews = await JM.rpc('my_interviews'); } catch (e) { interviews = []; }
-    const upcoming = interviews.filter(function (iv) { return iv.status !== 'cancelled' && iv.status !== 'completed'; });
-    const ivBox = upcoming.length ? '<div class="card card-b mb iv-card"><div class="row between mb"><h3>' + ic('clock', 16) + ' Upcoming Interviews</h3><span class="badge brand">' + upcoming.length + ' scheduled</span></div>' +
-      upcoming.map(function (iv) {
-        const stCls = iv.status === 'confirmed' ? 'ok' : iv.status === 'rescheduled' ? 'warn' : 'brand';
-        const loc = iv.location_or_link ? (/^https?:\/\//i.test(iv.location_or_link) ? '<a href="' + esc(iv.location_or_link) + '" target="_blank" rel="noopener">Join meeting link ' + ic('ext', 12) + '</a>' : esc(iv.location_or_link)) : 'Details to follow';
-        return '<div class="card flat card-b mb" style="padding:12px;margin-bottom:8px"><div class="row wrap between"><div><b>' + esc(iv.job_title) + '</b> <span class="small muted">· ' + esc(iv.employer_name) + '</span><div class="xs muted mt" style="margin-top:4px">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + JM.badge(iv.interview_type, 'brand') + ' · ' + loc + '</div></div><div class="row gap-s">' + JM.badge(iv.status, stCls) + (iv.status === 'scheduled' ? '<button class="btn ok sm" data-act="ivstatus" data-id="' + iv.id + '" data-s="confirmed">Confirm</button>' : '') + '</div></div></div>';
-      }).join('') + '</div>' : '';
-    const f = JM.me.seeker.filters || {}, nf = (f.nearMe ? 1 : 0) + (f.type ? 1 : 0) + (f.setup ? 1 : 0) + (f.area ? 1 : 0) + (f.minSalary ? 1 : 0), isPaid = JM.me.seeker.plan === 'pro';
-    return '<div class="page deck-page">' + ivBox + '<div class="row between wrap deck-head"><div><h1 style="font-size:21px">Discover</h1><div class="xs muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic('undo', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
-      '<div class="deckwrap"><div class="deck" id="deck"></div>' +
-      '<div class="actions" id="deck-tools"><button class="rbtn sm" data-act="undo" aria-label="Undo last swipe">' + ic('undo') + '</button><button class="rbtn no" data-act="swipe" data-dir="left" aria-label="Pass">' + ic('x') + '</button><button class="rbtn star" data-act="swipe" data-dir="star" aria-label="Star as top pick">' + ic('star') + '</button><button class="rbtn yes" data-act="swipe" data-dir="right" aria-label="Save to preferred">' + ic('heart') + '</button></div>' +
-      '<p class="xs muted center" id="deck-hint">Swipe right to save, left to pass, up to star. Tap a card for details. Arrow keys work too.</p>' +
-      '<div id="deck-empty" class="hide">' + JM.empty('layers', 'You are all caught up', nf ? 'No more jobs match your filters. Loosen them or review passed jobs.' : 'You have seen every job for now. You can review previously passed jobs or check back later.',
-        '<div class="row wrap" style="justify-content:center">' + (nf ? '<button class="btn secondary" data-act="filters">Change filters</button>' : '') + '<button class="btn secondary" data-act="requeue">Previous card</button><button class="btn secondary" data-act="requeueall">Review all passed</button><button class="btn" data-act="deckrefresh">Refresh</button></div>') + '</div></div></div>';
-  }, after: drawDeck });
+  JM.route('/deck', {
+    auth: 'seeker', title: 'Discover', render: async function () {
+      JM.deckItems = await JM.rpc('get_deck', { p_limit: 30 }); JM.me.seeker.stars_left = (await JM.rpc('me')).seeker.stars_left;
+      let interviews = [];
+      try { interviews = await JM.rpc('my_interviews'); } catch (e) { interviews = []; }
+      const upcoming = interviews.filter(function (iv) { return iv.status !== 'cancelled' && iv.status !== 'completed'; });
+      const uncelebratedIv = upcoming.find(function (iv) { return iv.status === 'scheduled' && JM.milestones && !JM.milestones.has('seeker_iv_sched_' + iv.id); });
+      if (uncelebratedIv && JM.reward) {
+        setTimeout(function () {
+          JM.reward({
+            id: 'seeker_iv_sched_' + uncelebratedIv.id,
+            tier: 2,
+            repeatTier: null,
+            emotion: 'star_eyes',
+            prop: 'calendar',
+            animation: 'bounce',
+            title: 'Interview scheduled! 📅',
+            copy: uncelebratedIv.employer_name + ' invited you for ' + uncelebratedIv.job_title + '.'
+          });
+        }, 160);
+      }
+      const ivBox = upcoming.length ? '<div class="card card-b mb iv-card"><div class="row between mb"><h3>' + ic('clock', 16) + ' Upcoming Interviews</h3><span class="badge brand">' + upcoming.length + ' scheduled</span></div>' +
+        upcoming.map(function (iv) {
+          const stCls = iv.status === 'confirmed' ? 'ok' : iv.status === 'rescheduled' ? 'warn' : 'brand';
+          const loc = iv.location_or_link ? (/^https?:\/\//i.test(iv.location_or_link) ? '<a href="' + esc(iv.location_or_link) + '" target="_blank" rel="noopener">Join meeting link ' + ic('ext', 12) + '</a>' : esc(iv.location_or_link)) : 'Details to follow';
+          return '<div class="card flat card-b mb" style="padding:12px;margin-bottom:8px"><div class="row wrap between"><div><b>' + esc(iv.job_title) + '</b> <span class="small muted">· ' + esc(iv.employer_name) + '</span><div class="xs muted mt" style="margin-top:4px">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + JM.badge(iv.interview_type, 'brand') + ' · ' + loc + '</div></div><div class="row gap-s">' + JM.badge(iv.status, stCls) + (iv.status === 'scheduled' ? '<button class="btn ok sm" data-act="ivstatus" data-id="' + iv.id + '" data-s="confirmed">Confirm</button>' : '') + '</div></div></div>';
+        }).join('') + '</div>' : '';
+      const f = JM.me.seeker.filters || {}, nf = (f.nearMe ? 1 : 0) + (f.type ? 1 : 0) + (f.setup ? 1 : 0) + (f.area ? 1 : 0) + (f.minSalary ? 1 : 0), isPaid = JM.me.seeker.plan === 'pro';
+      return '<div class="page deck-page">' + ivBox + '<div class="row between wrap deck-head"><div><h1 style="font-size:21px">Discover</h1><div class="xs muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic('undo', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
+        '<div class="deckwrap"><div class="deck" id="deck"></div>' +
+        '<div class="actions" id="deck-tools"><button class="rbtn sm" data-act="undo" aria-label="Undo last swipe">' + ic('undo') + '</button><button class="rbtn no" data-act="swipe" data-dir="left" aria-label="Pass">' + ic('x') + '</button><button class="rbtn star" data-act="swipe" data-dir="star" aria-label="Star as top pick">' + ic('star') + '</button><button class="rbtn yes" data-act="swipe" data-dir="right" aria-label="Save to preferred">' + ic('heart') + '</button></div>' +
+        '<p class="xs muted center" id="deck-hint">Swipe right to save, left to pass, up to star. Tap a card for details. Arrow keys work too.</p>' +
+        '<div id="deck-empty" class="hide">' + JM.empty('layers', "You're all caught up", nf ? 'No more jobs match your filters. Loosen them or review passed jobs.' : 'You have seen every job for now. You can review previously passed jobs or check back later.',
+          '<div class="row wrap" style="justify-content:center">' + (nf ? '<button class="btn secondary" data-act="filters">Change filters</button>' : '') + '<button class="btn secondary" data-act="requeue">Previous card</button><button class="btn secondary" data-act="requeueall">Review all passed</button><button class="btn" data-act="deckrefresh">Refresh</button></div>') + '</div></div></div>';
+    }, after: drawDeck
+  });
   JM.actions.ivstatus = async function (el) {
     await JM.busy(el, async function () {
       await JM.rpc('update_interview_status', { p_id: el.dataset.id, p_status: el.dataset.s });
-      JM.toast('Interview updated.', 'ok'); JM.render();
+      if (el.dataset.s === 'confirmed' && JM.micro && JM.micro.stampPop) {
+        JM.micro.stampPop(el, 'Interview Confirmed ✓', 'green');
+      }
+      JM.toast('Interview confirmed!', 'ok', { targetEl: el }); JM.render();
     });
   };
 
   // ---------- job detail ----------
-  JM.route('/jobs/:id', { auth: 'seeker', title: 'Job details', render: async function (p) {
-    const j = await JM.rpc('get_job', { p_job: p.id });
-    if (!j) return '<div class="page narrow">' + JM.empty('briefcase', 'This job is no longer available', 'The employer may have closed it.', '<a class="btn" href="#/deck">Back to Discover</a>') + '</div>';
-    JM.cur = j; const m = j.match || {}, parts = m.parts || {}, ap = j.application;
-    const isRemote = j.work_setup === 'Remote';
-    const part = function (l, v, w) { return '<div class="skill"><div class="row between small"><span>' + l + ' <span class="muted">(' + w + '% of score)</span></span><b class="num">' + v + '%</b></div>' + JM.bar(v, v >= 70 ? 'ok' : '') + '</div>'; };
-    const cta = ap ? '<div class="notice ok">' + ic('check') + '<div><b>You applied ' + JM.ago(ap.created_at) + '.</b> Status: ' + esc(ap.status) + '. <a href="#/applications">See your applications</a></div></div>' :
-      '<div class="row wrap"><button class="btn lg" data-act="apply" data-id="' + j.id + '">Apply now</button>' + (j.swipe === 'right' || j.swipe === 'star' ? '<span class="badge brand">' + ic('heart', 12) + 'Saved</span>' : '<button class="btn secondary lg" data-act="savejob" data-id="' + j.id + '">' + ic('heart', 16) + 'Save</button>') + '</div>';
-    const mediaHead = '<div class="jmedia jmedia-detail mt">' +
-      JM.img({ bucket: 'job-photos', path: j.photo_path, shape: 'cover43', focus: j.photo_focus || '50% 50%', fallback: 'placeholder', name: j.category || j.title, icon: 'briefcase', alt: j.title, act: j.photo_path ? 'imgview' : '', title: j.title }) +
-      '<div class="jlogo">' + JM.img({ bucket: 'company-logos', path: j.company && j.company.logo_path, shape: 'circle', size: 64, name: j.company && j.company.name, alt: j.company && j.company.name }) + '</div></div>';
-    return '<div class="page narrow job-detail-page"><a class="small row gap-s" href="#/deck" style="margin-bottom:14px">' + ic('left', 16) + 'Back</a>' +
-      '<div class="card card-b"><div class="row" style="align-items:flex-start"><div class="grow"><div class="row gap-s wrap">' + (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + JM.setupBadge(j.work_setup, j.onsite_days) + (j.company.verified ? JM.badge('Verified business', 'ok') : '') + '</div><h1 style="margin-top:12px">' + esc(j.title) + '</h1><p class="muted mt" style="margin-bottom:0">' + esc(j.company.name) + ' · ' + esc(JM.area(j.area_id)) + '</p></div>' + JM.ring(m.score || 0, 64, scoreColor(m.score || 0)) + '</div>' +
-      mediaHead +
-      '<div class="row wrap" style="gap:24px;margin-top:38px"><div><div class="xs muted">Pay</div><b>' + JM.salary(j) + '</b></div><div><div class="xs muted">Work setup</div><b>' + esc(j.work_setup || 'On-site') + (j.work_setup === 'Hybrid' && j.onsite_days ? ' · ' + j.onsite_days + ' days on-site' : '') + '</b></div><div><div class="xs muted">Distance</div><b>' + (isRemote ? 'Remote' : m.dist != null ? m.dist + ' km' : 'n/a') + '</b></div><div><div class="xs muted">Posted</div><b>' + JM.ago(j.posted_at) + '</b></div></div><div class="mt-l">' + cta + '</div></div>' +
-      '<div class="card mt"><div class="card-h"><h3>Why you match</h3></div><div class="card-b">' + part('Skills', parts.skills || 0, 55) + part('Location', parts.location || 0, 20) + part('Interests', parts.interest || 0, 15) + part('Pay', parts.salary || 0, 10) +
-      '<div class="divider"></div><div class="label">Skills for this job</div><div class="chips">' + JM.skillChips(j) + '</div>' + ((m.missing || []).length ? '<p class="small muted mt" style="margin-bottom:0">Skills in amber are not at a hiring level yet. ' + (j.role_id ? '<a href="#/career/job/' + j.id + '">See how to close the gap</a>.' : '') + '</p>' : '') + '</div></div>' +
-      '<div class="card mt"><div class="card-h"><h3>About the job</h3></div><div class="card-b" style="white-space:pre-wrap">' + (j.intern_requirements ? '<div class="notice mb">' + ic('award') + '<div><b>Specific / Intern Requirements:</b> ' + esc(j.intern_requirements) + '</div></div>' : '') + esc(j.description) + '</div></div>' +
-      '<div class="card mt"><div class="card-h"><h3>About ' + esc(j.company.name) + '</h3></div><div class="card-b"><p>' + esc(j.company.about || 'No description yet.') + '</p><p class="small muted" style="margin:0">' + esc(j.company.type || '') + '. Contact details are shared when the employer shortlists you.</p></div></div>' +
-      '<p class="center small mt"><button class="btn ghost sm" data-act="reportjob" data-id="' + j.id + '">' + ic('flag', 15) + 'Report this listing</button></p></div>';
-  } });
-  JM.actions.savejob = async function (el) { await JM.busy(el, async function () { const r = await JM.rpc('swipe_job', { p_job: el.dataset.id, p_dir: 'right' }); if (!r.ok) return JM.toast('That job is no longer available.', 'bad'); JM.toast('Saved to Preferred'); JM.render(); }); };
+  JM.route('/jobs/:id', {
+    auth: 'seeker', title: 'Job details', render: async function (p) {
+      const j = await JM.rpc('get_job', { p_job: p.id });
+      if (!j) return '<div class="page narrow">' + JM.empty('briefcase', 'This job is no longer available', 'The employer may have closed it.', '<a class="btn" href="#/deck">Back to Discover</a>') + '</div>';
+      JM.cur = j; const m = j.match || {}, parts = m.parts || {}, ap = j.application;
+      const isRemote = j.work_setup === 'Remote';
+      const part = function (l, v, w) { return '<div class="skill"><div class="row between small"><span>' + l + ' <span class="muted">(' + w + '% of score)</span></span><b class="num">' + v + '%</b></div>' + JM.bar(v, v >= 70 ? 'ok' : '') + '</div>'; };
+      const cta = ap ? '<div class="notice ok">' + ic('check') + '<div><b>You applied ' + JM.ago(ap.created_at) + '.</b> Status: ' + esc(ap.status) + '. <a href="#/applications">See your applications</a></div></div>' :
+        '<div class="row wrap"><button class="btn lg" data-act="apply" data-id="' + j.id + '">Apply now</button>' + (j.swipe === 'right' || j.swipe === 'star' ? '<span class="badge brand">' + ic('heart', 12) + 'Saved</span>' : '<button class="btn secondary lg" data-act="savejob" data-id="' + j.id + '">' + ic('heart', 16) + 'Save</button>') + '</div>';
+      const mediaHead = '<div class="jmedia jmedia-detail mt">' +
+        JM.img({ bucket: 'job-photos', path: j.photo_path, shape: 'cover43', focus: j.photo_focus || '50% 50%', fallback: 'placeholder', name: j.category || j.title, icon: 'briefcase', alt: j.title, act: j.photo_path ? 'imgview' : '', title: j.title }) +
+        '<div class="jlogo">' + JM.img({ bucket: 'company-logos', path: j.company && j.company.logo_path, shape: 'circle', size: 64, name: j.company && j.company.name, alt: j.company && j.company.name }) + '</div></div>';
+      return '<div class="page narrow job-detail-page"><a class="small row gap-s" href="#/deck" style="margin-bottom:14px">' + ic('left', 16) + 'Back</a>' +
+        '<div class="card card-b"><div class="row" style="align-items:flex-start"><div class="grow"><div class="row gap-s wrap">' + (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + JM.setupBadge(j.work_setup, j.onsite_days) + (j.company.verified ? JM.badge('Verified business', 'ok') : '') + '</div><h1 style="margin-top:12px">' + esc(j.title) + '</h1><p class="muted mt" style="margin-bottom:0">' + esc(j.company.name) + ' · ' + esc(JM.area(j.area_id)) + '</p></div>' + JM.ring(m.score || 0, 64, scoreColor(m.score || 0)) + '</div>' +
+        mediaHead +
+        '<div class="row wrap" style="gap:24px;margin-top:38px"><div><div class="xs muted">Pay</div><b>' + JM.salary(j) + '</b></div><div><div class="xs muted">Work setup</div><b>' + esc(j.work_setup || 'On-site') + (j.work_setup === 'Hybrid' && j.onsite_days ? ' · ' + j.onsite_days + ' days on-site' : '') + '</b></div><div><div class="xs muted">Distance</div><b>' + (isRemote ? 'Remote' : m.dist != null ? m.dist + ' km' : 'n/a') + '</b></div><div><div class="xs muted">Posted</div><b>' + JM.ago(j.posted_at) + '</b></div></div><div class="mt-l">' + cta + '</div></div>' +
+        '<div class="card mt"><div class="card-h"><h3>Why you match</h3></div><div class="card-b">' + part('Skills', parts.skills || 0, 55) + part('Location', parts.location || 0, 20) + part('Interests', parts.interest || 0, 15) + part('Pay', parts.salary || 0, 10) +
+        '<div class="divider"></div><div class="label">Skills for this job</div><div class="chips">' + JM.skillChips(j) + '</div>' + ((m.missing || []).length ? '<p class="small muted mt" style="margin-bottom:0">Skills in amber are not at a hiring level yet. ' + (j.role_id ? '<a href="#/career/job/' + j.id + '">See how to close the gap</a>.' : '') + '</p>' : '') + '</div></div>' +
+        '<div class="card mt"><div class="card-h"><h3>About the job</h3></div><div class="card-b" style="white-space:pre-wrap">' + (j.intern_requirements ? '<div class="notice mb">' + ic('award') + '<div><b>Specific / Intern Requirements:</b> ' + esc(j.intern_requirements) + '</div></div>' : '') + esc(j.description) + '</div></div>' +
+        '<div class="card mt"><div class="card-h"><h3>About ' + esc(j.company.name) + '</h3></div><div class="card-b"><p>' + esc(j.company.about || 'No description yet.') + '</p><p class="small muted" style="margin:0">' + esc(j.company.type || '') + '. Contact details are shared when the employer shortlists you.</p></div></div>' +
+        '<p class="center small mt"><button class="btn ghost sm" data-act="reportjob" data-id="' + j.id + '">' + ic('flag', 15) + 'Report this listing</button></p></div>';
+    }
+  });
+  JM.actions.savejob = async function (el) { await JM.busy(el, async function () { const r = await JM.rpc('swipe_job', { p_job: el.dataset.id, p_dir: 'right' }); if (!r.ok) return JM.toast('That job is no longer available.', 'bad'); if (JM.micro && JM.micro.heartPop) JM.micro.heartPop(el); JM.toast('Saved to Preferred', 'ok', { targetEl: el }); JM.render(); }); };
   JM.actions.apply = async function (el) {
     await JM.busy(el, async function () {
       const r = await JM.rpc('apply_job', { p_job: el.dataset.id });
       if (!r.ok) return JM.toast(r.reason === 'profile' ? 'Finish your profile first.' : 'That job is no longer available.', 'bad');
-      JM.toast(r.existing ? 'You already applied.' : 'Application sent. Good luck!', 'ok'); JM.loadMe().then(JM.updateBadges); JM.render();
+      if (r.existing) {
+        JM.toast('You already applied.');
+      } else if (JM.reward) {
+        const jobTitle = (JM.cur && JM.cur.id === el.dataset.id && JM.cur.title) ? JM.cur.title : 'this position';
+        const compName = (JM.cur && JM.cur.id === el.dataset.id && JM.cur.company && JM.cur.company.name) ? JM.cur.company.name : 'the employer';
+        JM.reward({
+          id: 'seeker_first_application',
+          tier: 3,
+          repeatTier: 2,
+          emotion: 'cheering',
+          prop: 'paper-plane',
+          animation: 'cheer',
+          badge: 'Application Sent',
+          title: 'Application sent!',
+          copy: 'Your profile and skills are on their way to ' + compName + ' for ' + jobTitle + '.',
+          targetEl: el,
+          confetti: true,
+          cta: { label: 'Keep exploring jobs', onClick: function () { JM.go('/deck'); } }
+        });
+      } else {
+        JM.toast('Application sent. Good luck!', 'ok');
+      }
+      JM.loadMe().then(JM.updateBadges); JM.render();
     });
   };
   JM.actions.reportjob = function (el) {
@@ -1032,22 +1312,25 @@
   JM.forms.report = async function (form, d) {
     if (String(d.reason || '').trim().length < 3) return JM.toast('Add a short reason.', 'bad');
     await JM.rpc('report_content', { p_kind: form.dataset.kind, p_target: form.dataset.target, p_reason: d.reason });
-    JM.close(); JM.toast('Report sent. Thank you.', 'ok');
+    // Guardrail: never use mascot/sparkles on reports
+    JM.close(); JM.toast('Report sent. Thank you.');
   };
 
   // ---------- preferred ----------
-  JM.route('/preferred', { auth: 'seeker', title: 'Preferred', render: async function () {
-    const items = await JM.rpc('get_preferred');
-    const rows = items.map(function (x) {
-      const j = x.job, ap = x.application;
-      return '<div class="li"><a href="#/jobs/' + j.id + '" class="row grow" style="color:inherit;gap:14px">' +
-        JM.img({ bucket: 'company-logos', path: j.company && j.company.logo_path, shape: 'circle', size: 42, name: j.company && j.company.name }) +
-        '<div class="grow"><div class="bold">' + esc(j.title) + (x.starred ? ' <span style="color:var(--star)">' + ic('star', 14) + '</span>' : '') + '</div><div class="small muted">' + esc(j.company.name) + ' · ' + JM.salary(j) + ' ' + JM.setupBadge(j.work_setup, j.onsite_days) + '</div></div></a>' +
-        '<b class="num" style="color:' + scoreColor(j.match.score) + '">' + j.match.score + '%</b>' + (ap ? JM.badge(ap.status, ap.status === 'rejected' ? 'bad' : 'ok') : j.status === 'published' ? '<button class="btn sm" data-act="apply" data-id="' + j.id + '">Apply</button>' : JM.badge('Closed')) +
-        '<button class="iconbtn" data-act="unprefer" data-id="' + j.id + '" aria-label="Remove from preferred" style="width:32px;height:32px">' + ic('x', 16) + '</button></div>';
-    }).join('');
-    return '<div class="page narrow">' + JM.pageHead('Preferred jobs', 'Jobs you saved. Starred jobs stay on top.') + (items.length ? '<div class="card list">' + rows + '</div>' : '<div class="card">' + JM.empty('heart', 'Nothing saved yet', 'Swipe right on jobs you like and they will wait here.', '<a class="btn" href="#/deck">Browse jobs</a>') + '</div>') + '</div>';
-  } });
+  JM.route('/preferred', {
+    auth: 'seeker', title: 'Preferred', render: async function () {
+      const items = await JM.rpc('get_preferred');
+      const rows = items.map(function (x) {
+        const j = x.job, ap = x.application;
+        return '<div class="li"><a href="#/jobs/' + j.id + '" class="row grow" style="color:inherit;gap:14px">' +
+          JM.img({ bucket: 'company-logos', path: j.company && j.company.logo_path, shape: 'circle', size: 42, name: j.company && j.company.name }) +
+          '<div class="grow"><div class="bold">' + esc(j.title) + (x.starred ? ' <span style="color:var(--star)">' + ic('star', 14) + '</span>' : '') + '</div><div class="small muted">' + esc(j.company.name) + ' · ' + JM.salary(j) + ' ' + JM.setupBadge(j.work_setup, j.onsite_days) + '</div></div></a>' +
+          '<b class="num" style="color:' + scoreColor(j.match.score) + '">' + j.match.score + '%</b>' + (ap ? JM.badge(ap.status, ap.status === 'rejected' ? 'bad' : 'ok') : j.status === 'published' ? '<button class="btn sm" data-act="apply" data-id="' + j.id + '">Apply</button>' : JM.badge('Closed')) +
+          '<button class="iconbtn" data-act="unprefer" data-id="' + j.id + '" aria-label="Remove from preferred" style="width:32px;height:32px">' + ic('x', 16) + '</button></div>';
+      }).join('');
+      return '<div class="page narrow">' + JM.pageHead('Preferred jobs', 'Jobs you saved. Starred jobs stay on top.') + (items.length ? '<div class="card list">' + rows + '</div>' : '<div class="card">' + JM.empty('heart', 'Nothing saved yet', 'Swipe right on jobs you like and they will wait here.', '<a class="btn" href="#/deck">Browse jobs</a>') + '</div>') + '</div>';
+    }
+  });
   JM.actions.unprefer = function (el) {
     JM.confirm({
       title: 'Remove from Preferred?',
@@ -1060,60 +1343,121 @@
 
   // ---------- applications ----------
   const STATUS = { applied: ['Applied', ''], shortlisted: ['Shortlisted', 'ok'], hired: ['Hired', 'ok'], rejected: ['Not selected', 'bad'] };
-  JM.route('/applications', { auth: 'seeker', title: 'Applications', render: async function () {
-    if (JM.me.seeker.plan !== 'pro') {
-      return '<div class="page narrow">' + JM.pageHead('Applications', 'Track every job you applied to.') + '<div class="card">' + JM.empty('lock', 'Application history is a paid feature', 'Free plan users do not have access to application or activity history. Upgrade to the Monthly or Annual Plan to track all your applications and insights.', '<a class="btn" href="#/pro">View Monthly &amp; Annual Plans</a>') + '</div></div>';
+  JM.route('/applications', {
+    auth: 'seeker', title: 'Applications', render: async function () {
+      if (JM.me.seeker.plan !== 'pro') {
+        return '<div class="page narrow">' + JM.pageHead('Applications', 'Track every job you applied to.') + '<div class="card">' + JM.empty('lock', 'Application history is a paid feature', 'Free plan users do not have access to application or activity history. Upgrade to the Monthly or Annual Plan to track all your applications and insights.', '<a class="btn" href="#/pro">View Monthly &amp; Annual Plans</a>') + '</div></div>';
+      }
+      const items = await JM.rpc('my_applications');
+      const rejectedApp = items.find(function (a) { return a.status === 'rejected' && JM.milestones && !JM.milestones.has('seeker_not_selected_' + a.id); });
+      if (rejectedApp && JM.reward) {
+        setTimeout(function () {
+          JM.reward({
+            id: 'seeker_not_selected_' + rejectedApp.id,
+            tier: 2,
+            repeatTier: null,
+            emotion: 'comforting',
+            prop: 'magnifying-glass',
+            animation: 'nod',
+            confetti: false,
+            title: 'Keep going — your skills are growing!',
+            copy: "Here are 3 jobs you're ready for right now."
+          });
+        }, 150);
+      }
+      const rows = items.map(function (a) {
+        const st = STATUS[a.status];
+        return '<div class="li" style="align-items:flex-start;flex-wrap:wrap">' +
+          JM.img({ bucket: 'company-logos', path: a.job.logo_path, shape: 'circle', size: 42, name: a.job.company }) +
+          '<div class="grow"><a class="bold" href="#/jobs/' + a.job.id + '" style="color:var(--ink)">' + esc(a.job.title) + '</a> ' + JM.setupBadge(a.job.work_setup, a.job.onsite_days) + '<div class="small muted">' + esc(a.job.company) + ' · applied ' + JM.ago(a.created_at) + ' · ' + (a.viewed ? 'viewed by employer' : 'not viewed yet') + '</div>' +
+          (a.status === 'rejected' ? '<div class="small mt"><a href="#/deck">Here are 3 jobs you\'re ready for →</a>' + (a.job.role_id ? ' · <a href="#/career/job/' + a.job.id + '">See what to improve</a>' : '') + '</div>' : '') + '</div>' +
+          JM.badge(st[0], st[1]) +
+          (a.status === 'hired' ? '<button type="button" class="btn ok sm" data-act="hiredcard" data-id="' + a.id + '" data-job="' + esc(a.job.title) + '" data-company="' + esc(a.job.company) + '">' + ic('award', 14) + 'Share card</button>' : '') +
+          (a.conversation_id ? '<a class="btn secondary sm" href="#/messages/' + a.conversation_id + '">' + ic('chat', 15) + 'Chat</a>' : '') + '<button class="btn ghost sm" data-act="insights" data-id="' + a.id + '">Insights' + (JM.me.seeker.plan === 'pro' ? '' : ic('lock', 13)) + '</button></div>';
+      }).join('');
+      return '<div class="page narrow">' + JM.pageHead('Applications', 'Track every job you applied to.') + (items.length ? '<div class="card list">' + rows + '</div>' : '<div class="card">' + JM.empty('briefcase', 'No applications yet', 'Apply to a job and its progress shows up here.', '<a class="btn" href="#/deck">Find jobs</a>') + '</div>') + '</div>';
     }
-    const items = await JM.rpc('my_applications');
-    const rows = items.map(function (a) {
-      const st = STATUS[a.status];
-      return '<div class="li" style="align-items:flex-start;flex-wrap:wrap">' +
-        JM.img({ bucket: 'company-logos', path: a.job.logo_path, shape: 'circle', size: 42, name: a.job.company }) +
-        '<div class="grow"><a class="bold" href="#/jobs/' + a.job.id + '" style="color:var(--ink)">' + esc(a.job.title) + '</a> ' + JM.setupBadge(a.job.work_setup, a.job.onsite_days) + '<div class="small muted">' + esc(a.job.company) + ' · applied ' + JM.ago(a.created_at) + ' · ' + (a.viewed ? 'viewed by employer' : 'not viewed yet') + '</div>' +
-        (a.status === 'rejected' && a.job.role_id ? '<div class="small mt"><a href="#/career/job/' + a.job.id + '">See what to improve for roles like this</a></div>' : '') + '</div>' +
-        JM.badge(st[0], st[1]) + (a.conversation_id ? '<a class="btn secondary sm" href="#/messages/' + a.conversation_id + '">' + ic('chat', 15) + 'Chat</a>' : '') + '<button class="btn ghost sm" data-act="insights" data-id="' + a.id + '">Insights' + (JM.me.seeker.plan === 'pro' ? '' : ic('lock', 13)) + '</button></div>';
-    }).join('');
-    return '<div class="page narrow">' + JM.pageHead('Applications', 'Track every job you applied to.') + (items.length ? '<div class="card list">' + rows + '</div>' : '<div class="card">' + JM.empty('briefcase', 'No applications yet', 'Apply to a job and its progress shows up here.', '<a class="btn" href="#/deck">Find jobs</a>') + '</div>') + '</div>';
-  } });
-  JM.actions.insights = async function (el) {
-    if (JM.me.seeker.plan !== 'pro') return JM.modal('<h2>Application insights</h2><p class="muted mt">See how you rank among applicants, the median score, and how fast this employer replies. Included with JobMatch Pro.</p><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button><a class="btn" href="#/pro" data-act="close">See Pro</a></div>');
-    await JM.busy(el, async function () {
-      const r = await JM.rpc('application_insights', { p_app: el.dataset.id });
-      const stat = function (n, l) { return '<div class="card flat stat"><div class="n">' + n + '</div><div class="l">' + l + '</div></div>'; };
-      JM.modal('<h2>Application insights</h2><div class="grid g2 keep mt">' + stat('#' + r.rank + ' of ' + r.total, 'Your rank by match score') + stat(r.score + '%', 'Your match score') + stat(r.median_score + '%', 'Median applicant score') + stat(r.avg_response_hours == null ? 'No data yet' : r.avg_response_hours + ' h', 'Average employer response') + '</div>' +
-        '<p class="small muted mt">' + (r.viewed_at ? 'Viewed by the employer ' + JM.ago(r.viewed_at) + '.' : 'The employer has not opened your application yet.') + '</p><div class="row mt" style="justify-content:flex-end"><button class="btn" data-act="close">Done</button></div>');
-    });
-  };
+  });
+JM.actions.insights = async function (el) {
+  if (JM.me.seeker.plan !== 'pro') return JM.modal('<h2>Application insights</h2><p class="muted mt">See how you rank among applicants, the median score, and how fast this employer replies. Included with JobMatch Pro.</p><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button><a class="btn" href="#/pro" data-act="close">See Pro</a></div>');
+  await JM.busy(el, async function () {
+    const r = await JM.rpc('application_insights', { p_app: el.dataset.id });
+    const stat = function (n, l) { return '<div class="card flat stat"><div class="n">' + n + '</div><div class="l">' + l + '</div></div>'; };
+    JM.modal('<h2>Application insights</h2><div class="grid g2 keep mt">' + stat('#' + r.rank + ' of ' + r.total, 'Your rank by match score') + stat(r.score + '%', 'Your match score') + stat(r.median_score + '%', 'Median applicant score') + stat(r.avg_response_hours == null ? 'No data yet' : r.avg_response_hours + ' h', 'Average employer response') + '</div>' +
+      '<p class="small muted mt">' + (r.viewed_at ? 'Viewed by the employer ' + JM.ago(r.viewed_at) + '.' : 'The employer has not opened your application yet.') + '</p><div class="row mt" style="justify-content:flex-end"><button class="btn" data-act="close">Done</button></div>');
+  });
+};
 
-  // ---------- matches ----------
-  JM.route('/matches', { auth: 'seeker', title: 'Matches', render: async function () {
+// ---------- matches ----------
+JM.route('/matches', {
+  auth: 'seeker', title: 'Matches', render: async function () {
     const items = await JM.rpc('my_matches');
+    const hiredMatch = items.find(function (x) { return x.status === 'hired' && JM.milestones && !JM.milestones.has('seeker_hired_' + x.application_id); });
+    if (hiredMatch && JM.celebrateHired) {
+      setTimeout(function () {
+        JM.celebrateHired({ id: hiredMatch.application_id, jobTitle: hiredMatch.job.title, companyName: hiredMatch.company.name });
+      }, 150);
+    }
     const cards = items.map(function (x) {
       const c = x.company;
+      const hiredBtn = x.status === 'hired'
+        ? '<button type="button" class="btn secondary block mt" data-act="hiredcard" data-id="' + x.application_id + '" data-job="' + esc(x.job.title) + '" data-company="' + esc(c.name) + '">' + ic('award', 15) + 'Download "I got hired" card</button>'
+        : '';
       return '<div class="card card-b"><div class="row" style="align-items:flex-start">' +
         JM.img({ bucket: 'company-logos', path: c.logo_path, shape: 'circle', size: 48, name: c.name }) +
         '<div class="grow"><div class="row gap-s wrap"><h3>' + esc(c.name) + '</h3>' + JM.badge(x.status === 'hired' ? 'Hired' : 'Shortlisted', 'ok') + JM.setupBadge(x.job.work_setup, x.job.onsite_days) + '</div><div class="muted small">' + esc(x.job.title) + ' · ' + JM.ago(x.matched_at) + '</div></div></div>' +
         '<div class="divider"></div><div class="small col gap-s"><div class="row gap-s">' + ic('user', 15) + esc(c.contact_name || 'Hiring team') + '</div>' + (c.contact_phone ? '<div class="row gap-s">' + ic('mail', 15) + esc(c.contact_phone) + '</div>' : '') + (c.contact_email ? '<div class="row gap-s">' + ic('mail', 15) + '<a href="mailto:' + esc(c.contact_email) + '">' + esc(c.contact_email) + '</a></div>' : '') + (c.address ? '<div class="row gap-s">' + ic('pin', 15) + esc(c.address) + '</div>' : '') + '</div>' +
-        (x.conversation_id ? '<a class="btn block mt" href="#/messages/' + x.conversation_id + '">' + ic('chat', 16) + 'Message ' + esc(c.name) + '</a>' : '<button class="btn block mt" data-act="startmsg" data-app="' + x.application_id + '">' + ic('chat', 16) + 'Message ' + esc(c.name) + '</button>') + '</div>';
+        (x.conversation_id ? '<a class="btn block mt" href="#/messages/' + x.conversation_id + '">' + ic('chat', 16) + 'Message ' + esc(c.name) + '</a>' : '<button class="btn block mt" data-act="startmsg" data-app="' + x.application_id + '">' + ic('chat', 16) + 'Message ' + esc(c.name) + '</button>') +
+        hiredBtn + '</div>';
     }).join('');
     return '<div class="page">' + JM.pageHead('Matches', 'Employers who shortlisted you. They can now see your full profile and contact details.') + (items.length ? '<div class="grid g2">' + cards + '</div>' : '<div class="card">' + JM.empty('users', 'No matches yet', 'When an employer shortlists you, they show up here and a chat opens. Keep applying and building your skills.', '<a class="btn" href="#/deck">Find jobs</a>') + '</div>') + '</div>';
-  } });
-  JM.actions.startmsg = async function (el) {
-    await JM.busy(el, async function () {
-      const r = await JM.rpc('start_conversation', { p_app: el.dataset.app });
-      JM.close();
-      JM.go('/messages/' + r.id);
-    });
-  };
+  }
+});
+JM.actions.hiredcard = function (el) {
+  if (JM.celebrateHired) {
+    JM.celebrateHired({ id: el.dataset.id, jobTitle: el.dataset.job, companyName: el.dataset.company, force: true });
+  }
+};
+JM.actions.startmsg = async function (el) {
+  await JM.busy(el, async function () {
+    const r = await JM.rpc('start_conversation', { p_app: el.dataset.app });
+    JM.close();
+    JM.go('/messages/' + r.id);
+  });
+};
 
-  // celebration when an employer shortlists the seeker
-  let lastCheck = 0;
-  JM.checkMatch = async function (force) {
-    if (!JM.me || JM.me.role !== 'seeker' || (!force && Date.now() - lastCheck < 20000) || document.getElementById('overlay-root').classList.contains('open')) return; lastCheck = Date.now();
-    try {
-      const m = await JM.rpc('take_unseen_match'); if (!m) return;
+// celebration when an employer shortlists the seeker (upgraded with Jobi jump, card flip, confetti & padlock contact unlock)
+let lastCheck = 0;
+JM.checkMatch = async function (force) {
+  if (!JM.me || JM.me.role !== 'seeker' || (!force && Date.now() - lastCheck < 20000) || document.getElementById('overlay-root').classList.contains('open')) return; lastCheck = Date.now();
+  try {
+    const m = await JM.rpc('take_unseen_match'); if (!m) return;
+    if (JM.reward) {
+      const flipCardHtml = '<div class="jobi-match-flip"><div class="jobi-match-card">' +
+        '<div class="row between mb" style="margin-bottom:6px"><span class="jobi-unlock-pill">🔓 Contact &amp; Chat Unlocked</span><span class="xs muted">Shortlisted</span></div>' +
+        '<div style="font-weight:800;font-size:15.5px;color:var(--ink)">' + esc(m.job_title) + '</div>' +
+        '<div class="small muted">' + esc(m.company) + ' can now view your full profile &amp; message you directly.</div>' +
+        '</div></div>';
+      JM.reward({
+        id: 'seeker_shortlisted_' + (m.application_id || m.job_title || Date.now()),
+        tier: 3,
+        forceTier: true,
+        emotion: 'star_eyes',
+        prop: 'padlock',
+        animation: 'cheer',
+        badge: 'It’s a Match!',
+        title: m.company + ' shortlisted you!',
+        copy: 'You matched for ' + m.job_title + '. Direct messaging and contact details are now unlocked.',
+        extraHtml: flipCardHtml,
+        confetti: true,
+        autoDismiss: false,
+        cta: { label: 'See my matches & chat', onClick: function () { JM.go('/matches'); } },
+        secondaryCta: { label: 'Keep browsing', onClick: function () { } }
+      });
+    } else {
       JM.modal('<div class="ic" style="width:auto;height:auto;margin-bottom:10px">' + ic('star', 40) + '</div><h1>It is a Match!</h1><p style="margin:12px 0 24px;opacity:.9">' + esc(m.company) + ' shortlisted you for ' + esc(m.job_title) + '. They can now see your full profile and message you.</p><div class="col"><a class="btn secondary block" href="#/matches" data-act="close">See my matches</a><button class="btn ghost block" style="color:#fff" data-act="close">Keep browsing</button></div>', 'celebrate');
-      JM.loadMe().then(JM.updateBadges);
-    } catch (e) { /* ignore */ }
-  };
-})();
+    }
+    JM.loadMe().then(JM.updateBadges);
+  } catch (e) { /* ignore */ }
+};
+}) ();

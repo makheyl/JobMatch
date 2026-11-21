@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0C70F8">
+  <title>[DEV-ONLY] Jobi Mascot &amp; Reward Playground · JobMatch</title>
+  <link rel="icon" href="assets/logo.png">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/jobi-animations.css">
+  <style>
+    .pg-wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+    }
+    .pg-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .pg-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--ink);
+    }
+    .pg-brand img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+    .pg-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pg-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #FFFFFF;
+      border: 1px solid var(--line);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink2);
+    }
+    .pg-pill b {
+      color: var(--brand);
+    }
+    .pg-pill.ok b {
+      color: var(--ok);
+    }
+    .pg-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 920px) {
+      .pg-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .pg-stage-card {
+      position: sticky;
+      top: 20px;
+      background: linear-gradient(180deg, #EBF3FF 0%, #FFFFFF 58%);
+      border: 1.5px solid #CFE0FA;
+      border-radius: 22px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(10, 43, 109, 0.09);
+    }
+    .pg-stage-box {
+      width: 240px;
+      height: 256px;
+      margin: 8px auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pg-ref-compare {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      background: #F8FAFC;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .pg-ref-compare img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+    .pg-chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .pg-chip {
+      padding: 6px 11px;
+      border-radius: 9px;
+      border: 1px solid var(--line2);
+      background: #FFFFFF;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink2);
+      cursor: pointer;
+      transition: background 0.14s, border-color 0.14s, color 0.14s;
+    }
+    .pg-chip:hover {
+      border-color: var(--brand);
+      color: var(--brand);
+    }
+    .pg-chip.on {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #FFFFFF;
+    }
+    .pg-toggles {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 560px) {
+      .pg-toggles {
+        grid-template-columns: 1fr;
+      }
+    }
+    .pg-toggle-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #FAFBFD;
+      cursor: pointer;
+    }
+    .pg-log {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      background: #0F172A;
+      color: #E2E8F0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <div id="toasts" aria-live="polite"></div>
+
+  <div class="pg-wrap">
+    <header class="pg-header">
+      <div class="pg-brand">
+        <img src="assets/logo.png" alt="JobMatch Logo">
+        <div>
+          <div>Jobi Mascot &amp; Reward Playground <span class="badge warn" style="font-size:11px;vertical-align:middle;margin-left:6px">DEV-ONLY SANDBOX</span></div>
+          <div class="xs muted" style="font-weight:500">Interactive Visual &amp; Performance Sandbox (Excluded from production app navigation)</div>
+        </div>
+      </div>
+
+      <div class="pg-metrics">
+        <span class="pg-pill ok">SVG Size: <b id="pg-svg-kb">… KB</b> / 60 KB max</span>
+        <span class="pg-pill ok">Live FPS: <b id="pg-fps">60</b></span>
+        <span class="pg-pill ok">GPU Audit: <b id="pg-gpu-check">transform &amp; opacity only</b></span>
+      </div>
+    </header>
+
+    <div class="pg-grid">
+      <!-- Left Sticky Mascot Stage -->
+      <aside class="pg-stage-card">
+        <div class="row between">
+          <span class="badge brand" id="pg-state-emotion">wink_thumbs_up</span>
+          <span class="badge" id="pg-state-prop">prop: phone</span>
+        </div>
+
+        <div class="pg-stage-box" id="pg-stage"></div>
+
+        <div class="row wrap" style="justify-content:center;gap:8px">
+          <button type="button" class="btn sm" id="pg-btn-pop">Burst Pop Lines</button>
+          <button type="button" class="btn secondary sm" id="pg-btn-replay">Replay Animation</button>
+          <button type="button" class="btn ghost sm" id="pg-btn-bloop">Test "Bloop"</button>
+        </div>
+
+        <div class="pg-ref-compare">
+          <img src="assets/logo.png" alt="Original logo.png">
+          <span>Reference: <code>web/assets/logo.png</code></span>
+        </div>
+      </aside>
+
+      <!-- Right Controls Column -->
+      <div class="col" style="gap:16px">
+
+        <!-- 1. Preferences, Reduced Motion, Haptics, Sound -->
+        <section class="card card-b">
+          <h3 class="mb">1. Accessibility, Motion &amp; Audio Controls</h3>
+          <div class="pg-toggles">
+            <label class="pg-toggle-box">
+              <div>
+                <b class="small">Reduced Motion</b>
+                <div class="xs muted">Instant state fallback</div>
+              </div>
+              <span class="switch">
+                <input type="checkbox" id="pg-tog-reduced">
+                <i></i>
+              </span>
+            </label>
+
+            <label class="pg-toggle-box">
+              <div>
+                <b class="small">Haptics (12ms)</b>
+                <div class="xs muted"><code>navigator.vibrate</code></div>
+              </div>
+              <span class="switch">
+                <input type="checkbox" id="pg-tog-haptics" checked>
+                <i></i>
+              </span>
+            </label>
+
+            <label class="pg-toggle-box">
+              <div>
+                <b class="small">Sound ("Bloop")</b>
+                <div class="xs muted">Web Audio synth</div>
+              </div>
+              <span class="switch">
+                <input type="checkbox" id="pg-tog-sound">
+                <i></i>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 2. 13 Emotions -->
+        <section class="card card-b">
+          <div class="row between mb">
+            <h3>2. Visor Emotions (13)</h3>
+            <select id="pg-sel-emotion" style="width:190px;height:34px;font-size:13px"></select>
+          </div>
+          <div class="pg-chip-grid" id="pg-chips-emotion"></div>
+        </section>
+
+        <!-- 3. 18 Props + None -->
+        <section class="card card-b">
+          <div class="row between mb">
+            <h3>3. Hand Props (18 + none)</h3>
+            <select id="pg-sel-prop" style="width:190px;height:34px;font-size:13px"></select>
+          </div>
+          <div class="pg-chip-grid" id="pg-chips-prop"></div>
+        </section>
+
+        <!-- 4. 12 Spring Animation Presets -->
+        <section class="card card-b">
+          <div class="row between mb">
+            <h3>4. Spring Animation Presets (12)</h3>
+            <select id="pg-sel-anim" style="width:190px;height:34px;font-size:13px"></select>
+          </div>
+          <div class="pg-chip-grid" id="pg-chips-anim"></div>
+        </section>
+
+        <!-- 5. Live Reward Engine Triggers (Tier 1, Tier 2, Tier 3, Confetti, Toast) -->
+        <section class="card card-b">
+          <h3 class="mb">5. Live <code>JM.reward()</code>, Confetti &amp; Toast Triggers</h3>
+          <p class="small muted mb">Test the 3-tier reward hierarchy, frequency decay via <code>milestones_seen</code>, and contextual confetti.</p>
+          <div class="row wrap" style="gap:10px">
+            <button type="button" class="btn" id="pg-trig-tier1">Trigger Tier 1 (Micro Pop)</button>
+            <button type="button" class="btn" id="pg-trig-tier2">Trigger Tier 2 (Mini Peek)</button>
+            <button type="button" class="btn" id="pg-trig-tier3">Trigger Tier 3 (Major Overlay)</button>
+            <button type="button" class="btn secondary" id="pg-trig-match">Shortlisted Card-Flip Modal</button>
+            <button type="button" class="btn secondary" id="pg-trig-hired">Hired + Share Card Modal</button>
+            <button type="button" class="btn secondary" id="pg-trig-confetti">Contextual Confetti</button>
+            <button type="button" class="btn secondary" id="pg-trig-toast">Upgraded Success Toast</button>
+          </div>
+
+          <div class="divider"></div>
+          <div class="row wrap between">
+            <div class="small">
+              <b>Frequency Decay Test (<code>seeker_first_application</code>):</b>
+              <span class="muted">1st click fires Tier 3; repeat clicks decay to Tier 1.</span>
+            </div>
+            <div class="row gap-s">
+              <button type="button" class="btn secondary sm" id="pg-trig-decay">Fire Milestone</button>
+              <button type="button" class="btn ghost sm" id="pg-trig-reset">Reset Milestones &amp; Session</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. Live Accessibility & Event Log -->
+        <section class="card card-b">
+          <div class="row between mb">
+            <h3>6. Screen-Reader <code>aria-live</code> &amp; Engine Log</h3>
+            <span class="xs muted">Announces even when animations are off</span>
+          </div>
+          <div class="pg-log" id="pg-log"></div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="js/jobi-rewards.js"></script>
+  <script>
+    (function () {
+      const JM = window.JM;
+      const logEl = document.getElementById('pg-log');
+      function log(msg) {
+        const line = document.createElement('div');
+        const ts = new Date().toLocaleTimeString();
+        line.textContent = '[' + ts + '] ' + msg;
+        logEl.insertBefore(line, logEl.firstChild);
+      }
+
+      // Mount main playground mascot
+      let curEmotion = 'wink_thumbs_up';
+      let curProp = 'phone';
+      let curAnim = 'idle';
+
+      const jobi = JM.mascot.mount('#pg-stage', {
+        emotion: curEmotion,
+        prop: curProp,
+        animation: curAnim,
+        size: 230,
+        onReady: function () {
+          log('Mounted jobi-rig.svg (emotion=' + curEmotion + ', prop=' + curProp + ', anim=' + curAnim + ')');
+        }
+      });
+
+      // Read SVG KB size and verify GPU-only CSS keyframes
+      JM.mascot.getRigSizeKB().then(function (kb) {
+        const el = document.getElementById('pg-svg-kb');
+        el.textContent = kb + ' KB';
+        log('SVG rig size verified: ' + kb + ' KB (budget < 60 KB)');
+      });
+
+      // Audit stylesheet for forbidden layout properties or linear easing
+      (function auditStylesheet() {
+        let forbiddenFound = [];
+        try {
+          Array.from(document.styleSheets).forEach(function (sheet) {
+            if (!sheet.href || sheet.href.indexOf('jobi-animations.css') < 0) return;
+            Array.from(sheet.cssRules || []).forEach(function (rule) {
+              if (rule.type === CSSRule.KEYFRAMES_RULE) {
+                Array.from(rule.cssRules || []).forEach(function (kf) {
+                  const css = kf.style.cssText;
+                  ['width', 'height', 'top', 'left', 'margin', 'box-shadow'].forEach(function (prop) {
+                    if (new RegExp('\\b' + prop + '\\s*:').test(css)) forbiddenFound.push(rule.name + ':' + prop);
+                  });
+                });
+              }
+            });
+          });
+        } catch (e) { /* ignore cross-origin if any */ }
+        const badge = document.getElementById('pg-gpu-check');
+        if (forbiddenFound.length === 0) {
+          badge.textContent = 'PASS (transform & opacity only, 0 linear)';
+        } else {
+          badge.textContent = 'WARN: ' + forbiddenFound.join(', ');
+        }
+      })();
+
+      // Live FPS meter
+      (function startFpsMeter() {
+        const fpsEl = document.getElementById('pg-fps');
+        let frames = 0;
+        let last = performance.now();
+        function tick(now) {
+          frames++;
+          if (now - last >= 500) {
+            const fps = Math.min(60, Math.round((frames * 1000) / (now - last)));
+            fpsEl.textContent = fps + ' FPS';
+            frames = 0;
+            last = now;
+          }
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })();
+
+      // Populate selectors & chips
+      function buildPicker(items, selectId, chipsId, activeVal, onSelect) {
+        const sel = document.getElementById(selectId);
+        const box = document.getElementById(chipsId);
+        sel.innerHTML = items.map(function (it) {
+          return '<option value="' + it + '"' + (it === activeVal ? ' selected' : '') + '>' + it + '</option>';
+        }).join('');
+        box.innerHTML = items.map(function (it) {
+          return '<button type="button" class="pg-chip' + (it === activeVal ? ' on' : '') + '" data-val="' + it + '">' + it + '</button>';
+        }).join('');
+
+        function updateActive(val) {
+          sel.value = val;
+          Array.from(box.querySelectorAll('.pg-chip')).forEach(function (btn) {
+            btn.classList.toggle('on', btn.dataset.val === val);
+          });
+          onSelect(val);
+        }
+
+        sel.addEventListener('change', function () { updateActive(sel.value); });
+        box.addEventListener('click', function (e) {
+          const btn = e.target.closest('.pg-chip');
+          if (btn) updateActive(btn.dataset.val);
+        });
+        return updateActive;
+      }
+
+      const setEmotionUI = buildPicker(JM.mascot.EMOTIONS, 'pg-sel-emotion', 'pg-chips-emotion', curEmotion, function (val) {
+        curEmotion = val;
+        jobi.setEmotion(val);
+        document.getElementById('pg-state-emotion').textContent = val;
+        log('Emotion -> ' + val);
+      });
+
+      const setPropUI = buildPicker(JM.mascot.PROPS, 'pg-sel-prop', 'pg-chips-prop', curProp, function (val) {
+        curProp = val;
+        jobi.setProp(val);
+        document.getElementById('pg-state-prop').textContent = 'prop: ' + val;
+        log('Prop -> ' + val);
+      });
+
+      const setAnimUI = buildPicker(JM.mascot.ANIMATIONS, 'pg-sel-anim', 'pg-chips-anim', curAnim, function (val) {
+        curAnim = val;
+        jobi.play(val);
+        log('Animation -> .jobi-anim-' + val);
+      });
+
+      // Stage quick buttons
+      document.getElementById('pg-btn-pop').addEventListener('click', function () {
+        jobi.triggerPopLines();
+        log('Triggered #jobi-pop-lines spark burst');
+      });
+      document.getElementById('pg-btn-replay').addEventListener('click', function () {
+        jobi.play(curAnim);
+        log('Replayed animation: ' + curAnim);
+      });
+      document.getElementById('pg-btn-bloop').addEventListener('click', function () {
+        JM.playBloop(true);
+        log('Synthesized Web Audio rising "bloop" (380Hz -> 680Hz)');
+      });
+
+      // Toggles
+      const togReduced = document.getElementById('pg-tog-reduced');
+      const togHaptics = document.getElementById('pg-tog-haptics');
+      const togSound = document.getElementById('pg-tog-sound');
+
+      togReduced.checked = !JM.prefs.animations;
+      togHaptics.checked = !!JM.prefs.haptics;
+      togSound.checked = !!JM.prefs.sound;
+
+      togReduced.addEventListener('change', function () {
+        JM.setPrefs({ animations: !togReduced.checked });
+        if (!togReduced.checked) jobi.play(curAnim);
+        log('Reduced motion ' + (togReduced.checked ? 'ENABLED (animations suppressed)' : 'DISABLED (spring motion active)'));
+      });
+      togHaptics.addEventListener('change', function () {
+        JM.setPrefs({ haptics: togHaptics.checked });
+        log('Haptics ' + (togHaptics.checked ? 'ENABLED' : 'DISABLED'));
+      });
+      togSound.addEventListener('change', function () {
+        JM.setPrefs({ sound: togSound.checked });
+        if (togSound.checked) JM.playBloop(true);
+        log('Sound ("bloop") ' + (togSound.checked ? 'ENABLED' : 'DISABLED'));
+      });
+
+      // Reward Triggers
+      document.getElementById('pg-trig-tier1').addEventListener('click', function (e) {
+        JM.reward({
+          tier: 1,
+          title: 'Saved!',
+          targetEl: e.currentTarget
+        });
+        log('Fired Tier 1 (Micro 0.65s) inline check pop + spark lines');
+      });
+
+      document.getElementById('pg-trig-tier2').addEventListener('click', function () {
+        JM.reward({
+          tier: 2,
+          emotion: curEmotion,
+          prop: curProp === 'none' ? 'camera' : curProp,
+          animation: 'peek',
+          title: 'Looking good!',
+          copy: 'Your photo stays private until an employer shortlists you.'
+        });
+        log('Fired Tier 2 (Mini 1.8s) bottom-edge Jobi peek banner');
+      });
+
+      document.getElementById('pg-trig-tier3').addEventListener('click', function () {
+        JM.resetTier3Session();
+        JM.reward({
+          tier: 3,
+          forceTier: true,
+          emotion: curEmotion === 'oops' || curEmotion === 'comforting' ? curEmotion : 'cheering',
+          prop: curProp === 'none' ? 'paper-plane' : curProp,
+          animation: 'cheer',
+          badge: 'Tier 3 Celebration',
+          title: 'Application sent!',
+          copy: 'Your résumé is on its way to Kape Biñan.',
+          cta: {
+            label: 'Track applications',
+            onClick: function () { log('Tier 3 primary CTA clicked'); }
+          },
+          confetti: true
+        });
+        log('Fired Tier 3 (Major 3.5s) full-body overlay + contextual confetti');
+      });
+
+      document.getElementById('pg-trig-confetti').addEventListener('click', function (e) {
+        const res = JM.confetti.burst(e.currentTarget, { emotion: curEmotion, count: 28 });
+        log(res ? 'Fired contextual confetti burst (stars, ↗ arrows, résumés, pins)' : 'Confetti auto-blocked (reduced motion or comforting/oops emotion)');
+      });
+
+      document.getElementById('pg-trig-match').addEventListener('click', function () {
+        JM.resetTier3Session();
+        const flipCardHtml = '<div class="jobi-match-flip"><div class="jobi-match-card">' +
+          '<div class="row between mb" style="margin-bottom:6px"><span class="jobi-unlock-pill">🔓 Contact &amp; Chat Unlocked</span><span class="xs muted">Shortlisted</span></div>' +
+          '<div style="font-weight:800;font-size:15.5px;color:var(--ink)">Barista · Full-time</div>' +
+          '<div class="small muted">Kape Biñan can now view your full profile &amp; message you directly.</div>' +
+          '</div></div>';
+        JM.reward({
+          tier: 3,
+          forceTier: true,
+          emotion: 'star_eyes',
+          prop: 'padlock',
+          animation: 'cheer',
+          badge: 'It’s a Match!',
+          title: 'Kape Biñan shortlisted you!',
+          copy: 'You matched for Barista. Direct messaging and contact details are now unlocked.',
+          extraHtml: flipCardHtml,
+          confetti: true,
+          autoDismiss: false,
+          cta: { label: 'See my matches & chat', onClick: function () { log('Shortlisted CTA clicked'); } },
+          secondaryCta: { label: 'Keep browsing', onClick: function () {} }
+        });
+        log('Fired Shortlisted Tier 3 modal (Jobi jump + 3D card flip + padlock unlock + confetti)');
+      });
+
+      document.getElementById('pg-trig-hired').addEventListener('click', function () {
+        JM.resetTier3Session();
+        JM.celebrateHired({
+          id: 'demo_hired',
+          jobTitle: 'Front-End Developer',
+          companyName: 'Pixel Hub Biñan',
+          force: true
+        });
+        log('Fired Hired Tier 3 celebration with downloadable "I got hired" PNG share card');
+      });
+
+      document.getElementById('pg-trig-toast').addEventListener('click', function (e) {
+        JM.toastSuccess('Profile saved with Jobi check pop!', { targetEl: e.currentTarget });
+        log('Fired JM.toastSuccess() unified Tier 1 toast');
+      });
+
+      document.getElementById('pg-trig-decay').addEventListener('click', function (e) {
+        const already = JM.milestones.has('seeker_first_application');
+        JM.reward({
+          id: 'seeker_first_application',
+          tier: 3,
+          repeatTier: 1,
+          emotion: 'cheering',
+          prop: 'paper-plane',
+          animation: 'cheer',
+          title: already ? 'Application sent!' : 'First application sent!',
+          copy: 'Your résumé is on its way.',
+          targetEl: e.currentTarget,
+          confetti: true
+        });
+        log('Milestone "seeker_first_application" triggered -> ' + (already ? 'Decayed to Tier 1 (already in milestones_seen)' : 'Fired Tier 3 (first time, now stored in milestones_seen)'));
+      });
+
+      document.getElementById('pg-trig-reset').addEventListener('click', function () {
+        JM.milestones.reset();
+        JM.resetTier3Session();
+        log('Reset milestones_seen and Tier 3 session cap');
+      });
+    })();
+  </script>
+</body>
+</html>

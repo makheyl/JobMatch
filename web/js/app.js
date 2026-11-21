@@ -78,6 +78,9 @@
     JM.rt = JM.sb.channel('jm-' + JM.me.id)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function (p) {
         const m = p.new; if (m.sender_id === JM.me.id) return;
+        if (JM.me && JM.me.role === 'seeker' && JM.micro && JM.micro.cornerPeek) {
+          JM.micro.cornerPeek({ emotion: 'happy', prop: 'paper-plane', animation: 'peek', text: 'Employer replied! 💬' });
+        }
         if (JM.curConv && JM.curConv.id === m.conversation_id && location.hash.indexOf('/messages/' + m.conversation_id) > 0) {
           JM.appendBubble(m); JM.rpc('mark_conversation_read', { p_conv: m.conversation_id }).catch(function () {});
         } else { JM.loadMe().then(JM.updateBadges); JM.toast('New message'); }
@@ -90,8 +93,37 @@
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + JM.me.id }, function (p) {
         JM.loadMe().then(JM.updateBadges);
-        if (p.new.type !== 'message') JM.toast(p.new.title);
+        if (JM.system && JM.system.wiggleBell) JM.system.wiggleBell();
+        if (p.new.type === 'announcement' && JM.reward) {
+          JM.reward({
+            id: 'system_announcement_' + p.new.id,
+            tier: 2,
+            repeatTier: null,
+            emotion: 'cheering',
+            prop: 'megaphone',
+            animation: 'wave',
+            title: '📢 ' + (p.new.title || 'New Announcement'),
+            copy: p.new.body || ''
+          });
+        } else if (p.new.type !== 'message') {
+          JM.toast(p.new.title);
+        }
         if (p.new.type === 'match' && JM.checkMatch) JM.checkMatch(true);
+        if (p.new.type === 'status' && /hired/i.test(p.new.title || '') && JM.celebrateHired) {
+          JM.celebrateHired({ id: p.new.id, jobTitle: p.new.body || 'your position', companyName: 'your employer' });
+        } else if (p.new.type === 'status' && /not selected|rejected/i.test((p.new.title || '') + ' ' + (p.new.body || '')) && JM.reward) {
+          JM.reward({
+            id: 'seeker_not_selected_notif_' + p.new.id,
+            tier: 2,
+            repeatTier: null,
+            emotion: 'comforting',
+            prop: 'magnifying-glass',
+            animation: 'nod',
+            confetti: false,
+            title: 'Keep going — your skills are growing!',
+            copy: "Here are 3 jobs you're ready for right now."
+          });
+        }
       }).subscribe();
   };
   JM.afterRender = function (path) {
@@ -102,6 +134,8 @@
 
   // ---------- boot ----------
   async function boot() {
+    if (JM.system && JM.system.initLifecycle) JM.system.initLifecycle();
+    if (JM.system && JM.system.bootSplash) JM.system.bootSplash();
     try { await JM.loadRef(); } catch (e) { console.error('reference data', e); }
     try { const s = await JM.sb.auth.getSession(); if (s.data.session) await JM.loadMe(); } catch (e) { console.error('session', e); }
     JM.sb.auth.onAuthStateChange(function (ev) {
@@ -111,6 +145,9 @@
     window.addEventListener('hashchange', function () { JM.render(); });
     if (JM.me) JM.subscribe();
     await JM.render();
+    if (JM.me && JM.system && JM.system.checkWelcomeBack) {
+      setTimeout(function () { JM.system.checkWelcomeBack(); }, 450);
+    }
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(function () {});
   }
   boot();

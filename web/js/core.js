@@ -33,7 +33,11 @@
     if (!res.ok) { const e = new Error(out.error || out.message || 'Request failed'); e.status = res.status; e.body = out; throw e; }
     return out;
   };
-  JM.loadMe = async function () { JM.me = await JM.rpc('me'); return JM.me; };
+  JM.loadMe = async function () {
+    JM.me = await JM.rpc('me');
+    if (JM.syncUserRewards) JM.syncUserRewards();
+    return JM.me;
+  };
 
   // ---------- formatting & normalization ----------
   const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -101,14 +105,30 @@
     const label = s === 'Hybrid' && days ? 'Hybrid · ' + days + 'd on-site' : s;
     return '<span class="badge ' + (s === 'Remote' ? 'brand' : '') + '">' + ic(JM.setupIcon(s), 12) + JM.esc(label) + '</span>';
   };
-  JM.ring = function (pct, size, color) {
+  JM.ring = function (pct, size, color, extraCls) {
     size = size || 52; const r = (size - 7) / 2, c = 2 * Math.PI * r, off = c * (1 - pct / 100), m = size / 2;
-    return '<span class="ring" style="width:' + size + 'px;height:' + size + 'px"><svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true"><circle cx="' + m + '" cy="' + m + '" r="' + r + '" fill="none" stroke="#E6ECF4" stroke-width="5"/><circle cx="' + m + '" cy="' + m + '" r="' + r + '" fill="none" stroke="' + (color || '#14804F') + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '" transform="rotate(-90 ' + m + ' ' + m + ')"/></svg><b>' + pct + '%</b></span>';
+    return '<span class="ring' + (extraCls ? ' ' + extraCls : '') + '" style="width:' + size + 'px;height:' + size + 'px"><svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true"><circle cx="' + m + '" cy="' + m + '" r="' + r + '" fill="none" stroke="#E6ECF4" stroke-width="5"/><circle cx="' + m + '" cy="' + m + '" r="' + r + '" fill="none" stroke="' + (color || '#14804F') + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '" transform="rotate(-90 ' + m + ' ' + m + ')"/></svg><b>' + pct + '%</b></span>';
   };
   JM.bar = function (pct, cls) { return '<div class="bar ' + (cls || '') + '" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></div>'; };
   JM.badge = function (t, cls) { return '<span class="badge ' + (cls || '') + '">' + JM.esc(t) + '</span>'; };
-  JM.empty = function (icon, title, text, btn) { return '<div class="empty">' + ic(icon || 'inbox') + '<h3>' + JM.esc(title) + '</h3><p>' + JM.esc(text || '') + '</p>' + (btn || '') + '</div>'; };
-  JM.skeleton = function () { return '<div class="page"><div class="skel" style="height:30px;width:240px;margin-bottom:22px"></div><div class="grid g3"><div class="skel" style="height:110px"></div><div class="skel" style="height:110px"></div><div class="skel" style="height:110px"></div></div><div class="skel" style="height:240px;margin-top:16px"></div></div>'; };
+  JM.empty = function (icon, title, text, btn) {
+    // Guardrail: Keep lock, flag, and shield (moderation/error/paywall) empty states clean without mascot
+    if (icon === 'lock' || icon === 'flag' || icon === 'shield') {
+      return '<div class="empty">' + ic(icon || 'inbox') + '<h3>' + JM.esc(title) + '</h3><p>' + JM.esc(text || '') + '</p>' + (btn || '') + '</div>';
+    }
+    const meta = (JM.EMPTY_TIPS && JM.EMPTY_TIPS[icon]) || (JM.EMPTY_TIPS && JM.EMPTY_TIPS.inbox) || { tip: 'Tip: Explore or update your filters to see more.' };
+    return '<div class="empty" data-jobi-empty="' + JM.esc(icon || 'inbox') + '">' +
+      '<div class="jobi-empty-mascot"></div>' +
+      '<h3>' + JM.esc(title) + '</h3>' +
+      (text ? '<p>' + JM.esc(text) + '</p>' : '') +
+      '<div class="jobi-empty-tip">' + JM.esc(meta.tip) + '</div>' +
+      (btn ? '<div class="mt">' + btn + '</div>' : '') +
+      '</div>';
+  };
+  JM.skeleton = function () {
+    const thinker = (JM.system && JM.system.thinkingSpinnerHtml) ? JM.system.thinkingSpinnerHtml('Jobi is thinking…') : '';
+    return '<div class="page">' + thinker + '<div class="skel" style="height:30px;width:240px;margin-bottom:22px"></div><div class="grid g3"><div class="skel" style="height:110px"></div><div class="skel" style="height:110px"></div><div class="skel" style="height:110px"></div></div><div class="skel" style="height:240px;margin-top:16px"></div></div>';
+  };
   JM.pageHead = function (title, sub, actions) { return '<div class="page-h"><div class="grow"><h1>' + title + '</h1>' + (sub ? '<p>' + sub + '</p>' : '') + '</div>' + (actions ? '<div class="row wrap">' + actions + '</div>' : '') + '</div>'; };
   JM.summaryBlock = function (text, cls) {
     const t = String(text || '').trim();
@@ -181,7 +201,7 @@
         }
       }
       if (!blob || !blob.size) return '';
-      if (JM.blobCache[k]) { try { URL.revokeObjectURL(JM.blobCache[k]); } catch (e) {} }
+      if (JM.blobCache[k]) { try { URL.revokeObjectURL(JM.blobCache[k]); } catch (e) { } }
       const bUrl = URL.createObjectURL(blob);
       JM.blobCache[k] = bUrl;
       JM.urlCache[k] = { url: bUrl, exp: Date.now() + 50 * 60 * 1000 };
@@ -479,20 +499,26 @@
   })();
 
   // ---------- overlays ----------
-  JM.toast = function (msg, type) {
+  JM.toast = function (msg, type, opts) {
+    if (type === 'ok' && JM.toastSuccess) {
+      return JM.toastSuccess(msg, opts);
+    }
     const box = document.getElementById('toasts'); const t = document.createElement('div');
     t.className = 'toast ' + (type || ''); t.setAttribute('role', 'status'); t.textContent = msg; box.appendChild(t); setTimeout(function () { t.remove(); }, 4200);
+    return t;
   };
   JM.modal = function (html, cls) {
     const root = document.getElementById('overlay-root');
     root.innerHTML = '<div class="ov" data-ov="1"><div class="modal ' + (cls || '') + '" role="dialog" aria-modal="true">' + html + '</div></div>'; root.classList.add('open');
     JM.mountTypeaheads(root); JM.hydrateImages(root);
+    if (JM.hydrateEmptyMascots) JM.hydrateEmptyMascots(root);
     const f = root.querySelector('input:not([type=hidden]),select,textarea'); if (f && !cls) setTimeout(function () { try { f.focus(); } catch (e) { } }, 30);
   };
   JM.drawer = function (html) {
     const root = document.getElementById('overlay-root');
     root.innerHTML = '<div class="ov" data-ov="1" style="align-items:stretch;justify-content:flex-end"><aside class="drawer" role="dialog" aria-modal="true">' + html + '</aside></div>'; root.classList.add('open');
     JM.mountTypeaheads(root); JM.hydrateImages(root);
+    if (JM.hydrateEmptyMascots) JM.hydrateEmptyMascots(root);
   };
   JM.close = function () {
     const pv = JM._pv;
@@ -848,9 +874,14 @@
       groups[cn].push(n);
     });
     const groupKeys = Object.keys(groups).sort();
+    const minBadge = o.min
+      ? (selectedArr.length >= o.min
+        ? '<span class="badge ok" id="sp-min-badge">' + Math.min(selectedArr.length, o.min) + ' / ' + o.min + ' ✓</span>'
+        : '<span class="xs muted" id="sp-min-badge">' + selectedArr.length + ' / ' + o.min + ' minimum</span>')
+      : '';
     const trayHtml = '<div class="sp-tray mt">' +
       '<div class="row between mb" style="margin-bottom:8px"><b class="small">Selected skills (' + selectedArr.length + (o.max ? ' / ' + o.max : '') + ')</b>' +
-      (o.min ? '<span class="xs muted">Minimum ' + o.min + '</span>' : '') + '</div>' +
+      minBadge + '</div>' +
       (selectedArr.length ? groupKeys.map(function (gk) {
         return '<div class="sp-tgrp"><div class="xs muted bold" style="margin-bottom:4px">' + JM.esc(gk) + '</div>' +
           (isSeeker
@@ -881,7 +912,11 @@
     const o = JM.spReg[id]; if (o && o.onRedraw) o.onRedraw();
   };
   JM.inputs.splevel = function (el) {
-    const o = JM.spReg[el.dataset.sp]; if (o && o.onLevel) o.onLevel(el.dataset.skill, Number(el.value));
+    const lvl = Number(el.value);
+    const o = JM.spReg[el.dataset.sp]; if (o && o.onLevel) o.onLevel(el.dataset.skill, lvl);
+    if (lvl >= 95 && JM.micro && JM.micro.medalGlint) {
+      JM.micro.medalGlint(el, el.dataset.skill);
+    }
   };
   document.addEventListener('toggle', function (e) {
     const d = e.target;
@@ -987,8 +1022,14 @@
   };
   JM.updateBadges = function () {
     const me = JM.me; if (!me) return;
+    const prevUnread = JM._prevUnreadCount || 0;
+    const curUnread = me.unread || 0;
+    JM._prevUnreadCount = curUnread;
+    if (curUnread > prevUnread && JM.system && JM.system.wiggleBell) {
+      JM.system.wiggleBell();
+    }
     const set = function (id, n) { const el = document.getElementById(id); if (!el) return; el.textContent = n > 9 ? '9+' : n; el.classList.toggle('hide', !n); };
-    set('tb-bell', me.unread || 0); set('tb-msg', me.unread_messages || 0); set('nb-msg', me.unread_messages || 0); set('nb-match', me.seeker && me.unread_matches ? me.unread_matches : 0);
+    set('tb-bell', curUnread); set('tb-msg', me.unread_messages || 0); set('nb-msg', me.unread_messages || 0); set('nb-match', me.seeker && me.unread_matches ? me.unread_matches : 0);
   };
   JM.markNav = function (path, title) {
     const shell = document.getElementById('shell'); if (!shell) return;
@@ -1029,7 +1070,13 @@
     new URLSearchParams(parts[1] || '').forEach(function (v, k) { JM.query[k] = v; });
     let route = null, params = {};
     for (let i = 0; i < JM.routes.length; i++) { const m = JM.routes[i].re.exec(path); if (m) { route = JM.routes[i]; JM.routes[i].keys.forEach(function (k, j) { params[k] = decodeURIComponent(m[j + 1]); }); break; } }
-    if (!route) { app.innerHTML = '<div class="auth-main" style="min-height:100vh"><div class="auth-box center"><h2>Page not found</h2><p class="muted mt">That page does not exist.</p><a class="btn mt" href="#/">Go home</a></div></div>'; return; }
+    if (!route) {
+      app.innerHTML = (JM.system && JM.system.notFoundHtml)
+        ? JM.system.notFoundHtml('#' + JM.home())
+        : '<div class="auth-main" style="min-height:100vh"><div class="auth-box center"><h2>Page not found</h2><p class="muted mt">That page does not exist.</p><a class="btn mt" href="#/">Go home</a></div></div>';
+      if (JM.hydrateSystemMascots) JM.hydrateSystemMascots(app);
+      return;
+    }
     const signedIn = !!JM.me;
     if (route.auth) {
       if (!signedIn) { JM.go('/login'); return; }
@@ -1051,7 +1098,10 @@
         if (!document.getElementById('shell') || document.getElementById('shell').dataset.role !== JM.me.role) app.innerHTML = JM.shellHtml();
         JM.markNav(path, typeof route.title === 'function' ? '' : route.title);
         const view = document.getElementById('view');
-        if (path !== lastPath) view.innerHTML = JM.skeleton();
+        if (path !== lastPath) {
+          view.innerHTML = JM.skeleton();
+          if (JM.hydrateSystemMascots) JM.hydrateSystemMascots(view);
+        }
         const html = await route.render(params);
         if (mySeq !== seq) return;
         view.innerHTML = html;
@@ -1064,13 +1114,18 @@
     } catch (e) {
       if (mySeq !== seq) return; console.error(e);
       const view = document.getElementById('view') || app;
-      view.innerHTML = '<div class="page narrow">' + JM.empty('flag', 'Something went wrong', JM.err(e), '<button class="btn secondary" data-act="reload">Try again</button>') + '</div>';
+      view.innerHTML = '<div class="page narrow">' +
+        ((JM.system && JM.system.errorStateHtml) ? JM.system.errorStateHtml(JM.err(e)) : JM.empty('flag', 'Something went wrong', JM.err(e), '<button class="btn secondary" data-act="reload">Try again</button>')) +
+        '</div>';
+      if (JM.hydrateSystemMascots) JM.hydrateSystemMascots(view);
       return;
     }
     if (path !== lastPath) window.scrollTo(0, 0); lastPath = path;
     document.title = (typeof route.title === 'string' && route.title ? route.title + ' · ' : '') + 'JobMatch';
     JM.mountTypeaheads(app);
     JM.hydrateImages(app);
+    if (JM.hydrateEmptyMascots) JM.hydrateEmptyMascots(app);
+    if (JM.hydrateSystemMascots) JM.hydrateSystemMascots(app);
     if (route.after) route.after(params);
     if (JM.afterRender) JM.afterRender(path);
   };
@@ -1527,7 +1582,7 @@
     if (bucket && path) {
       delete JM.urlCache[bucket + '/' + path];
       if (JM.blobCache[bucket + '/' + path]) {
-        try { URL.revokeObjectURL(JM.blobCache[bucket + '/' + path]); } catch (e) {}
+        try { URL.revokeObjectURL(JM.blobCache[bucket + '/' + path]); } catch (e) { }
         delete JM.blobCache[bucket + '/' + path];
       }
     }

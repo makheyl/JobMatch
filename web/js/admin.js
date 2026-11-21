@@ -29,7 +29,33 @@
     return '<div class="page narrow">' + JM.pageHead('Employer verification', pending.length + ' awaiting review') + (q.length ? q.map(card).join('') : '<div class="card">' + JM.empty('shield', 'Nothing to review', 'New employer registrations appear here.') + '</div>') + '</div>';
   } });
   JM.actions.viewdoc = async function (el) { await JM.busy(el, async function () { const r = await JM.sb.storage.from('verification-docs').createSignedUrl(el.dataset.path, 120); if (r.error) throw r.error; window.open(r.data.signedUrl, '_blank', 'noopener'); }); };
-  JM.actions.approve = function (el) { JM.confirm({ title: 'Approve ' + el.dataset.name + '?', text: 'They can publish jobs immediately and get a verified badge.', ok: 'Approve', onOk: function () { JM.busy(null, async function () { await JM.rpc('admin_review_employer', { p_employer: el.dataset.id, p_approve: true }); JM.toast('Approved.', 'ok'); JM.render(); }); } }); };
+  JM.actions.approve = function (el) {
+    JM.confirm({
+      title: 'Approve ' + el.dataset.name + '?',
+      text: 'They can publish jobs immediately and get a verified badge.',
+      ok: 'Approve',
+      onOk: function () {
+        JM.busy(null, async function () {
+          await JM.rpc('admin_review_employer', { p_employer: el.dataset.id, p_approve: true });
+          if (JM.reward) {
+            JM.reward({
+              id: 'admin_approve_emp_' + el.dataset.id,
+              tier: 2,
+              repeatTier: 1,
+              emotion: 'proud',
+              prop: 'stamp',
+              animation: 'peek',
+              title: el.dataset.name + ' verified!',
+              copy: 'They now carry the Verified badge and can publish job listings.'
+            });
+          } else {
+            JM.toast('Approved.', 'ok');
+          }
+          JM.render();
+        });
+      }
+    });
+  };
   JM.actions.reject = function (el) { JM.modal('<h2>Reject registration</h2><p class="muted mt">The employer sees your reason and can resubmit documents.</p><form data-form="reject" data-id="' + el.dataset.id + '" class="mt"><div class="field"><textarea name="reason" placeholder="For example: the permit is expired or the ID is not readable" required></textarea></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn danger" type="submit">Reject</button></div></form>'); };
   JM.forms.reject = async function (form, d) { await JM.rpc('admin_review_employer', { p_employer: form.dataset.id, p_approve: false, p_reason: d.reason }); JM.close(); JM.toast('Rejected.'); JM.render(); };
   JM.actions.revoke = function (el) { JM.confirm({ title: 'Revoke verification for ' + el.dataset.name + '?', text: 'Their live jobs are paused and they return to pending review.', ok: 'Revoke', danger: true, onOk: function () { JM.busy(null, async function () { await JM.rpc('admin_revoke_employer', { p_employer: el.dataset.id }); JM.toast('Revoked.'); JM.render(); }); } }); };
@@ -46,7 +72,8 @@
   } });
   JM.actions.resolve = function (el) {
     const a = el.dataset.a, t = { dismiss: 'Dismiss this report?', remove_job: 'Remove this listing?', suspend: 'Suspend this account?' }[a];
-    JM.confirm({ title: t, text: a === 'dismiss' ? 'No action is taken.' : a === 'remove_job' ? 'The listing is removed and the employer is notified.' : 'The user is signed out and cannot sign in. Their live jobs are paused.', ok: 'Confirm', danger: a !== 'dismiss', onOk: function () { JM.busy(null, async function () { await JM.rpc('admin_resolve_report', { p_report: el.dataset.id, p_action: a }); JM.toast('Done.', 'ok'); JM.render(); }); } });
+    // Guardrail: never use mascot/sparkles on moderation reports or suspensions
+    JM.confirm({ title: t, text: a === 'dismiss' ? 'No action is taken.' : a === 'remove_job' ? 'The listing is removed and the employer is notified.' : 'The user is signed out and cannot sign in. Their live jobs are paused.', ok: 'Confirm', danger: a !== 'dismiss', onOk: function () { JM.busy(null, async function () { await JM.rpc('admin_resolve_report', { p_report: el.dataset.id, p_action: a }); JM.toast('Done.'); JM.render(); }); } });
   };
 
   // ---------- users ----------
@@ -58,7 +85,7 @@
       }).join('') + '</tbody></table></div></div></div>';
   } });
   JM.forms.usersearch = function (form, d) { JM.uq = d.q || ''; JM.ur = d.role || ''; JM.render(); };
-  JM.actions.suspend = async function (el) { await JM.busy(el, async function () { await JM.rpc('admin_set_suspended', { p_user: el.dataset.id, p_value: el.dataset.v === 'true' }); JM.toast('Updated.', 'ok'); JM.render(); }); };
+  JM.actions.suspend = async function (el) { await JM.busy(el, async function () { await JM.rpc('admin_set_suspended', { p_user: el.dataset.id, p_value: el.dataset.v === 'true' }); JM.toast('Account status updated.'); JM.render(); }); };
   JM.actions.deluser = function (el) { JM.confirm({ title: 'Delete ' + el.dataset.name + '?', text: 'This permanently deletes the account, files and activity. It cannot be undone.', ok: 'Delete permanently', danger: true, onOk: function () { JM.busy(null, async function () { await JM.fn('delete-account', { user_id: el.dataset.id }); JM.toast('Account deleted.'); JM.render(); }); } }); };
 
   // ---------- payments ----------
