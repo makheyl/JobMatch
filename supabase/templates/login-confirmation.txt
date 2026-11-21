@@ -1,0 +1,20 @@
+JobMatch — Sign in to your account
+
+We received a sign-in request for {{ if .Email }}{{ .Email }}{{ else }}your JobMatch account{{ end }}.
+
+Sign In to JobMatch:
+{{ .ConfirmationURL }}
+{{ if .Token }}
+Or enter this one-time sign-in code:
+{{ .Token }}
+{{ end }}
+This single-use link and code expire in 1 hour.
+
+------------------------------------------------------------
+SECURITY NOTE
+Didn't try to sign in? You can safely ignore this email. No one can access your account without opening this link or entering the code above. If you use a password and are concerned, you can update it anytime in Settings.
+------------------------------------------------------------
+
+JobMatch · Built in Biñan for StartUP City of Biñan, Laguna
+Privacy Notice: {{ .SiteURL }}/#/privacy
+Terms of Use: {{ .SiteURL }}/#/terms

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>[DEV PREVIEW] JobMatch Auth Email Templates (Desktop &amp; Mobile)</title>
+  <style>
+    :root {
+      --bg: #0F172A;
+      --panel: #1E293B;
+      --line: #334155;
+      --ink: #F8FAFC;
+      --muted: #94A3B8;
+      --brand: #0C70F8;
+      --ok: #14804F;
+      --star: #F5A524;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.5 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 17px;
+    }
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #FFF4DC;
+      color: #9A5B00;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 7px 13px;
+      border-radius: 9px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn:hover {
+      border-color: #60A5FA;
+    }
+    .btn.on {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #FFFFFF;
+    }
+    .wrap {
+      max-width: 1720px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+    }
+    .section-block {
+      margin-bottom: 42px;
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 22px;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 800;
+    }
+    .meta-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .meta-pill {
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #0F172A;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: #CBD5E1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .frames-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .frame-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .frame-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .iframe-shell {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #334155;
+      background: #F5F7FA;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+    .iframe-shell.desktop {
+      width: 640px;
+      height: 870px;
+    }
+    .iframe-shell.mobile {
+      width: 375px;
+      height: 870px;
+      border-radius: 28px;
+      border-width: 6px;
+      border-color: #1E293B;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+    .txt-drawer {
+      margin-top: 18px;
+      background: #0B1120;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+    .txt-drawer summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      color: #93C5FD;
+    }
+    .txt-drawer pre {
+      margin: 12px 0 0;
+      white-space: pre-wrap;
+      font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #E2E8F0;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="web/assets/logo.png" alt="JobMatch Logo">
+      <div>
+        <div>JobMatch HTML Email Templates Preview <span class="badge">Desktop 600px + Mobile 375px</span></div>
+        <div style="font-size:12px;color:var(--muted);font-weight:500">Supabase Auth Templates · Zero Inline SVG · Table-Based Responsive Layout · Dark-Mode Resilient</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn on" id="btn-theme-light" type="button">☀️ Light Mode</button>
+      <button class="btn" id="btn-theme-dark" type="button">🌙 Dark Mode</button>
+      <button class="btn" id="btn-img-toggle" type="button">🖼️ Test Blocked Images</button>
+      <button class="btn" id="btn-name-toggle" type="button">🤖 Name: Jomo</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Template A: Sign-Up Email Confirmation -->
+    <section class="section-block">
+      <div class="section-head">
+        <div>
+          <h2>A. Sign-Up Email Confirmation ("Welcome to JobMatch")</h2>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">
+            Source: <code>supabase/templates/confirm-signup.html</code> &amp; <code>supabase/templates/confirm-signup.txt</code>
+          </div>
+        </div>
+        <div class="meta-pills">
+          <span class="meta-pill">{{ .ConfirmationURL }}</span>
+          <span class="meta-pill">{{ .Token }}</span>
+          <span class="meta-pill">{{ .Email }}</span>
+          <span class="meta-pill">{{ .Data.full_name }}</span>
+          <span class="meta-pill">{{ .SiteURL }}</span>
+          <button class="btn" type="button" onclick="copyTemplate('signup', this)">📋 Copy Supabase HTML</button>
+        </div>
+      </div>
+      <div class="frames-row">
+        <div class="frame-col">
+          <div class="frame-label"><span>Desktop Client Viewport</span><span>640px &times; 870px</span></div>
+          <div class="iframe-shell desktop"><iframe id="f-signup-desktop" title="Sign-Up Email Desktop Preview"></iframe></div>
+        </div>
+        <div class="frame-col">
+          <div class="frame-label"><span>Mobile Client Viewport (iPhone)</span><span>375px &times; 870px</span></div>
+          <div class="iframe-shell mobile"><iframe id="f-signup-mobile" title="Sign-Up Email Mobile Preview"></iframe></div>
+        </div>
+      </div>
+      <details class="txt-drawer">
+        <summary>View Plain-Text Fallback (supabase/templates/confirm-signup.txt) &amp; Raw Go Template Variables</summary>
+        <pre id="pre-signup-txt"></pre>
+      </details>
+    </section>
+
+    <!-- Template B: Login Confirmation / Verification Email -->
+    <section class="section-block">
+      <div class="section-head">
+        <div>
+          <h2>B. Login Confirmation / Verification Email ("Secure Sign-In")</h2>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">
+            Source: <code>supabase/templates/login-confirmation.html</code> &amp; <code>supabase/templates/login-confirmation.txt</code>
+          </div>
+        </div>
+        <div class="meta-pills">
+          <span class="meta-pill">{{ .ConfirmationURL }}</span>
+          <span class="meta-pill">{{ .Token }}</span>
+          <span class="meta-pill">{{ .Email }}</span>
+          <span class="meta-pill">{{ .SiteURL }}</span>
+          <button class="btn" type="button" onclick="copyTemplate('login', this)">📋 Copy Supabase HTML</button>
+        </div>
+      </div>
+      <div class="frames-row">
+        <div class="frame-col">
+          <div class="frame-label"><span>Desktop Client Viewport</span><span>640px &times; 870px</span></div>
+          <div class="iframe-shell desktop"><iframe id="f-login-desktop" title="Login Email Desktop Preview"></iframe></div>
+        </div>
+        <div class="frame-col">
+          <div class="frame-label"><span>Mobile Client Viewport (iPhone)</span><span>375px &times; 870px</span></div>
+          <div class="iframe-shell mobile"><iframe id="f-login-mobile" title="Login Email Mobile Preview"></iframe></div>
+        </div>
+      </div>
+      <details class="txt-drawer">
+        <summary>View Plain-Text Fallback (supabase/templates/login-confirmation.txt) &amp; Raw Go Template Variables</summary>
+        <pre id="pre-login-txt"></pre>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    const RAW_TEMPLATES = {
+      signupHtml: "<!DOCTYPE html>\n<html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"x-apple-disable-message-reformatting\">\n  <meta name=\"format-detection\" content=\"telephone=no,address=no,email=no,date=no,url=no\">\n  <meta name=\"color-scheme\" content=\"light dark\">\n  <meta name=\"supported-color-schemes\" content=\"light dark\">\n  <title>Welcome to JobMatch — Let's unlock your matches!</title>\n  <!--[if mso]>\n  <noscript>\n    <xml>\n      <o:OfficeDocumentSettings>\n        <o:PixelsPerInch>96</o:PixelsPerInch>\n      </o:OfficeDocumentSettings>\n    </xml>\n  </noscript>\n  <![endif]-->\n  <style>\n    :root {\n      color-scheme: light dark;\n      supported-color-schemes: light dark;\n    }\n    body, table, td, a {\n      -webkit-text-size-adjust: 100%;\n      -ms-text-size-adjust: 100%;\n    }\n    table, td {\n      mso-table-lspace: 0pt;\n      mso-table-rspace: 0pt;\n    }\n    img {\n      -ms-interpolation-mode: bicubic;\n      border: 0;\n      height: auto;\n      line-height: 100%;\n      outline: none;\n      text-decoration: none;\n    }\n    body {\n      margin: 0 !important;\n      padding: 0 !important;\n      width: 100% !important;\n      background-color: #F5F7FA;\n      color: #0F172A;\n      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\n    }\n    @media screen and (max-width: 600px) {\n      .email-container {\n        width: 100% !important;\n        max-width: 100% !important;\n      }\n      .mobile-pad {\n        padding-left: 20px !important;\n        padding-right: 20px !important;\n      }\n      .step-col {\n        display: block !important;\n        width: 100% !important;\n        padding-bottom: 10px !important;\n      }\n    }\n    @media (prefers-color-scheme: dark) {\n      body, .email-bg {\n        background-color: #0B1120 !important;\n      }\n      .email-card {\n        background-color: #111C33 !important;\n        border-color: #1E293B !important;\n      }\n      .dark-ink {\n        color: #F8FAFC !important;\n      }\n      .dark-ink2 {\n        color: #CBD5E1 !important;\n      }\n      .dark-muted {\n        color: #94A3B8 !important;\n      }\n      .dark-subcard {\n        background-color: #162442 !important;\n        border-color: #263B66 !important;\n      }\n      .dark-code-box {\n        background-color: #0F172A !important;\n        border-color: #3B82F6 !important;\n        color: #60A5FA !important;\n      }\n    }\n  </style>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #F5F7FA; color: #0F172A; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\">\n\n  <!-- 1. Hidden Preheader Text for Mobile Notifications -->\n  <div style=\"display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all;\">\n    Hi{{ if .Data.full_name }} {{ .Data.full_name }}{{ end }}! Tap once to confirm your email, build your skill profile, and discover verified local jobs in Biñan.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;\n  </div>\n\n  <!-- Outer Canvas Wrapper -->\n  <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"email-bg\" style=\"background-color: #F5F7FA; width: 100%; margin: 0; padding: 0;\">\n    <tr>\n      <td align=\"center\" style=\"padding: 32px 14px 44px 14px;\">\n\n        <!-- 600px Max-Width Main Container -->\n        <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"600\" class=\"email-container\" style=\"width: 100%; max-width: 600px; margin: 0 auto;\">\n\n          <!-- Top Brand Bar -->\n          <tr>\n            <td align=\"left\" style=\"padding: 0 4px 16px 4px;\">\n              <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\n                <tr>\n                  <td align=\"left\" valign=\"middle\">\n                    <a href=\"{{ .SiteURL }}\" target=\"_blank\" style=\"text-decoration: none; color: #0F172A; font-size: 18px; font-weight: 800; letter-spacing: -0.02em;\">\n                      <span style=\"display: inline-block; vertical-align: middle; width: 28px; height: 28px; line-height: 28px; text-align: center; background-color: #0C70F8; color: #FFFFFF; border-radius: 8px; font-size: 14px; font-weight: 800; margin-right: 8px;\">JM</span><span class=\"dark-ink\" style=\"vertical-align: middle; color: #0F172A;\">JobMatch</span>\n                    </a>\n                  </td>\n                  <td align=\"right\" valign=\"middle\">\n                    <span style=\"display: inline-block; padding: 4px 10px; background-color: #EBF3FF; color: #0A5BD0; border-radius: 999px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;\">Biñan, Laguna</span>\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- Main Card -->\n          <tr>\n            <td>\n              <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"email-card\" style=\"background-color: #FFFFFF; border: 1px solid #E3E8EF; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);\">\n\n                <!-- Visual Hook: Styled Deep-Navy & Brand-Blue Mascot Header Card -->\n                <tr>\n                  <td align=\"center\" class=\"mobile-pad\" style=\"background-color: #0A2B6D; background-image: linear-gradient(135deg, #061E52 0%, #0A2B6D 52%, #0C70F8 100%); padding: 32px 32px 28px 32px; text-align: center;\">\n\n                    <!-- Email-Safe Spark / Pop-Line Accents + Mascot Avatar Frame -->\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\" style=\"margin: 0 auto;\">\n                      <tr>\n                        <td valign=\"top\" style=\"padding-top: 6px; padding-right: 10px;\">\n                          <span style=\"display: inline-block; width: 14px; height: 4px; background-color: #3994FF; border-radius: 99px;\"></span>\n                        </td>\n                        <td align=\"center\" valign=\"middle\">\n                          <div style=\"width: 76px; height: 76px; border-radius: 22px; background-color: #0C70F8; border: 3px solid #FFFFFF; box-shadow: 0 8px 20px rgba(6, 30, 82, 0.45); overflow: hidden; line-height: 76px; text-align: center;\">\n                            <img src=\"{{ .SiteURL }}/assets/logo.png\" width=\"76\" height=\"76\" alt=\"Jomo — JobMatch Robot Mascot\" style=\"display: block; width: 76px; height: 76px; object-fit: cover; color: #FFFFFF; font-family: sans-serif; font-size: 13px; font-weight: 800; background-color: #0C70F8;\">\n                          </div>\n                        </td>\n                        <td valign=\"top\" style=\"padding-top: 2px; padding-left: 10px; text-align: left;\">\n                          <div style=\"width: 14px; height: 4px; background-color: #F5A524; border-radius: 99px; margin-bottom: 5px;\"></div>\n                          <div style=\"width: 18px; height: 4px; background-color: #FFFFFF; border-radius: 99px; margin-left: 3px;\"></div>\n                        </td>\n                      </tr>\n                    </table>\n\n                    <!-- Mascot Speech Pill -->\n                    <div style=\"margin-top: 14px;\">\n                      <span style=\"display: inline-block; padding: 5px 14px; background-color: #FFF4DC; color: #9A5B00; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.02em;\">\n                        &#9733; Hi{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! I'm Jomo — your career buddy\n                      </span>\n                    </div>\n\n                    <!-- Playful, Clear Headline -->\n                    <h1 style=\"margin: 14px 0 8px 0; color: #FFFFFF; font-size: 26px; line-height: 1.25; font-weight: 800; letter-spacing: -0.02em;\">\n                      Let’s unlock your local job matches!\n                    </h1>\n                    <p style=\"margin: 0 auto; max-width: 440px; color: #DBEAFE; font-size: 14.5px; line-height: 1.55; font-weight: 400;\">\n                      You’re one tap away from fair, skill-based job matching and personalized career roadmaps in Biñan.\n                    </p>\n                  </td>\n                </tr>\n\n                <!-- Main Body Content -->\n                <tr>\n                  <td class=\"mobile-pad\" style=\"padding: 32px 36px 28px 36px;\">\n\n                    <p class=\"dark-ink2\" style=\"margin: 0 0 24px 0; color: #334155; font-size: 15px; line-height: 1.6; text-align: center;\">\n                      Confirm your email address below to activate your account for <strong class=\"dark-ink\" style=\"color: #0F172A;\">{{ if .Email }}{{ .Email }}{{ else }}your JobMatch account{{ end }}</strong> and pick up right where you left off.\n                    </p>\n\n                    <!-- 3. High-Contrast Bulletproof Primary CTA Button -->\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\" style=\"margin: 0 auto 26px auto;\">\n                      <tr>\n                        <td align=\"center\" bgcolor=\"#0C70F8\" style=\"border-radius: 12px; background-color: #0C70F8;\">\n                          <!--[if mso]>\n                          <v:roundrect xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" href=\"{{ .ConfirmationURL }}\" style=\"height:50px;v-text-anchor:middle;width:280px;\" arcsize=\"24%\" strokecolor=\"#0A5BD0\" fillcolor=\"#0C70F8\">\n                            <w:anchorlock/>\n                            <center style=\"color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold;\">Confirm Email &amp; Start Matching &rarr;</center>\n                          </v:roundrect>\n                          <![endif]-->\n                          <!--[if !mso]><!-- -->\n                          <a href=\"{{ .ConfirmationURL }}\" target=\"_blank\" style=\"display: inline-block; padding: 15px 30px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 12px; background-color: #0C70F8; border: 1px solid #0A5BD0; box-shadow: 0 4px 14px rgba(12, 112, 248, 0.28);\">\n                            Confirm Email &amp; Start Matching &rarr;\n                          </a>\n                          <!--<![endif]-->\n                        </td>\n                      </tr>\n                    </table>\n\n                    <!-- Prominent Styled OTP / Verification Code Box (supports Supabase {{ .Token }} flows) -->\n                    {{ if .Token }}\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"dark-subcard\" style=\"background-color: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 14px; margin-bottom: 26px;\">\n                      <tr>\n                        <td align=\"center\" style=\"padding: 16px 20px;\">\n                          <div class=\"dark-muted\" style=\"font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748B; margin-bottom: 6px;\">\n                            Or enter this 6-digit verification code\n                          </div>\n                          <div class=\"dark-code-box\" style=\"display: inline-block; padding: 8px 20px; background-color: #FFFFFF; border: 1.5px solid #CFE0FA; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 24px; font-weight: 800; letter-spacing: 0.22em; color: #0A2B6D;\">\n                            {{ .Token }}\n                          </div>\n                        </td>\n                      </tr>\n                    </table>\n                    {{ end }}\n\n                    <!-- 4. Compact 3-Step Visual Mini-Preview of What Happens Next -->\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"dark-subcard\" style=\"background-color: #F5F9FF; border: 1px solid #DCE8FA; border-radius: 14px; margin-bottom: 24px;\">\n                      <tr>\n                        <td style=\"padding: 18px 20px;\">\n                          <div class=\"dark-ink\" style=\"font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #0A2B6D; margin-bottom: 12px;\">\n                            What happens next\n                          </div>\n                          <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\n                            <tr>\n                              <!-- Step 1 -->\n                              <td width=\"33%\" valign=\"top\" class=\"step-col\" style=\"padding-right: 10px;\">\n                                <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                                  <tr>\n                                    <td valign=\"top\" style=\"padding-right: 8px;\">\n                                      <span style=\"display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background-color: #14804F; color: #FFFFFF; font-size: 11.5px; font-weight: 800;\">1</span>\n                                    </td>\n                                    <td valign=\"top\">\n                                      <div class=\"dark-ink\" style=\"font-size: 13px; font-weight: 700; color: #0F172A;\">Confirm email</div>\n                                      <div class=\"dark-muted\" style=\"font-size: 12px; color: #64748B; line-height: 1.4; margin-top: 2px;\">Activates your secure login in one tap.</div>\n                                    </td>\n                                  </tr>\n                                </table>\n                              </td>\n                              <!-- Step 2 -->\n                              <td width=\"33%\" valign=\"top\" class=\"step-col\" style=\"padding-right: 10px;\">\n                                <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                                  <tr>\n                                    <td valign=\"top\" style=\"padding-right: 8px;\">\n                                      <span style=\"display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background-color: #0C70F8; color: #FFFFFF; font-size: 11.5px; font-weight: 800;\">2</span>\n                                    </td>\n                                    <td valign=\"top\">\n                                      <div class=\"dark-ink\" style=\"font-size: 13px; font-weight: 700; color: #0F172A;\">Build profile</div>\n                                      <div class=\"dark-muted\" style=\"font-size: 12px; color: #64748B; line-height: 1.4; margin-top: 2px;\">Pick your skills, commute &amp; work setup.</div>\n                                    </td>\n                                  </tr>\n                                </table>\n                              </td>\n                              <!-- Step 3 -->\n                              <td width=\"34%\" valign=\"top\" class=\"step-col\">\n                                <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                                  <tr>\n                                    <td valign=\"top\" style=\"padding-right: 8px;\">\n                                      <span style=\"display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background-color: #F5A524; color: #0F172A; font-size: 11.5px; font-weight: 800;\">3</span>\n                                    </td>\n                                    <td valign=\"top\">\n                                      <div class=\"dark-ink\" style=\"font-size: 13px; font-weight: 700; color: #0F172A;\">Discover matches</div>\n                                      <div class=\"dark-muted\" style=\"font-size: 12px; color: #64748B; line-height: 1.4; margin-top: 2px;\">Swipe verified roles with clear match scores.</div>\n                                    </td>\n                                  </tr>\n                                </table>\n                              </td>\n                            </tr>\n                          </table>\n                        </td>\n                      </tr>\n                    </table>\n\n                    <!-- Fair-Hiring & Privacy Reassurance Pill -->\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"background-color: #E7F5EE; border-radius: 10px; margin-bottom: 22px;\">\n                      <tr>\n                        <td style=\"padding: 11px 14px; font-size: 12.5px; line-height: 1.5; color: #14804F;\">\n                          <strong>Fair hiring by design:</strong> Employers only see your first name, last initial, and skills until they shortlist you. Age, gender, and photos never affect your match score.\n                        </td>\n                      </tr>\n                    </table>\n\n                    <!-- 5. Fallback Raw URL Link & Expiration Notice -->\n                    <div class=\"dark-muted\" style=\"border-top: 1px solid #E3E8EF; padding-top: 18px; font-size: 12.5px; line-height: 1.6; color: #64748B;\">\n                      <p style=\"margin: 0 0 8px 0;\">\n                        <strong>Link expires in 24 hours.</strong> If the button above doesn’t open, copy and paste this link into your browser:\n                      </p>\n                      <p style=\"margin: 0 0 12px 0; word-break: break-all;\">\n                        <a href=\"{{ .ConfirmationURL }}\" target=\"_blank\" style=\"color: #0C70F8; text-decoration: underline;\">{{ .ConfirmationURL }}</a>\n                      </p>\n                      <p style=\"margin: 0; color: #64748B;\">\n                        Didn’t create a JobMatch account? No action is needed — you can safely ignore this email and the address won’t be activated.\n                      </p>\n                    </div>\n\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- Calm Footer -->\n          <tr>\n            <td align=\"center\" style=\"padding: 22px 16px 0 16px; text-align: center; font-size: 12px; line-height: 1.6; color: #64748B;\">\n              <p class=\"dark-muted\" style=\"margin: 0 0 4px 0; font-weight: 600; color: #475569;\">\n                JobMatch &middot; Built in Biñan for StartUP City of Biñan, Laguna\n              </p>\n              <p class=\"dark-muted\" style=\"margin: 0; color: #64748B;\">\n                Protected under the Philippine Data Privacy Act of 2012 (RA 10173) &middot;\n                <a href=\"{{ .SiteURL }}/#/privacy\" target=\"_blank\" style=\"color: #0C70F8; text-decoration: none;\">Privacy Notice</a> &middot;\n                <a href=\"{{ .SiteURL }}/#/terms\" target=\"_blank\" style=\"color: #0C70F8; text-decoration: none;\">Terms of Use</a>\n              </p>\n            </td>\n          </tr>\n\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>\n",
+      signupTxt: "Hi{{ if .Data.full_name }} {{ .Data.full_name }}{{ end }}! I'm Jomo — welcome to JobMatch!\n\nLet's unlock your local job matches in Biñan, Laguna.\nConfirm your email address ({{ if .Email }}{{ .Email }}{{ else }}your account{{ end }}) by opening the link below:\n\nConfirm Email & Start Matching:\n{{ .ConfirmationURL }}\n{{ if .Token }}\nOr enter this 6-digit verification code in the app:\n{{ .Token }}\n{{ end }}\n------------------------------------------------------------\nWHAT HAPPENS NEXT\n1. Confirm email    — Activates your secure login in one tap.\n2. Build profile    — Pick your skills, commute & work setup.\n3. Discover matches — Swipe verified local roles with transparent match scores.\n\nFAIR HIRING BY DESIGN\nEmployers see only your first name, last initial, and skills until they shortlist you. Age, gender, and photos never affect your match score.\n------------------------------------------------------------\n\nThis confirmation link expires in 24 hours.\nDidn't create a JobMatch account? No action is needed — you can safely ignore this email and the address won't be activated.\n\nJobMatch · Built in Biñan for StartUP City of Biñan, Laguna\nPrivacy Notice: {{ .SiteURL }}/#/privacy\nTerms of Use: {{ .SiteURL }}/#/terms\n",
+      loginHtml: "<!DOCTYPE html>\n<html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"x-apple-disable-message-reformatting\">\n  <meta name=\"format-detection\" content=\"telephone=no,address=no,email=no,date=no,url=no\">\n  <meta name=\"color-scheme\" content=\"light dark\">\n  <meta name=\"supported-color-schemes\" content=\"light dark\">\n  <title>Your JobMatch sign-in link &amp; verification code</title>\n  <!--[if mso]>\n  <noscript>\n    <xml>\n      <o:OfficeDocumentSettings>\n        <o:PixelsPerInch>96</o:PixelsPerInch>\n      </o:OfficeDocumentSettings>\n    </xml>\n  </noscript>\n  <![endif]-->\n  <style>\n    :root {\n      color-scheme: light dark;\n      supported-color-schemes: light dark;\n    }\n    body, table, td, a {\n      -webkit-text-size-adjust: 100%;\n      -ms-text-size-adjust: 100%;\n    }\n    table, td {\n      mso-table-lspace: 0pt;\n      mso-table-rspace: 0pt;\n    }\n    img {\n      -ms-interpolation-mode: bicubic;\n      border: 0;\n      height: auto;\n      line-height: 100%;\n      outline: none;\n      text-decoration: none;\n    }\n    body {\n      margin: 0 !important;\n      padding: 0 !important;\n      width: 100% !important;\n      background-color: #F5F7FA;\n      color: #0F172A;\n      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\n    }\n    @media screen and (max-width: 600px) {\n      .email-container {\n        width: 100% !important;\n        max-width: 100% !important;\n      }\n      .mobile-pad {\n        padding-left: 20px !important;\n        padding-right: 20px !important;\n      }\n    }\n    @media (prefers-color-scheme: dark) {\n      body, .email-bg {\n        background-color: #0B1120 !important;\n      }\n      .email-card {\n        background-color: #111C33 !important;\n        border-color: #1E293B !important;\n      }\n      .dark-ink {\n        color: #F8FAFC !important;\n      }\n      .dark-ink2 {\n        color: #CBD5E1 !important;\n      }\n      .dark-muted {\n        color: #94A3B8 !important;\n      }\n      .dark-code-wrap {\n        background-color: #162442 !important;\n        border-color: #263B66 !important;\n      }\n      .dark-code-box {\n        background-color: #0F172A !important;\n        border-color: #3B82F6 !important;\n        color: #60A5FA !important;\n      }\n      .dark-sec-box {\n        background-color: #162032 !important;\n        border-color: #334155 !important;\n      }\n    }\n  </style>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #F5F7FA; color: #0F172A; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\">\n\n  <!-- 1. Hidden Preheader Text -->\n  <div style=\"display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all;\">\n    Your JobMatch sign-in link{{ if .Token }} and verification code ({{ .Token }}){{ end }} are ready. Valid for 1 hour.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;\n  </div>\n\n  <!-- Outer Canvas Wrapper -->\n  <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"email-bg\" style=\"background-color: #F5F7FA; width: 100%; margin: 0; padding: 0;\">\n    <tr>\n      <td align=\"center\" style=\"padding: 32px 14px 44px 14px;\">\n\n        <!-- 600px Max-Width Main Container -->\n        <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"600\" class=\"email-container\" style=\"width: 100%; max-width: 600px; margin: 0 auto;\">\n\n          <!-- Top Brand Bar -->\n          <tr>\n            <td align=\"left\" style=\"padding: 0 4px 16px 4px;\">\n              <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\n                <tr>\n                  <td align=\"left\" valign=\"middle\">\n                    <a href=\"{{ .SiteURL }}\" target=\"_blank\" style=\"text-decoration: none; color: #0F172A; font-size: 18px; font-weight: 800; letter-spacing: -0.02em;\">\n                      <span style=\"display: inline-block; vertical-align: middle; width: 28px; height: 28px; line-height: 28px; text-align: center; background-color: #0C70F8; color: #FFFFFF; border-radius: 8px; font-size: 14px; font-weight: 800; margin-right: 8px;\">JM</span><span class=\"dark-ink\" style=\"vertical-align: middle; color: #0F172A;\">JobMatch</span>\n                    </a>\n                  </td>\n                  <td align=\"right\" valign=\"middle\">\n                    <span style=\"display: inline-block; padding: 4px 10px; background-color: #E7F5EE; color: #14804F; border-radius: 999px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;\">Secure Sign-In</span>\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- Main Card -->\n          <tr>\n            <td>\n              <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"email-card\" style=\"background-color: #FFFFFF; border: 1px solid #E3E8EF; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);\">\n\n                <!-- Compact Branded Header Featuring JobMatch Colors & Jomo Quick Security-Check Greeting -->\n                <tr>\n                  <td class=\"mobile-pad\" style=\"background-color: #0A2B6D; background-image: linear-gradient(135deg, #061E52 0%, #0A2B6D 60%, #0C70F8 100%); padding: 22px 32px;\">\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\n                      <tr>\n                        <td width=\"56\" valign=\"middle\" style=\"padding-right: 16px;\">\n                          <div style=\"width: 52px; height: 52px; border-radius: 15px; background-color: #0C70F8; border: 2px solid #FFFFFF; overflow: hidden; line-height: 52px; text-align: center;\">\n                            <img src=\"{{ .SiteURL }}/assets/logo.png\" width=\"52\" height=\"52\" alt=\"Jomo — JobMatch Security Check\" style=\"display: block; width: 52px; height: 52px; object-fit: cover; color: #FFFFFF; font-family: sans-serif; font-size: 12px; font-weight: 800; background-color: #0C70F8;\">\n                          </div>\n                        </td>\n                        <td valign=\"middle\">\n                          <div style=\"font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #93C5FD; margin-bottom: 3px;\">\n                            Jomo Security Check &middot; Instant Access\n                          </div>\n                          <h1 style=\"margin: 0; color: #FFFFFF; font-size: 21px; line-height: 1.25; font-weight: 800; letter-spacing: -0.015em;\">\n                            Sign in to your JobMatch account\n                          </h1>\n                        </td>\n                      </tr>\n                    </table>\n                  </td>\n                </tr>\n\n                <!-- Above-the-Fold Login Action & Verification Code -->\n                <tr>\n                  <td class=\"mobile-pad\" style=\"padding: 28px 36px 28px 36px;\">\n\n                    <p class=\"dark-ink2\" style=\"margin: 0 0 22px 0; color: #334155; font-size: 15px; line-height: 1.55;\">\n                      We received a sign-in request for <strong class=\"dark-ink\" style=\"color: #0F172A;\">{{ if .Email }}{{ .Email }}{{ else }}your JobMatch account{{ end }}</strong>. Tap the button below to sign in right away:\n                    </p>\n\n                    <!-- 2A. Bulletproof Primary Sign-In CTA Button Above the Fold -->\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"margin: 0 0 22px 0;\">\n                      <tr>\n                        <td align=\"center\" bgcolor=\"#0C70F8\" style=\"border-radius: 12px; background-color: #0C70F8;\">\n                          <!--[if mso]>\n                          <v:roundrect xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" href=\"{{ .ConfirmationURL }}\" style=\"height:50px;v-text-anchor:middle;width:280px;\" arcsize=\"24%\" strokecolor=\"#0A5BD0\" fillcolor=\"#0C70F8\">\n                            <w:anchorlock/>\n                            <center style=\"color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold;\">Sign In to JobMatch &rarr;</center>\n                          </v:roundrect>\n                          <![endif]-->\n                          <!--[if !mso]><!-- -->\n                          <a href=\"{{ .ConfirmationURL }}\" target=\"_blank\" style=\"display: inline-block; padding: 15px 34px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 12px; background-color: #0C70F8; border: 1px solid #0A5BD0; box-shadow: 0 4px 14px rgba(12, 112, 248, 0.25);\">\n                            Sign In to JobMatch &rarr;\n                          </a>\n                          <!--<![endif]-->\n                        </td>\n                      </tr>\n                    </table>\n\n                    <!-- 2B. Large Monospace Copy-Friendly Verification Code Above the Fold -->\n                    {{ if .Token }}\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"dark-code-wrap\" style=\"background-color: #F5F9FF; border: 1px solid #DCE8FA; border-radius: 14px; margin-bottom: 22px;\">\n                      <tr>\n                        <td align=\"center\" style=\"padding: 18px 20px;\">\n                          <div class=\"dark-muted\" style=\"font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #475569; margin-bottom: 8px;\">\n                            Or enter this one-time sign-in code\n                          </div>\n                          <div class=\"dark-code-box\" style=\"display: inline-block; padding: 10px 24px; background-color: #FFFFFF; border: 1.5px solid #93C5FD; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 26px; font-weight: 800; letter-spacing: 0.24em; color: #0A2B6D; user-select: all;\">\n                            {{ .Token }}\n                          </div>\n                          <div class=\"dark-muted\" style=\"font-size: 12px; color: #64748B; margin-top: 8px;\">\n                            Valid for <strong>1 hour</strong> &middot; works only once\n                          </div>\n                        </td>\n                      </tr>\n                    </table>\n                    {{ end }}\n\n                    <!-- 3A. Clear Expiration Notice & Raw Fallback Link -->\n                    <p class=\"dark-muted\" style=\"margin: 0 0 18px 0; font-size: 12.5px; line-height: 1.55; color: #64748B;\">\n                      This single-use link expires in <strong>1 hour</strong>. If the button above doesn’t open, copy and paste this URL into your browser:<br>\n                      <a href=\"{{ .ConfirmationURL }}\" target=\"_blank\" style=\"color: #0C70F8; text-decoration: underline; word-break: break-all;\">{{ .ConfirmationURL }}</a>\n                    </p>\n\n                    <!-- 3B. Calm, Plain-Text Security Note (Strictly Plain, Zero Celebratory Tone) -->\n                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" class=\"dark-sec-box\" style=\"background-color: #F8FAFC; border: 1px solid #E3E8EF; border-radius: 12px;\">\n                      <tr>\n                        <td style=\"padding: 14px 16px; font-size: 12.5px; line-height: 1.55; color: #475569;\">\n                          <strong class=\"dark-ink\" style=\"color: #0F172A;\">Didn’t try to sign in?</strong> You can safely ignore this email. No one can access your account without opening this link or entering the code above. If you use a password and are concerned, you can update it anytime in Settings.\n                        </td>\n                      </tr>\n                    </table>\n\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- Calm Footer -->\n          <tr>\n            <td align=\"center\" style=\"padding: 22px 16px 0 16px; text-align: center; font-size: 12px; line-height: 1.6; color: #64748B;\">\n              <p class=\"dark-muted\" style=\"margin: 0 0 4px 0; font-weight: 600; color: #475569;\">\n                JobMatch &middot; Built in Biñan for StartUP City of Biñan, Laguna\n              </p>\n              <p class=\"dark-muted\" style=\"margin: 0; color: #64748B;\">\n                Protected under the Philippine Data Privacy Act of 2012 (RA 10173) &middot;\n                <a href=\"{{ .SiteURL }}/#/privacy\" target=\"_blank\" style=\"color: #0C70F8; text-decoration: none;\">Privacy Notice</a> &middot;\n                <a href=\"{{ .SiteURL }}/#/terms\" target=\"_blank\" style=\"color: #0C70F8; text-decoration: none;\">Terms of Use</a>\n              </p>\n            </td>\n          </tr>\n\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>\n",
+      loginTxt: "JobMatch — Sign in to your account\n\nWe received a sign-in request for {{ if .Email }}{{ .Email }}{{ else }}your JobMatch account{{ end }}.\n\nSign In to JobMatch:\n{{ .ConfirmationURL }}\n{{ if .Token }}\nOr enter this one-time sign-in code:\n{{ .Token }}\n{{ end }}\nThis single-use link and code expire in 1 hour.\n\n------------------------------------------------------------\nSECURITY NOTE\nDidn't try to sign in? You can safely ignore this email. No one can access your account without opening this link or entering the code above. If you use a password and are concerned, you can update it anytime in Settings.\n------------------------------------------------------------\n\nJobMatch · Built in Biñan for StartUP City of Biñan, Laguna\nPrivacy Notice: {{ .SiteURL }}/#/privacy\nTerms of Use: {{ .SiteURL }}/#/terms\n"
+    };
+
+    const state = {
+      dark: false,
+      blockImages: false,
+      mascotName: "Jomo",
+      logoPath: "web/assets/logo.png"
+    };
+
+    function hydrateMockVars(tpl) {
+      let out = tpl;
+      if (state.mascotName === "Jobi") {
+        out = out.replace(/Jomo/g, "Jobi");
+      }
+      // Replace Go template conditionals with sample preview data
+      out = out.replace(/\{\{\s*if\s+\.Data\.full_name\s*\}\}([\s\S]*?)\{\{\s*end\s*\}\}/g, " Christian");
+      out = out.replace(/\{\{\s*if\s+\.Email\s*\}\}([\s\S]*?)\{\{\s*else\s*\}\}([\s\S]*?)\{\{\s*end\s*\}\}/g, "christian.delacruz@jobmatch.ph");
+      out = out.replace(/\{\{\s*if\s+\.Token\s*\}\}([\s\S]*?)\{\{\s*end\s*\}\}/g, "$1");
+      out = out.replace(/\{\{\s*\.SiteURL\s*\}\}\/assets\/logo\.png/g, state.blockImages ? "about:blank#blocked" : state.logoPath);
+      out = out.replace(/\{\{\s*\.SiteURL\s*\}\}/g, "https://jobmatch-binan.ph");
+      out = out.replace(/\{\{\s*\.ConfirmationURL\s*\}\}/g, "https://repxbwvcylwbscdklyli.supabase.co/auth/v1/verify?token=pkce_8f94a2b7c3e10d&type=signup&redirect_to=https://jobmatch-binan.ph/");
+      out = out.replace(/\{\{\s*\.Token\s*\}\}/g, "482916");
+      out = out.replace(/\{\{\s*\.Email\s*\}\}/g, "christian.delacruz@jobmatch.ph");
+      out = out.replace(/\{\{\s*\.Data\.full_name\s*\}\}/g, "Christian");
+
+      if (state.dark) {
+        const darkOverride = `<style>
+          body, .email-bg { background-color: #0B1120 !important; }
+          .email-card { background-color: #111C33 !important; border-color: #1E293B !important; }
+          .dark-ink { color: #F8FAFC !important; }
+          .dark-ink2 { color: #CBD5E1 !important; }
+          .dark-muted { color: #94A3B8 !important; }
+          .dark-subcard, .dark-code-wrap { background-color: #162442 !important; border-color: #263B66 !important; }
+          .dark-code-box { background-color: #0F172A !important; border-color: #3B82F6 !important; color: #60A5FA !important; }
+          .dark-sec-box { background-color: #162032 !important; border-color: #334155 !important; }
+        </style>`;
+        out = out.replace("</head>", darkOverride + "</head>");
+      }
+      return out;
+    }
+
+    function renderAll() {
+      const sHtml = hydrateMockVars(RAW_TEMPLATES.signupHtml);
+      const lHtml = hydrateMockVars(RAW_TEMPLATES.loginHtml);
+      document.getElementById("f-signup-desktop").srcdoc = sHtml;
+      document.getElementById("f-signup-mobile").srcdoc = sHtml;
+      document.getElementById("f-login-desktop").srcdoc = lHtml;
+      document.getElementById("f-login-mobile").srcdoc = lHtml;
+      document.getElementById("pre-signup-txt").textContent = hydrateMockVars(RAW_TEMPLATES.signupTxt);
+      document.getElementById("pre-login-txt").textContent = hydrateMockVars(RAW_TEMPLATES.loginTxt);
+    }
+
+    window.copyTemplate = function (kind, btn) {
+      const raw = kind === "signup" ? RAW_TEMPLATES.signupHtml : RAW_TEMPLATES.loginHtml;
+      const finalRaw = state.mascotName === "Jobi" ? raw.replace(/Jomo/g, "Jobi") : raw;
+      navigator.clipboard.writeText(finalRaw).then(function () {
+        const prev = btn.textContent;
+        btn.textContent = "✓ Copied Raw Supabase HTML!";
+        setTimeout(function () { btn.textContent = prev; }, 1800);
+      });
+    };
+
+    document.getElementById("btn-theme-light").addEventListener("click", function () {
+      state.dark = false;
+      this.classList.add("on");
+      document.getElementById("btn-theme-dark").classList.remove("on");
+      renderAll();
+    });
+    document.getElementById("btn-theme-dark").addEventListener("click", function () {
+      state.dark = true;
+      this.classList.add("on");
+      document.getElementById("btn-theme-light").classList.remove("on");
+      renderAll();
+    });
+    document.getElementById("btn-img-toggle").addEventListener("click", function () {
+      state.blockImages = !state.blockImages;
+      this.classList.toggle("on", state.blockImages);
+      this.textContent = state.blockImages ? "🖼️ Blocked Images: ON" : "🖼️ Test Blocked Images";
+      renderAll();
+    });
+    document.getElementById("btn-name-toggle").addEventListener("click", function () {
+      state.mascotName = state.mascotName === "Jomo" ? "Jobi" : "Jomo";
+      this.textContent = "🤖 Name: " + state.mascotName;
+      renderAll();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>

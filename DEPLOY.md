@@ -29,7 +29,7 @@ If your final domain is not the one in `web/_headers` and `firebase.json`, nothi
 
 1. **Custom SMTP.** Authentication, Emails, SMTP Settings. The built-in sender allows only a few emails an hour. Use Resend, Brevo, SendGrid or Gmail Workspace.
 2. **Leaked password protection.** Authentication, Sign In / Providers, Email: enable "Prevent use of leaked passwords". (The security advisor flags this until it is on.)
-3. **Confirm email** stays on. Edit the email templates so the wording says JobMatch.
+3. **Confirm email** stays on. Paste the branded HTML templates from `supabase/templates/confirm-signup.html` (Confirm signup) and `supabase/templates/login-confirmation.html` (Magic Link / Sign-in verification) into **Authentication → Email Templates** in the Supabase Dashboard.
 4. Raise the minimum password length to 8 or more.
 
 ## 4. Create the real administrator

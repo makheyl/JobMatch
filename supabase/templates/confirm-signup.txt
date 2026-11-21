@@ -1,0 +1,27 @@
+Hi{{ if .Data.full_name }} {{ .Data.full_name }}{{ end }}! I'm Jomo — welcome to JobMatch!
+
+Let's unlock your local job matches in Biñan, Laguna.
+Confirm your email address ({{ if .Email }}{{ .Email }}{{ else }}your account{{ end }}) by opening the link below:
+
+Confirm Email & Start Matching:
+{{ .ConfirmationURL }}
+{{ if .Token }}
+Or enter this 6-digit verification code in the app:
+{{ .Token }}
+{{ end }}
+------------------------------------------------------------
+WHAT HAPPENS NEXT
+1. Confirm email    — Activates your secure login in one tap.
+2. Build profile    — Pick your skills, commute & work setup.
+3. Discover matches — Swipe verified local roles with transparent match scores.
+
+FAIR HIRING BY DESIGN
+Employers see only your first name, last initial, and skills until they shortlist you. Age, gender, and photos never affect your match score.
+------------------------------------------------------------
+
+This confirmation link expires in 24 hours.
+Didn't create a JobMatch account? No action is needed — you can safely ignore this email and the address won't be activated.
+
+JobMatch · Built in Biñan for StartUP City of Biñan, Laguna
+Privacy Notice: {{ .SiteURL }}/#/privacy
+Terms of Use: {{ .SiteURL }}/#/terms
