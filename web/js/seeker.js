@@ -206,16 +206,19 @@
 
   JM.inputs.resume = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
-    if (JM.isHeic(f)) { JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
-    if (f.size > 5 * 1024 * 1024) { JM.toast('File is larger than 5 MB.', 'bad'); el.value = ''; return; }
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
+    if (JM.isHeic(f)) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('File is larger than 5 MB.', 'bad'); el.value = ''; return; }
     const ext = (f.name.split('.').pop() || 'pdf').toLowerCase();
-    if (['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp', 'txt'].indexOf(ext) < 0) { JM.toast('Upload a PDF, Word, JPG, PNG or WEBP file.', 'bad'); el.value = ''; return; }
+    if (['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'txt'].indexOf(ext) < 0) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('Upload a PDF, Word, JPG or PNG file.', 'bad'); el.value = ''; return; }
+    const oldPath = JM.draft.resume_path;
     const path = JM.me.id + '/resume-' + Date.now() + '.' + ext;
     try {
       const r = await JM.sb.storage.from('resumes').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
-      if (JM.draft.resume_path) JM.sb.storage.from('resumes').remove([JM.draft.resume_path]);
+      if (oldPath && oldPath !== path) JM.sb.storage.from('resumes').remove([oldPath]);
       JM.draft.resume_path = path; JM.draft.resume_mode = 'uploaded'; JM.draft.resume_name = f.name;
+      if (/^(jpe?g|png)$/.test(ext)) await JM.seedUrl('resumes', path);
       JM._lastResumeText = '';
       if (/\.txt$|\.md$/i.test(f.name)) {
         try { JM._lastResumeText = await f.text(); } catch (x) {}
@@ -226,6 +229,7 @@
       JM.toast('Résumé uploaded! Click "Update All Info" to extract your full details and summary.', 'ok');
       JM.drawDraft();
     } catch (e) { JM.toast(JM.err(e), 'bad'); }
+    finally { if (blobUrl) URL.revokeObjectURL(blobUrl); el.value = ''; }
   };
 
   async function applyParsedResume(parsed) {
@@ -324,39 +328,85 @@
 
   JM.inputs.media = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
-    if (JM.isHeic(f)) { JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
-    if (f.size > 5 * 1024 * 1024) { JM.toast('File is larger than 5 MB.', 'bad'); el.value = ''; return; }
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
+    if (JM.isHeic(f)) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('File is larger than 5 MB.', 'bad'); el.value = ''; return; }
     const kind = el.dataset.kind, ext = (f.name.split('.').pop() || 'webp').toLowerCase();
     const okExts = kind === 'cert' ? ['jpg', 'jpeg', 'png', 'webp', 'pdf'] : ['jpg', 'jpeg', 'png', 'webp'];
-    if (okExts.indexOf(ext) < 0) { JM.toast(kind === 'cert' ? 'Upload JPG, PNG, WEBP or PDF.' : 'Upload a JPG, PNG or WEBP image.', 'bad'); el.value = ''; return; }
-    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
-    // Optimistic preview while uploading
-    if (kind === 'avatar' && blobUrl) { JM.draft._avatarBlob = blobUrl; JM.drawDraft(); }
-    if (kind === 'photo' && blobUrl) { JM.draft._photoBlob = blobUrl; JM.drawDraft(); }
+    if (okExts.indexOf(ext) < 0) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast(kind === 'cert' ? 'Upload JPG, PNG, WEBP or PDF.' : 'Upload a JPG, PNG or WEBP image.', 'bad'); el.value = ''; return; }
+
+    // Optimistic cropped preview with uploading overlay
+    if (kind === 'avatar') {
+      JM.draft._avatarBlob = blobUrl || null;
+      JM.draft._avatarUploading = true;
+      JM._shellAvatarBlob = blobUrl || null;
+      JM._shellAvatarUploading = true;
+      JM.drawDraft();
+      JM.refreshShellAvatar();
+    } else if (kind === 'photo') {
+      JM.draft._photoBlob = blobUrl || null;
+      JM.draft._photoUploading = true;
+      JM.drawDraft();
+    }
+
+    const oldPath = kind === 'avatar' ? JM.draft.avatar_path : kind === 'photo' ? JM.draft.photo_path : null;
     const path = JM.me.id + '/' + kind + '-' + Date.now() + '.' + ext;
     try {
       const r = await JM.sb.storage.from('seeker-media').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
       if (kind === 'avatar') {
-        if (JM.draft.avatar_path) JM.sb.storage.from('seeker-media').remove([JM.draft.avatar_path]);
-        JM.draft.avatar_path = path; JM.draft._avatarBlob = null;
         await JM.q(JM.sb.from('seeker_profiles').update({ avatar_path: path }).eq('user_id', JM.me.id));
+        if (oldPath && oldPath !== path) {
+          delete JM.urlCache['seeker-media/' + oldPath];
+          JM.sb.storage.from('seeker-media').remove([oldPath]);
+        }
+        const signed = await JM.seedUrl('seeker-media', path);
+        await JM.preloadUrl(signed);
+        JM.draft.avatar_path = path;
+        JM.draft._avatarBlob = null;
+        JM.draft._avatarUploading = false;
+        JM._shellAvatarBlob = null;
+        JM._shellAvatarUploading = false;
         if (JM.me && JM.me.seeker) JM.me.seeker.avatar_path = path;
         JM.refreshShellAvatar();
+        JM.drawDraft();
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
       } else if (kind === 'photo') {
-        if (JM.draft.photo_path) JM.sb.storage.from('seeker-media').remove([JM.draft.photo_path]);
-        JM.draft.photo_path = path; JM.draft._photoBlob = null;
+        const signed = await JM.seedUrl('seeker-media', path);
+        await JM.preloadUrl(signed);
+        if (oldPath && oldPath !== path) {
+          delete JM.urlCache['seeker-media/' + oldPath];
+          JM.sb.storage.from('seeker-media').remove([oldPath]);
+        }
+        JM.draft.photo_path = path;
+        JM.draft._photoBlob = null;
+        JM.draft._photoUploading = false;
+        JM.drawDraft();
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
       } else {
+        if (ext !== 'pdf') await JM.seedUrl('seeker-media', path);
         const ct = document.getElementById('cert-title'), cd = document.getElementById('cert-desc');
         const title = (el._pvExtra && el._pvExtra.title) || (ct && ct.value.trim()) || f.name.replace(/\.[^.]+$/, '');
         const desc = (el._pvExtra && el._pvExtra.desc) || (cd && cd.value.trim()) || '';
         JM.draft.certificates.push({ id: String(Date.now()), title: title, desc: desc, path: path, name: f.name, uploaded_at: new Date().toISOString() });
         if (ct) ct.value = ''; if (cd) cd.value = '';
+        JM.drawDraft();
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
       }
-      JM.toast('Uploaded.', 'ok'); JM.drawDraft();
+      JM.toast('Uploaded.', 'ok');
     } catch (e) {
-      JM.draft._avatarBlob = null; JM.draft._photoBlob = null; JM.drawDraft();
+      if (kind === 'avatar') {
+        JM.draft._avatarBlob = null; JM.draft._avatarUploading = false;
+        JM._shellAvatarBlob = null; JM._shellAvatarUploading = false;
+        JM.refreshShellAvatar();
+      } else if (kind === 'photo') {
+        JM.draft._photoBlob = null; JM.draft._photoUploading = false;
+      }
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      JM.drawDraft();
       JM.toast(JM.err(e), 'bad');
+    } finally {
+      el.value = '';
     }
   };
   JM.actions.dt = function (el) {
@@ -376,11 +426,20 @@
   };
   JM.actions.mediarm = function (el) {
     const k = el.dataset.kind;
-    JM.confirm({ title: 'Remove photo?', text: 'Delete this uploaded image?', ok: 'Remove', danger: true, onOk: function () {
+    JM.confirm({ title: 'Remove photo?', text: 'Delete this uploaded image?', ok: 'Remove', danger: true, onOk: async function () {
       const p = k === 'avatar' ? JM.draft.avatar_path : JM.draft.photo_path;
-      if (p) JM.sb.storage.from('seeker-media').remove([p]);
-      if (k === 'avatar') { JM.draft.avatar_path = null; if (JM.me && JM.me.seeker) JM.me.seeker.avatar_path = null; JM.refreshShellAvatar(); }
-      else JM.draft.photo_path = null;
+      if (k === 'avatar') {
+        try { await JM.q(JM.sb.from('seeker_profiles').update({ avatar_path: null }).eq('user_id', JM.me.id)); } catch (e) {}
+        JM.draft.avatar_path = null;
+        if (JM.me && JM.me.seeker) JM.me.seeker.avatar_path = null;
+        JM.refreshShellAvatar();
+      } else {
+        JM.draft.photo_path = null;
+      }
+      if (p) {
+        delete JM.urlCache['seeker-media/' + p];
+        JM.sb.storage.from('seeker-media').remove([p]);
+      }
       JM.drawDraft();
     } });
   };
@@ -508,8 +567,8 @@
         return '<div class="card flat card-b mb" style="padding:14px"><div class="grid g3 keep" style="gap:10px"><input type="text" placeholder="Role" data-in="exp" data-i="' + i + '" data-k="role" value="' + esc(x.role) + '"><input type="text" placeholder="Business or school" data-in="exp" data-i="' + i + '" data-k="org" value="' + esc(x.org) + '"><input type="text" placeholder="Years, e.g. 1.5" data-in="exp" data-i="' + i + '" data-k="years" value="' + esc(x.years) + '"></div><button type="button" class="btn ghost sm mt" data-act="exprm" data-i="' + i + '">' + ic('trash', 15) + 'Remove</button></div>';
       }).join('');
       const file = d.resume_path
-        ? '<div class="row wrap card flat" style="padding:10px 14px">' + ic('file') + '<span class="grow small">' + esc(d.resume_name || d.resume_path.split('/').pop()) + '</span><button type="button" class="btn sm" data-act="updateallinfo">' + ic('sparkle', 14) + 'Update All Info</button><button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="resumes" data-path="' + esc(d.resume_path) + '" data-title="Your résumé">Preview</button>' + JM.uploadBtn({ in: 'resume', accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,.webp', label: 'Replace', size: 'sm', preview: 'Preview new résumé' }) + '<button type="button" class="btn ghost sm" data-act="resumerm">Remove</button></div>'
-        : JM.uploadBtn({ in: 'resume', accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,.webp', label: 'Upload résumé', hint: 'PDF, DOCX, JPG, PNG or WEBP · max 5 MB · extracts education, skills, experience & summary', preview: 'Preview résumé before uploading' });
+        ? '<div class="row wrap card flat" style="padding:10px 14px">' + ic('file') + '<span class="grow small">' + esc(d.resume_name || d.resume_path.split('/').pop()) + '</span><button type="button" class="btn sm" data-act="updateallinfo">' + ic('sparkle', 14) + 'Update All Info</button><button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="resumes" data-path="' + esc(d.resume_path) + '" data-title="Your résumé">Preview</button>' + JM.uploadBtn({ in: 'resume', target: 'resume', label: 'Replace', size: 'sm', preview: 'Preview new résumé' }) + '<button type="button" class="btn ghost sm" data-act="resumerm">Remove</button></div>'
+        : JM.uploadBtn({ in: 'resume', target: 'resume', label: 'Upload résumé', hint: 'PDF, DOCX, JPG or PNG · max 5 MB · extracts education, skills, experience & summary', preview: 'Preview résumé before uploading' });
       const staleBar = JM._summaryStale
         ? '<div class="notice warn mb" style="margin-bottom:8px">' + ic('sparkle') + '<div class="grow small">Your profile details changed since you edited your summary.</div><button type="button" class="btn secondary sm" data-act="autosummary">Regenerate</button></div>'
         : '';
@@ -521,23 +580,22 @@
         '<div class="label">Experience (work, OJT, volunteer or school projects)</div>' + exp + '<button type="button" class="btn secondary sm mb" data-act="expadd">' + ic('plus', 16) + 'Add experience</button>';
     },
     photos: function (d) {
-      const IMG = 'image/jpeg,image/png,image/webp';
       const avBox = '<div class="field" style="margin-bottom:0"><label class="label">Profile picture</label>' +
         ((d.avatar_path || d._avatarBlob)
           ? '<div class="row card flat" style="padding:12px">' +
-            JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, shape: 'circle', size: 68, name: d.full_name, alt: 'Profile picture', act: d.avatar_path ? 'mediaview' : '', title: 'Profile picture' }) +
-            '<div class="grow row wrap gap-s">' + (d.avatar_path ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') +
-            JM.uploadBtn({ in: 'media', kind: 'avatar', shape: 'circle', accept: IMG, label: 'Replace', size: 'sm', preview: 'Crop profile picture' }) +
+            JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, uploading: !!d._avatarUploading, shape: 'circle', size: 68, name: d.full_name, alt: 'Profile picture', act: (d.avatar_path && !d._avatarUploading) ? 'mediaview' : '', title: 'Profile picture' }) +
+            '<div class="grow row wrap gap-s">' + (d.avatar_path && !d._avatarUploading ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') +
+            JM.uploadBtn({ in: 'media', kind: 'avatar', target: 'avatar', label: 'Replace', size: 'sm', preview: 'Crop profile picture' }) +
             '<button type="button" class="btn ghost sm danger" data-act="mediarm" data-kind="avatar">Remove</button></div></div>'
-          : JM.uploadBtn({ in: 'media', kind: 'avatar', shape: 'circle', accept: IMG, label: 'Upload profile picture', hint: 'JPG, PNG or WEBP · square/circle crop · max 5 MB', preview: 'Crop profile picture' })) + '</div>';
+          : JM.uploadBtn({ in: 'media', kind: 'avatar', target: 'avatar', label: 'Upload profile picture', hint: 'JPG, PNG or WEBP · square/circle crop · max 5 MB', preview: 'Crop profile picture' })) + '</div>';
       const phBox = '<div class="field" style="margin-bottom:0"><label class="label">Professional photo (3:4 portrait)</label>' +
         ((d.photo_path || d._photoBlob)
           ? '<div class="row card flat" style="padding:12px">' +
-            JM.img({ bucket: 'seeker-media', path: d.photo_path, directUrl: d._photoBlob, shape: 'portrait', name: d.full_name, alt: 'Professional photo', act: d.photo_path ? 'mediaview' : '', title: 'Professional photo' }) +
-            '<div class="grow row wrap gap-s">' + (d.photo_path ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.photo_path) + '" data-title="Professional photo">' + ic('eye', 14) + 'Preview</button>' : '') +
-            JM.uploadBtn({ in: 'media', kind: 'photo', shape: 'contain', accept: IMG, label: 'Replace', size: 'sm', preview: 'Preview professional photo' }) +
+            JM.img({ bucket: 'seeker-media', path: d.photo_path, directUrl: d._photoBlob, uploading: !!d._photoUploading, shape: 'portrait', name: d.full_name, alt: 'Professional photo', act: (d.photo_path && !d._photoUploading) ? 'mediaview' : '', title: 'Professional photo' }) +
+            '<div class="grow row wrap gap-s">' + (d.photo_path && !d._photoUploading ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.photo_path) + '" data-title="Professional photo">' + ic('eye', 14) + 'Preview</button>' : '') +
+            JM.uploadBtn({ in: 'media', kind: 'photo', target: 'photo', label: 'Replace', size: 'sm', preview: 'Crop professional photo (3:4)' }) +
             '<button type="button" class="btn ghost sm danger" data-act="mediarm" data-kind="photo">Remove</button></div></div>'
-          : JM.uploadBtn({ in: 'media', kind: 'photo', shape: 'contain', accept: IMG, label: 'Upload professional photo', hint: 'JPG, PNG or WEBP · max 5 MB · preview before saving', preview: 'Preview professional photo' })) + '</div>';
+          : JM.uploadBtn({ in: 'media', kind: 'photo', target: 'photo', label: 'Upload professional photo', hint: 'JPG, PNG or WEBP · 3:4 portrait crop · max 5 MB', preview: 'Crop professional photo (3:4)' })) + '</div>';
       return '<div class="grid g2">' + avBox + phBox + '</div>' +
         '<p class="help mt">Photos are never used for match scoring and stay private until an employer shortlists you.</p>';
     },
@@ -554,7 +612,7 @@
       return (certs ? '<div class="list mb">' + certs + '</div>' : '<p class="small muted">No certificates uploaded yet.</p>') +
         '<div class="grid g2 mb" style="gap:10px"><div class="field" style="margin-bottom:0"><label class="label">What is this certificate?</label><input type="text" id="cert-title" maxlength="120" placeholder="e.g. TESDA NC II Barista, First Aid, Diploma"></div>' +
         '<div class="field" style="margin-bottom:0"><label class="label">Details / description (optional)</label><input type="text" id="cert-desc" maxlength="300" placeholder="e.g. Issued by TESDA Laguna · May 2026"></div></div>' +
-        JM.uploadBtn({ in: 'media', kind: 'cert', accept: '.jpg,.jpeg,.png,.webp,.pdf', label: 'Upload certificate or credential', hint: 'JPG, PNG, WEBP or PDF · max 5 MB · preview before saving', preview: 'Preview certificate', pvtitle: true });
+        JM.uploadBtn({ in: 'media', kind: 'cert', target: 'cert', label: 'Upload certificate or credential', hint: 'JPG, PNG, WEBP or PDF · max 5 MB · preview before saving', preview: 'Preview certificate', pvtitle: true });
     },
     goal: function (d) {
       const rp = JM.rolePicker({
@@ -676,9 +734,9 @@
       const s = JM.me.seeker, d = JM.draft, done = ['full_name', 'phone', 'birth_year', 'edu_level', 'resume_summary', 'goal_role'].filter(function (k) { return d[k] || (k === 'goal_role' && d.goal_text); }).length + (Object.keys(d.skills).length >= 3 ? 1 : 0);
       const pct = Math.round(done / 7 * 100);
       const camBadge = '<label class="av-cam" title="Change profile picture" aria-label="Change profile picture">' + ic('camera', 14) +
-        '<input type="file" class="upl-input" accept="image/jpeg,image/png,image/webp" data-in="media" data-kind="avatar" data-shape="circle" data-preview="Crop profile picture"></label>';
+        '<input type="file" class="upl-input" accept="image/jpeg,image/png,image/webp" data-in="media" data-kind="avatar" data-target="avatar" data-shape="avatar" data-preview="Crop profile picture"></label>';
       const heroAv = '<div class="av-hero">' +
-        JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, shape: 'circle', size: 92, name: d.full_name || 'Profile', alt: 'Profile picture', act: d.avatar_path ? 'mediaview' : '', title: 'Profile picture' }) +
+        JM.img({ bucket: 'seeker-media', path: d.avatar_path, directUrl: d._avatarBlob, uploading: !!d._avatarUploading, shape: 'circle', size: 92, name: d.full_name || 'Profile', alt: 'Profile picture', act: (d.avatar_path && !d._avatarUploading) ? 'mediaview' : '', title: 'Profile picture' }) +
         camBadge + '</div>';
       return JM.pageHead('Your profile', 'Keep this accurate. It shapes every match score.', '<span class="badge ' + (s.plan === 'pro' ? 'star' : '') + '">' + (s.plan === 'pro' ? (s.plan_period === 'yearly' ? 'Annual Plan' : 'Monthly Plan') : 'Free Plan') + '</span>') +
         '<div class="card card-b mb"><div class="row wrap" style="gap:18px">' + heroAv + '<div class="grow"><h2 style="font-size:20px">' + esc(d.full_name || 'Your Profile') + '</h2><div class="small muted mt" style="margin-top:4px">' + esc(JM.area(d.area_id)) + ' · ' + esc((d.work_setups || SETUPS).join(' / ')) + '</div><div class="xs muted" style="margin-top:4px">' + (d.avatar_path ? 'Click your photo to preview full size, or tap the camera badge to change.' : 'Tap the camera badge to add a circular profile picture.') + '</div></div>' + (d.avatar_path ? '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(d.avatar_path) + '" data-title="Profile picture">' + ic('eye', 14) + 'Preview</button>' : '') + '</div></div>' +

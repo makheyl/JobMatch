@@ -1416,8 +1416,6 @@ div.brand img {
 .skill{margin-bottom:14px}.skill .row{margin-bottom:5px;font-size:14px}
 .week{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:10px;overflow:hidden}.week>summary{list-style:none;padding:14px 16px;cursor:pointer;font-weight:600;display:flex;gap:10px;align-items:center}.week>summary::-webkit-details-marker{display:none}
 .task{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-top:1px solid var(--line)}.task.done .t{color:var(--muted);text-decoration:line-through}
-.thumb{width:76px;height:76px;border-radius:10px;object-fit:cover;border:1px solid var(--line);background:#F8FAFC;flex:none}
-.thumb-lg{width:100%;max-height:220px;border-radius:10px;object-fit:contain;border:1px solid var(--line);background:#F8FAFC}
 .quick-msgs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid var(--line);background:#FAFBFD}
 .quick-msgs button{font-size:12px;height:auto;padding:5px 10px;line-height:1.3;text-align:left}
 .req{color:var(--bad);font-weight:700;margin-left:2px}
@@ -1450,8 +1448,6 @@ div.brand img {
 .pv-box{display:grid;place-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:repeating-conic-gradient(#F1F5F9 0 25%,#fff 0 50%) 0 0/18px 18px}
 .pv-img{display:block;max-width:100%;max-height:56vh;object-fit:contain;border-radius:10px}
 .pv-file{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#FAFBFD}
-.thumb.clickable{cursor:zoom-in;transition:transform .15s,box-shadow .15s}.thumb.clickable:hover{transform:scale(1.04);box-shadow:0 6px 16px rgba(15,23,42,.14)}
-.thumb.round{border-radius:50%}.thumb.sm{width:44px;height:44px;border-radius:8px}
 .bar i{transition:width .45s cubic-bezier(.22,1,.36,1)}
 .btn{transition:background .14s,border-color .14s,box-shadow .14s,transform .1s}
 .btn:active:not([disabled]){transform:scale(.98)}
@@ -1701,25 +1697,6 @@ a.card:hover,button.card:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);border-c
 .opt:has(input:checked) {
   border-color: var(--brand);
   background: var(--brand-t)
-}
-
-.thumb {
-  width: 76px;
-  height: 76px;
-  border-radius: 10px;
-  object-fit: cover;
-  border: 1px solid var(--line);
-  background: #F8FAFC;
-  flex: none
-}
-
-.thumb-lg {
-  width: 100%;
-  max-height: 220px;
-  border-radius: 10px;
-  object-fit: contain;
-  border: 1px solid var(--line);
-  background: #F8FAFC
 }
 
 .quick-msgs {
@@ -2540,6 +2517,7 @@ input[type=range] {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  image-orientation: from-image;
   opacity: 0;
   transition: opacity .2s ease-out;
   pointer-events: none;
@@ -2552,6 +2530,93 @@ input[type=range] {
 
 .jm-img.loaded .jm-img-ph {
   opacity: 0
+}
+
+.jm-img-contain {
+  display: flex;
+  width: 100%;
+  min-height: 220px;
+  max-height: 70vh;
+  border: 0;
+  border-radius: 10px;
+  background: transparent
+}
+
+.jm-img-contain .jm-img-el {
+  position: relative;
+  inset: auto;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 10px
+}
+
+.jm-img-contain:not(.loaded):not(.jm-img-err) .jm-img-el {
+  position: absolute;
+  width: 1px;
+  height: 1px
+}
+
+.jm-img-contain .jm-img-skel {
+  position: absolute;
+  inset: 0
+}
+
+.jm-img-contain.loaded .jm-img-skel,
+.jm-img-contain.jm-img-err .jm-img-skel {
+  display: none
+}
+
+.jm-img-errbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  text-align: center;
+  width: 100%
+}
+
+.pv-box-full {
+  min-height: 240px
+}
+
+.jm-img-upl {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, .48);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none
+}
+
+.jm-spin {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  animation: jmspin .7s linear infinite
+}
+
+.jm-spin.dark {
+  border-color: rgba(12, 112, 248, .2);
+  border-top-color: var(--brand)
+}
+
+@keyframes jmspin {
+  to {
+    transform: rotate(360deg)
+  }
 }
 
 /* Profile Hero Circular Avatar + Camera Badge (Section 8.5) */
@@ -2571,6 +2636,7 @@ input[type=range] {
   position: absolute;
   right: 0;
   bottom: 0;
+  z-index: 5;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -2587,7 +2653,7 @@ input[type=range] {
   background: var(--brand-d)
 }
 
-/* Crop/Zoom Modal (Section 8.4) */
+/* Unified Canvas Crop/Zoom Modal */
 .pv-crop-wrap {
   display: flex;
   flex-direction: column;
@@ -2609,6 +2675,10 @@ input[type=range] {
   box-shadow: 0 8px 24px rgba(15, 23, 42, .14)
 }
 
+.pv-frame.pv-alpha {
+  background: repeating-conic-gradient(#E2E8F0 0 25%, #fff 0 50%) 0 0 / 16px 16px
+}
+
 .pv-frame:active {
   cursor: grabbing
 }
@@ -2619,19 +2689,32 @@ input[type=range] {
   border-radius: 50%
 }
 
+.pv-portrait {
+  width: 210px;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px
+}
+
 .pv-cover43 {
   width: min(380px, 100%);
   aspect-ratio: 4 / 3;
   border-radius: 14px
 }
 
-.pv-crop-img {
+.pv-canvas {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   pointer-events: none;
-  user-select: none;
-  transform-origin: center
+  user-select: none
+}
+
+.pv-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 250, 252, .8)
 }
 
 /* Discover Card Redesign: 4:3 Listing Photo + Overlapping Logo Circle (Section 3.3) */

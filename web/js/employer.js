@@ -31,17 +31,21 @@
     if (JM.isHeic(file)) throw new Error(JM.HEIC_MSG);
     if (file.size > 5 * 1024 * 1024) throw new Error('File is larger than 5 MB.');
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (['pdf', 'jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) throw new Error('Upload a PDF, JPG, PNG or WEBP file.');
+    if (['pdf', 'jpg', 'jpeg', 'png'].indexOf(ext) < 0) throw new Error('Upload a PDF, JPG or PNG file.');
     const path = JM.me.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
     const r = await JM.sb.storage.from('verification-docs').upload(path, file, { contentType: file.type || undefined });
-    if (r.error) throw r.error; return { path: path, name: file.name };
+    if (r.error) throw r.error;
+    if (ext !== 'pdf') await JM.seedUrl('verification-docs', path);
+    return { path: path, name: file.name };
   }
   JM.docs = {};
   JM.inputs.doc = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return; const k = el.dataset.kind;
-    try { JM.docs[k] = Object.assign({ kind: k }, await uploadDoc(f)); const s = document.getElementById('doc-' + k); if (s) s.innerHTML = ic('check', 15) + esc(f.name); } catch (e) { JM.toast(JM.err(e), 'bad'); el.value = ''; }
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
+    try { JM.docs[k] = Object.assign({ kind: k }, await uploadDoc(f)); const s = document.getElementById('doc-' + k); if (s) s.innerHTML = ic('check', 15) + esc(f.name); } catch (e) { JM.toast(JM.err(e), 'bad'); }
+    finally { if (blobUrl) URL.revokeObjectURL(blobUrl); el.value = ''; }
   };
-  const docPick = function (kind, label) { return '<div class="field"><label class="label">' + label + '</label>' + JM.uploadBtn({ in: 'doc', kind: kind, accept: '.pdf,.jpg,.jpeg,.png,.webp', label: 'Upload ' + label, hint: 'PDF, JPG, PNG or WEBP · max 5 MB · preview before saving', preview: 'Preview: ' + label }) + '<div class="help row gap-s" id="doc-' + kind + '" style="color:var(--ok)"></div></div>'; };
+  const docPick = function (kind, label) { return '<div class="field"><label class="label">' + label + '</label>' + JM.uploadBtn({ in: 'doc', kind: kind, target: 'vdoc', label: 'Upload ' + label, hint: 'PDF, JPG or PNG · max 5 MB · preview before saving', preview: 'Preview: ' + label }) + '<div class="help row gap-s" id="doc-' + kind + '" style="color:var(--ok)"></div></div>'; };
   const nextBill = function (e) {
     if (!e.plan_renews_at) return null;
     const d = new Date(e.plan_renews_at), now = new Date(), cap = new Date(now);
@@ -210,11 +214,11 @@
           '<span class="xs muted">days on-site</span></div>'
         : '';
       const photoPreview = '<div class="jmedia jmedia-form">' +
-        JM.img({ bucket: 'job-photos', path: d.photo_path, directUrl: d._photoBlob, shape: 'cover43', focus: d.photo_focus || '50% 50%', fallback: 'placeholder', name: d.category || d.title || 'Listing preview', icon: 'image', alt: 'Job listing photo preview' }) +
+        JM.img({ bucket: 'job-photos', path: d.photo_path, directUrl: d._photoBlob, uploading: !!d._photoUploading, shape: 'cover43', focus: d.photo_focus || '50% 50%', fallback: 'placeholder', name: d.category || d.title || 'Listing preview', icon: 'image', alt: 'Job listing photo preview' }) +
         '<div class="jlogo">' + JM.img({ bucket: 'company-logos', path: emp.logo_path, shape: 'circle', size: 54, name: emp.name }) + '</div></div>';
       const photoBlock = '<div class="field"><label class="label">Listing photo (shown on Discover cards, 4:3)</label>' +
         '<div class="grid g2" style="align-items:center">' + photoPreview + '<div>' +
-        JM.uploadBtn({ in: 'jobphoto', shape: 'cover43', accept: 'image/jpeg,image/png,image/webp', label: d.photo_path ? 'Replace photo' : 'Upload listing photo', hint: 'JPG, PNG or WEBP · 4:3 crop & optimize · max 5 MB', preview: 'Crop listing photo (4:3)', size: d.photo_path ? 'sm' : '' }) +
+        JM.uploadBtn({ in: 'jobphoto', target: 'jobphoto', label: d.photo_path ? 'Replace photo' : 'Upload listing photo', hint: 'JPG, PNG or WEBP · 4:3 crop & optimize · max 5 MB', preview: 'Crop listing photo (4:3)', size: d.photo_path ? 'sm' : '' }) +
         (d.photo_path ? ' <button type="button" class="btn ghost sm danger" data-act="jobphotorm">Remove</button>' : '') +
         (!emp.logo_path ? '<div class="xs muted mt">Tip: You haven\'t uploaded a company logo yet. <a href="#/employer/company">Add one on Company &amp; team</a> so it appears in the circle badge.</div>' : '<div class="xs muted mt">Preview shows your 4:3 photo with your company logo circle.</div>') +
         '</div></div></div>';
@@ -269,22 +273,41 @@
   JM.actions.jddays = function (el) { JM.jd.onsite_days = Math.max(1, Math.min(5, Number(JM.jd.onsite_days || 3) + Number(el.dataset.d))); JM.drawDraft(); };
   JM.inputs.jobphoto = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
-    if (JM.isHeic(f)) { JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
-    if (f.size > 5 * 1024 * 1024) { JM.toast('Photo must be under 5 MB.', 'bad'); el.value = ''; return; }
-    const ext = (f.name.split('.').pop() || 'webp').toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) { JM.toast('Upload JPG, PNG or WEBP.', 'bad'); el.value = ''; return; }
     const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
-    if (blobUrl) { JM.jd._photoBlob = blobUrl; JM.drawDraft(); }
+    if (JM.isHeic(f)) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('Photo must be under 5 MB.', 'bad'); el.value = ''; return; }
+    const ext = (f.name.split('.').pop() || 'webp').toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('Upload JPG, PNG or WEBP.', 'bad'); el.value = ''; return; }
+    const oldPath = JM.jd.photo_path;
+    JM.jd._photoBlob = blobUrl || null;
+    JM.jd._photoUploading = true;
+    JM.drawDraft();
     const path = JM.me.id + '/job-' + Date.now() + '.' + ext;
     try {
       const r = await JM.sb.storage.from('job-photos').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
-      if (JM.jd.photo_path) JM.sb.storage.from('job-photos').remove([JM.jd.photo_path]);
+      const pubUrl = await JM.seedUrl('job-photos', path);
+      await JM.preloadUrl(pubUrl);
+      if (oldPath && oldPath !== path) {
+        delete JM.urlCache['job-photos/' + oldPath];
+        JM.sb.storage.from('job-photos').remove([oldPath]);
+      }
       JM.jd.photo_path = path;
-      JM.jd.photo_focus = (el._pvExtra && el._pvExtra.focus) || '50% 50%';
+      JM.jd.photo_focus = '50% 50%';
       JM.jd._photoBlob = null;
-      JM.toast('Listing photo uploaded.', 'ok'); JM.drawDraft();
-    } catch (e) { JM.jd._photoBlob = null; JM.drawDraft(); JM.toast(JM.err(e), 'bad'); }
+      JM.jd._photoUploading = false;
+      JM.drawDraft();
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      JM.toast('Listing photo uploaded.', 'ok');
+    } catch (e) {
+      JM.jd._photoBlob = null;
+      JM.jd._photoUploading = false;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      JM.drawDraft();
+      JM.toast(JM.err(e), 'bad');
+    } finally {
+      el.value = '';
+    }
   };
   JM.actions.jobphotorm = function () {
     JM.confirm({ title: 'Remove listing photo?', text: 'The card will show a clean category placeholder instead.', ok: 'Remove', danger: true, onOk: function () {
@@ -683,13 +706,13 @@
       const doc = findDoc(kind);
       return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + label + '</b><div class="xs muted">' + (doc ? esc(doc.file_name) : 'Not uploaded yet') + '</div></div>' +
         (doc ? JM.badge('Uploaded', 'ok') + '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="verification-docs" data-path="' + esc(doc.file_path) + '" data-title="' + esc(label) + '">View</button>' : JM.badge('Missing', 'warn')) +
-        JM.uploadBtn({ in: 'compdoc', kind: kind, accept: '.pdf,.jpg,.jpeg,.png,.webp', label: doc ? 'Replace' : 'Upload', size: 'sm', preview: 'Preview: ' + label }) + '</div>';
+        JM.uploadBtn({ in: 'compdoc', kind: kind, target: 'vdoc', label: doc ? 'Replace' : 'Upload', size: 'sm', preview: 'Preview: ' + label }) + '</div>';
     };
     const bizTa = JM.typeahead({ id: 'comp-biz-ta', name: 'type', value: e.type || '', label: e.type || '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type…', source: BIZ_ITEMS });
     const areaTa = JM.typeahead({ id: 'comp-area-ta', name: 'area_id', value: e.area_id, label: JM.area(e.area_id), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [] });
     return '<div class="page narrow">' + JM.pageHead('Company and team') +
       '<div class="card mb"><div class="card-h"><h3 class="grow">Business profile</h3>' + (e.verification_status === 'verified' ? JM.badge('Verified', 'ok') : JM.badge(e.verification_status === 'pending' ? 'Pending review' : 'Not approved', e.verification_status === 'pending' ? 'warn' : 'bad')) + '</div><div class="card-b">' +
-      '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)">' + JM.img({ bucket: 'company-logos', path: e.logo_path, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: e.logo_path ? 'imgview' : '', title: 'Company logo' }) + '<div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP · square/circle crop · max 5 MB. Shown on your Discover cards and profile.</div></div>' + JM.uploadBtn({ in: 'emplogo', shape: 'circle', accept: 'image/jpeg,image/png,image/webp', label: e.logo_path ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Crop company logo' }) + '</div>' +
+      '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)"><span id="emp-logo-slot">' + JM.img({ bucket: 'company-logos', path: e.logo_path, directUrl: JM._logoBlob, uploading: !!JM._logoUploading, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: (e.logo_path && !JM._logoUploading) ? 'imgview' : '', title: 'Company logo' }) + '</span><div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP · square/circle crop · max 5 MB. Shown on your Discover cards and profile.</div></div>' + JM.uploadBtn({ in: 'emplogo', target: 'logo', label: e.logo_path ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Crop company logo' }) + '</div>' +
       '<form data-form="company"><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" value="' + esc(e.name) + '" required></div><div class="field"><label class="label">Type</label>' + bizTa + '</div>' +
       '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Address</label><input type="text" name="address" value="' + esc(e.address) + '"></div>' +
       '<div class="field"><label class="label">Contact person</label><input type="text" name="contact_name" value="' + esc(e.contact_name) + '"></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="contact_phone" value="' + esc(e.contact_phone) + '"></div></div>' +
@@ -710,29 +733,69 @@
       JM.toast(el.checked ? 'Auto-renew on. Your plan renews monthly.' : 'Auto-renew off. Your plan stays active until the next billing date.');
     } catch (e) { el.checked = !el.checked; JM.toast(JM.err(e), 'bad'); }
   };
+  function refreshEmpLogoSlot() {
+    const slot = document.getElementById('emp-logo-slot');
+    if (!slot || !JM.me || !JM.me.employer) return;
+    const e = JM.me.employer;
+    slot.innerHTML = JM.img({ bucket: 'company-logos', path: e.logo_path, directUrl: JM._logoBlob, uploading: !!JM._logoUploading, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: (e.logo_path && !JM._logoUploading) ? 'imgview' : '', title: 'Company logo' });
+    JM.hydrateImages(slot);
+  }
   JM.inputs.emplogo = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
-    if (JM.isHeic(f)) { JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
-    if (f.size > 5 * 1024 * 1024) { JM.toast('Logo must be under 5 MB.', 'bad'); el.value = ''; return; }
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
+    if (JM.isHeic(f)) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('Logo must be under 5 MB.', 'bad'); el.value = ''; return; }
     const ext = (f.name.split('.').pop() || 'webp').toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) { JM.toast('Upload JPG, PNG or WEBP.', 'bad'); el.value = ''; return; }
+    if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('Upload JPG, PNG or WEBP.', 'bad'); el.value = ''; return; }
     const oldPath = JM.me.employer && JM.me.employer.logo_path;
+    JM._logoBlob = blobUrl || null;
+    JM._logoUploading = true;
+    JM._shellAvatarBlob = blobUrl || null;
+    JM._shellAvatarUploading = true;
+    refreshEmpLogoSlot();
+    JM.refreshShellAvatar();
     const path = JM.me.id + '/logo-' + Date.now() + '.' + ext;
     try {
       const r = await JM.sb.storage.from('company-logos').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
       await JM.q(JM.sb.from('employers').update({ logo_path: path }).eq('user_id', JM.me.id));
-      if (oldPath && oldPath !== path) JM.sb.storage.from('company-logos').remove([oldPath]);
-      await JM.loadMe(); JM.refreshShellAvatar(); JM.toast('Company logo updated.', 'ok'); JM.render();
-    } catch (e) { JM.toast(JM.err(e), 'bad'); }
+      if (oldPath && oldPath !== path) {
+        delete JM.urlCache['company-logos/' + oldPath];
+        JM.sb.storage.from('company-logos').remove([oldPath]);
+      }
+      const pubUrl = await JM.seedUrl('company-logos', path);
+      await JM.preloadUrl(pubUrl);
+      await JM.loadMe();
+      JM._logoBlob = null;
+      JM._logoUploading = false;
+      JM._shellAvatarBlob = null;
+      JM._shellAvatarUploading = false;
+      refreshEmpLogoSlot();
+      JM.refreshShellAvatar();
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      JM.toast('Company logo updated.', 'ok');
+    } catch (e) {
+      JM._logoBlob = null;
+      JM._logoUploading = false;
+      JM._shellAvatarBlob = null;
+      JM._shellAvatarUploading = false;
+      refreshEmpLogoSlot();
+      JM.refreshShellAvatar();
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      JM.toast(JM.err(e), 'bad');
+    } finally {
+      el.value = '';
+    }
   };
   JM.inputs.compdoc = async function (el) {
     const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
     try {
       const up = await uploadDoc(f);
       await JM.rpc('employer_upsert_doc', { p_kind: el.dataset.kind, p_path: up.path, p_name: up.name });
       JM.toast(el.dataset.kind + ' uploaded.', 'ok'); JM.render();
-    } catch (e) { JM.toast(JM.err(e), 'bad'); el.value = ''; }
+    } catch (e) { JM.toast(JM.err(e), 'bad'); }
+    finally { if (blobUrl) URL.revokeObjectURL(blobUrl); el.value = ''; }
   };
   JM.forms.company = async function (form, d) {
     await JM.q(JM.sb.from('employers').update({ name: d.name.trim(), type: d.type, area_id: d.area_id, address: d.address.trim(), contact_name: d.contact_name.trim(), contact_phone: d.contact_phone.trim(), contact_email: d.contact_email.trim(), about: d.about.trim() }).eq('user_id', JM.me.id));

@@ -118,16 +118,43 @@
       (long ? '<button type="button" class="btn ghost sm sum-toggle" data-act="sumtoggle" style="padding:0 4px;height:26px">Read more</button>' : '') + '</div>';
   };
 
-  // ---------- clean image helper + URL cache (Section 8.3) ----------
+  // ---------- clean image helper, target configs & automatic hydration ----------
   const PUB_BUCKETS = { 'company-logos': 1, 'job-photos': 1 };
+  const MIME_EXT = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' };
+  JM.IMG_TARGETS = {
+    avatar:   { bucket: 'seeker-media',      pub: false, shape: 'circle',   ratio: 1,     w: 512,  h: 512,  maxSide: 512,  alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
+    photo:    { bucket: 'seeker-media',      pub: false, shape: 'portrait', ratio: 3 / 4, w: 900,  h: 1200, maxSide: 1200, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
+    cert:     { bucket: 'seeker-media',      pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: '.jpg,.jpeg,.png,.webp,.pdf' },
+    resume:   { bucket: 'resumes',           pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'],               accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    logo:     { bucket: 'company-logos',     pub: true,  shape: 'circle',   ratio: 1,     w: 512,  h: 512,  maxSide: 512,  alpha: true,  formats: ['image/webp', 'image/png'],  accept: 'image/jpeg,image/png,image/webp' },
+    jobphoto: { bucket: 'job-photos',        pub: true,  shape: 'cover43',  ratio: 4 / 3, w: 1600, h: 1200, maxSide: 1600, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
+    vdoc:     { bucket: 'verification-docs', pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'],               accept: '.pdf,.jpg,.jpeg,.png' }
+  };
   JM.urlCache = {};
-  JM.publicUrl = function (bucket, path) {
+  JM.publicUrl = function (bucket, path, bust) {
     if (!bucket || !path) return '';
     const k = bucket + '/' + path;
-    if (JM.urlCache[k]) return JM.urlCache[k].url;
-    const u = JM.sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+    if (!bust && JM.urlCache[k]) return JM.urlCache[k].url;
+    const base = JM.sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+    const u = bust ? base + (base.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now() : base;
     JM.urlCache[k] = { url: u, exp: Infinity };
     return u;
+  };
+  JM.seedUrl = async function (bucket, path) {
+    if (!bucket || !path) return '';
+    if (PUB_BUCKETS[bucket]) return JM.publicUrl(bucket, path, true);
+    return await JM.getUrl(bucket, path, true);
+  };
+  JM.preloadUrl = function (url) {
+    return new Promise(function (resolve) {
+      if (!url) return resolve(false);
+      const im = new Image();
+      const done = function (ok) { im.onload = im.onerror = null; resolve(ok); };
+      im.onload = function () { done(true); };
+      im.onerror = function () { done(false); };
+      im.src = url;
+      setTimeout(function () { done(false); }, 8000);
+    });
   };
   JM.getUrl = async function (bucket, path, force) {
     if (!bucket || !path) return '';
@@ -135,27 +162,38 @@
     const cached = JM.urlCache[k];
     if (!force && cached && cached.exp > Date.now()) return cached.url;
     if (PUB_BUCKETS[bucket]) {
-      const u = JM.sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
-      const finalUrl = force ? u + (u.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now() : u;
+      const base = JM.sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+      const finalUrl = force ? base + (base.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now() : base;
       JM.urlCache[k] = { url: finalUrl, exp: Infinity };
       return finalUrl;
     }
-    const r = await JM.sb.storage.from(bucket).createSignedUrl(path, 3600);
-    if (r.error || !r.data || !r.data.signedUrl) return '';
-    JM.urlCache[k] = { url: r.data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
-    return r.data.signedUrl;
+    try {
+      const r = await JM.sb.storage.from(bucket).createSignedUrl(path, 3600);
+      if (r.error || !r.data || !r.data.signedUrl) {
+        console.warn('[img]', bucket, path, (r.error && r.error.message) || 'sign failed');
+        return '';
+      }
+      JM.urlCache[k] = { url: r.data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+      return r.data.signedUrl;
+    } catch (e) {
+      console.warn('[img]', bucket, path, (e && e.message) || 'sign error');
+      return '';
+    }
   };
   JM.img = function (o) {
     o = o || {};
-    const shape = o.shape || 'rounded'; // circle | rounded | cover43 | portrait
+    const shape = o.shape || 'rounded'; // circle | rounded | cover43 | portrait | contain
     const size = o.size ? Number(o.size) : null;
     const sizeStyle = size ? 'width:' + size + 'px;height:' + size + 'px;' : '';
     const focusStyle = o.focus ? 'object-position:' + JM.esc(o.focus) + ';' : '';
-    const ph = o.fallback === 'icon'
-      ? '<span class="jm-img-ph">' + ic(o.icon || 'image', size ? Math.round(size * 0.44) : 24) + '</span>'
-      : o.fallback === 'placeholder'
-        ? '<span class="jm-img-ph jm-img-coverph">' + ic(o.icon || 'briefcase', 30) + (o.name ? '<small>' + JM.esc(o.name) + '</small>' : '') + '</span>'
-        : '<span class="jm-img-ph">' + JM.esc(JM.initials(o.name || o.alt || '?')) + '</span>';
+    const isModal = !!o.modal;
+    const ph = isModal
+      ? '<span class="jm-img-ph jm-img-skel"><span class="skel" style="width:100%;height:100%;min-height:220px;border-radius:10px"></span></span>'
+      : o.fallback === 'icon'
+        ? '<span class="jm-img-ph">' + ic(o.icon || 'image', size ? Math.round(size * 0.44) : 24) + '</span>'
+        : o.fallback === 'placeholder'
+          ? '<span class="jm-img-ph jm-img-coverph">' + ic(o.icon || 'briefcase', 30) + (o.name ? '<small>' + JM.esc(o.name) + '</small>' : '') + '</span>'
+          : '<span class="jm-img-ph">' + JM.esc(JM.initials(o.name || o.alt || '?')) + '</span>';
     const hasMedia = !!(o.directUrl || (o.bucket && o.path));
     let immediateSrc = o.directUrl || '';
     if (!immediateSrc && o.bucket && o.path) {
@@ -164,43 +202,119 @@
       else if (JM.urlCache[k] && JM.urlCache[k].exp > Date.now()) immediateSrc = JM.urlCache[k].url;
     }
     const actAttrs = o.act ? ' data-act="' + JM.esc(o.act) + '" data-bucket="' + JM.esc(o.bucket || '') + '" data-path="' + JM.esc(o.path || '') + '" data-title="' + JM.esc(o.title || o.alt || 'Preview') + '"' + (o.desc ? ' data-desc="' + JM.esc(o.desc) + '"' : '') + (o.directUrl ? ' data-src="' + JM.esc(o.directUrl) + '"' : '') + ' role="button" tabindex="0"' : '';
-    const dataAttrs = hasMedia ? ' data-jm-bucket="' + JM.esc(o.bucket || '') + '" data-jm-path="' + JM.esc(o.path || '') + '"' + (o.directUrl ? ' data-jm-direct="' + JM.esc(o.directUrl) + '"' : '') : '';
+    const dataAttrs = (hasMedia ? ' data-jm-bucket="' + JM.esc(o.bucket || '') + '" data-jm-path="' + JM.esc(o.path || '') + '"' + (o.directUrl ? ' data-jm-direct="' + JM.esc(o.directUrl) + '"' : '') : '') +
+      (isModal ? ' data-jm-modal="1"' : '');
     const imgTag = hasMedia
-      ? '<img class="jm-img-el"' + (immediateSrc ? ' src="' + JM.esc(immediateSrc) + '"' : '') + ' alt="' + JM.esc(o.alt || o.name || '') + '" loading="lazy" decoding="async" draggable="false" style="' + focusStyle + '">'
+      ? '<img class="jm-img-el"' + (immediateSrc ? ' src="' + JM.esc(immediateSrc) + '"' : '') + ' alt="' + JM.esc(o.alt || o.name || '') + '"' + (isModal ? '' : ' loading="lazy"') + ' decoding="async" draggable="false" style="' + focusStyle + '">'
       : '';
-    return '<span class="jm-img jm-img-' + shape + (o.act ? ' clickable' : '') + (o.cls ? ' ' + o.cls : '') + '" style="' + sizeStyle + (o.style || '') + '"' + dataAttrs + actAttrs + '>' + ph + imgTag + (o.extra || '') + '</span>';
+    const uplTag = o.uploading
+      ? '<span class="jm-img-upl" aria-label="Uploading"><span class="jm-spin"></span>' + (!size || size >= 60 ? '<small>Uploading…</small>' : '') + '</span>'
+      : '';
+    const errTag = isModal
+      ? '<div class="jm-img-errbox hide"><p class="small muted" style="margin:0 0 10px">Couldn\'t load this image.</p><button type="button" class="btn secondary sm" data-act="imgretry" data-bucket="' + JM.esc(o.bucket || '') + '" data-path="' + JM.esc(o.path || '') + '" data-src="' + JM.esc(o.directUrl || '') + '">Retry</button></div>'
+      : '';
+    return '<span class="jm-img jm-img-' + shape + (o.act ? ' clickable' : '') + (o.uploading ? ' is-uploading' : '') + (o.cls ? ' ' + o.cls : '') + '" style="' + sizeStyle + (o.style || '') + '"' + dataAttrs + actAttrs + '>' + ph + imgTag + uplTag + errTag + (o.extra || '') + '</span>';
   };
+
+  function markImgFailed(wrap, img, bucket, path, reason) {
+    console.warn('[img]', bucket || 'direct', path || (img && img.getAttribute('src')) || '', reason || 'load failed');
+    if (wrap) {
+      wrap.classList.remove('loaded');
+      wrap.classList.add('jm-img-err');
+      if (wrap._jmTimer) { clearTimeout(wrap._jmTimer); wrap._jmTimer = null; }
+      const errBox = wrap.querySelector('.jm-img-errbox');
+      if (errBox) errBox.classList.remove('hide');
+    }
+    if (img) img.removeAttribute('src');
+  }
+
+  function startImgTimer(wrap, bucket, path) {
+    if (!wrap || wrap._jmTimer || wrap.classList.contains('loaded')) return;
+    wrap._jmTimer = setTimeout(function () {
+      wrap._jmTimer = null;
+      if (!wrap.isConnected || wrap.classList.contains('loaded')) return;
+      wrap.classList.remove('loaded');
+      console.warn('[img]', bucket || 'direct', path || '', 'timed out after 10s');
+      if (wrap.dataset.jmModal === '1') {
+        wrap.classList.add('jm-img-err');
+        const errBox = wrap.querySelector('.jm-img-errbox');
+        if (errBox) errBox.classList.remove('hide');
+      }
+    }, 10000);
+  }
+
+  // Capture-phase load/error handlers cover every img.jm-img-el automatically (CSP-safe)
+  document.addEventListener('load', function (e) {
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.classList.contains('jm-img-el')) return;
+    const wrap = img.closest('.jm-img');
+    if (!wrap) return;
+    wrap.classList.add('loaded');
+    wrap.classList.remove('jm-img-err');
+    if (wrap._jmTimer) { clearTimeout(wrap._jmTimer); wrap._jmTimer = null; }
+    const errBox = wrap.querySelector('.jm-img-errbox');
+    if (errBox) errBox.classList.add('hide');
+  }, true);
+
+  document.addEventListener('error', async function (e) {
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.classList.contains('jm-img-el')) return;
+    const wrap = img.closest('.jm-img');
+    if (!wrap) return;
+    const bucket = wrap.dataset.jmBucket || '', path = wrap.dataset.jmPath || '';
+    if (!img.dataset.retried && bucket && path) {
+      img.dataset.retried = '1';
+      try {
+        const fresh = await JM.getUrl(bucket, path, true);
+        if (fresh && fresh !== img.getAttribute('src')) {
+          img.src = fresh;
+          startImgTimer(wrap, bucket, path);
+          return;
+        }
+      } catch (err) { /* fall through */ }
+    }
+    markImgFailed(wrap, img, bucket, path, 'image error');
+  }, true);
+
   JM.hydrateImages = async function (root) {
     const scope = root || document;
-    const wraps = Array.from(scope.querySelectorAll('.jm-img[data-jm-bucket], .jm-img[data-jm-direct]'));
+    const wraps = [];
+    if (scope.matches && scope.matches('.jm-img[data-jm-bucket], .jm-img[data-jm-direct]')) wraps.push(scope);
+    if (scope.querySelectorAll) {
+      scope.querySelectorAll('.jm-img[data-jm-bucket], .jm-img[data-jm-direct]').forEach(function (w) { wraps.push(w); });
+    }
     if (!wraps.length) return;
     const needByBucket = {};
-    const bindImg = function (wrap, img, bucket, path, url) {
+    const attach = function (wrap, img, bucket, path, url) {
       if (!img || !url) return;
-      img.onload = function () { wrap.classList.add('loaded'); };
-      img.onerror = async function () {
-        if (!img.dataset.retried && bucket && path) {
-          img.dataset.retried = '1';
-          try {
-            const fresh = await JM.getUrl(bucket, path, true);
-            if (fresh) { img.src = fresh; return; }
-          } catch (e) { /* keep fallback */ }
+      wrap.dataset.jmBound = '1';
+      if (img.getAttribute('src') !== url) {
+        img.src = url;
+        startImgTimer(wrap, bucket, path);
+      } else if (img.complete) {
+        if (img.naturalWidth > 0) {
+          wrap.classList.add('loaded');
+          wrap.classList.remove('jm-img-err');
+        } else {
+          markImgFailed(wrap, img, bucket, path, 'naturalWidth=0');
         }
-        wrap.classList.remove('loaded');
-        img.remove();
-      };
-      if (img.getAttribute('src') !== url) img.src = url;
-      else if (img.complete && img.naturalWidth > 0) wrap.classList.add('loaded');
+      } else {
+        startImgTimer(wrap, bucket, path);
+      }
     };
     wraps.forEach(function (w) {
       const img = w.querySelector('img.jm-img-el');
       if (!img) return;
-      if (w.dataset.jmDirect) { bindImg(w, img, '', '', w.dataset.jmDirect); return; }
+      if (w.classList.contains('loaded') && img.complete && img.naturalWidth > 0) return;
+      if (w.dataset.jmDirect) { attach(w, img, '', '', w.dataset.jmDirect); return; }
       const b = w.dataset.jmBucket, p = w.dataset.jmPath;
       if (!b || !p) return;
-      if (PUB_BUCKETS[b]) { bindImg(w, img, b, p, JM.publicUrl(b, p)); return; }
+      if (PUB_BUCKETS[b]) { attach(w, img, b, p, JM.publicUrl(b, p)); return; }
       const cached = JM.urlCache[b + '/' + p];
-      if (cached && cached.exp > Date.now()) { bindImg(w, img, b, p, cached.url); return; }
+      if (cached && cached.exp > Date.now()) { attach(w, img, b, p, cached.url); return; }
+      if (w.dataset.jmSigning === '1') return;
+      w.dataset.jmSigning = '1';
+      startImgTimer(w, b, p);
       needByBucket[b] = needByBucket[b] || {};
       needByBucket[b][p] = needByBucket[b][p] || [];
       needByBucket[b][p].push({ w: w, img: img });
@@ -211,15 +325,84 @@
       if (!paths.length) return;
       try {
         const res = await JM.sb.storage.from(b).createSignedUrls(paths, 3600);
+        if (res.error) {
+          paths.forEach(function (p) {
+            (needByBucket[b][p] || []).forEach(function (it) {
+              delete it.w.dataset.jmSigning;
+              markImgFailed(it.w, it.img, b, p, res.error.message || 'createSignedUrls failed');
+            });
+          });
+          return;
+        }
         const exp = Date.now() + 50 * 60 * 1000;
+        const seen = {};
         (res.data || []).forEach(function (row) {
-          if (!row.path || !row.signedUrl) return;
+          if (!row || !row.path) return;
+          seen[row.path] = true;
+          const list = needByBucket[b][row.path] || [];
+          if (row.error || !row.signedUrl) {
+            list.forEach(function (it) {
+              delete it.w.dataset.jmSigning;
+              markImgFailed(it.w, it.img, b, row.path, row.error || 'missing signedUrl');
+            });
+            return;
+          }
           JM.urlCache[b + '/' + row.path] = { url: row.signedUrl, exp: exp };
-          (needByBucket[b][row.path] || []).forEach(function (item) { bindImg(item.w, item.img, b, row.path, row.signedUrl); });
+          list.forEach(function (it) {
+            delete it.w.dataset.jmSigning;
+            if (it.w.isConnected) attach(it.w, it.img, b, row.path, row.signedUrl);
+          });
         });
-      } catch (e) { /* placeholders stay visible */ }
+        paths.forEach(function (p) {
+          if (seen[p]) return;
+          (needByBucket[b][p] || []).forEach(function (it) {
+            delete it.w.dataset.jmSigning;
+            markImgFailed(it.w, it.img, b, p, 'object not found');
+          });
+        });
+      } catch (e) {
+        paths.forEach(function (p) {
+          (needByBucket[b][p] || []).forEach(function (it) {
+            delete it.w.dataset.jmSigning;
+            markImgFailed(it.w, it.img, b, p, (e && e.message) || 'sign exception');
+          });
+        });
+      }
     }));
   };
+
+  // Automatic MutationObserver on #app and #overlay-root (debounced to 1 call per frame)
+  (function initImgObserver() {
+    let scheduled = false;
+    const pendingRoots = new Set();
+    const flush = function () {
+      scheduled = false;
+      const list = Array.from(pendingRoots);
+      pendingRoots.clear();
+      list.forEach(function (n) { if (n && n.isConnected) JM.hydrateImages(n); });
+    };
+    const schedule = function (node) {
+      if (!node || node.nodeType !== 1) return;
+      if (!(node.matches && node.matches('.jm-img[data-jm-bucket], .jm-img[data-jm-direct]')) && !(node.querySelector && node.querySelector('.jm-img[data-jm-bucket], .jm-img[data-jm-direct]'))) return;
+      pendingRoots.add(node);
+      if (!scheduled) { scheduled = true; requestAnimationFrame(flush); }
+    };
+    const attachObs = function () {
+      if (typeof MutationObserver === 'undefined') return;
+      const obs = new MutationObserver(function (muts) {
+        for (let i = 0; i < muts.length; i++) {
+          const added = muts[i].addedNodes;
+          for (let j = 0; j < added.length; j++) schedule(added[j]);
+        }
+      });
+      ['app', 'overlay-root'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) obs.observe(el, { childList: true, subtree: true });
+      });
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachObs);
+    else attachObs();
+  })();
 
   // ---------- overlays ----------
   JM.toast = function (msg, type) {
@@ -237,7 +420,16 @@
     root.innerHTML = '<div class="ov" data-ov="1" style="align-items:stretch;justify-content:flex-end"><aside class="drawer" role="dialog" aria-modal="true">' + html + '</aside></div>'; root.classList.add('open');
     JM.mountTypeaheads(root); JM.hydrateImages(root);
   };
-  JM.close = function () { const r = document.getElementById('overlay-root'); r.classList.remove('open'); r.innerHTML = ''; };
+  JM.close = function () {
+    const pv = JM._pv;
+    if (pv) {
+      JM._pv = null;
+      if (pv.raf) cancelAnimationFrame(pv.raf);
+      if (pv.srcUrl) URL.revokeObjectURL(pv.srcUrl);
+      if (pv.o && pv.o.onCancel) { try { pv.o.onCancel(); } catch (e) {} }
+    }
+    const r = document.getElementById('overlay-root'); r.classList.remove('open'); r.innerHTML = '';
+  };
   JM.confirm = function (o) {
     JM._ok = o.onOk;
     JM.modal('<h2>' + JM.esc(o.title) + '</h2><p class="muted mt">' + JM.esc(o.text || '') + '</p><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Cancel</button><button class="btn ' + (o.danger ? 'danger' : '') + '" data-act="okconfirm">' + JM.esc(o.ok || 'Confirm') + '</button></div>');
@@ -683,13 +875,16 @@
   };
   JM.shellAvatar = function (size) {
     const me = JM.me; if (!me) return '';
+    const nm = me.role === 'employer' && me.employer ? me.employer.name : me.full_name;
+    if (JM._shellAvatarBlob) {
+      return JM.img({ directUrl: JM._shellAvatarBlob, uploading: !!JM._shellAvatarUploading, shape: 'circle', size: size || 36, name: nm, alt: nm });
+    }
     if (me.role === 'seeker' && me.seeker && me.seeker.avatar_path) {
       return JM.img({ bucket: 'seeker-media', path: me.seeker.avatar_path, shape: 'circle', size: size || 36, name: me.full_name, alt: me.full_name });
     }
     if (me.role === 'employer' && me.employer && me.employer.logo_path) {
       return JM.img({ bucket: 'company-logos', path: me.employer.logo_path, shape: 'circle', size: size || 36, name: me.employer.name, alt: me.employer.name });
     }
-    const nm = me.role === 'employer' && me.employer ? me.employer.name : me.full_name;
     return JM.img({ shape: 'circle', size: size || 36, name: nm, alt: nm });
   };
   JM.shellHtml = function () {
@@ -806,59 +1001,155 @@
     el.textContent = clamped ? 'Read more' : 'Show less';
   };
 
-  // ---------- creative upload buttons + preview/crop/compress (Section 8.4) ----------
+  // ---------- creative upload buttons + unified crop/zoom preview + full-size viewer ----------
   JM.isHeic = function (file) {
     const n = (file && file.name || '').toLowerCase(), t = (file && file.type || '').toLowerCase();
     return /\.heic$|\.heif$/.test(n) || t.indexOf('heic') >= 0 || t.indexOf('heif') >= 0;
   };
   JM.HEIC_MSG = 'Please choose a JPG, PNG or WEBP. On iPhone: Settings → Camera → Formats → Most Compatible.';
   JM.uploadBtn = function (o) {
+    const cfg = o.target && JM.IMG_TARGETS[o.target];
+    const shapeAttr = o.target || o.shape || '';
+    const accept = o.accept != null ? o.accept : (cfg ? cfg.accept : '');
     const attrs = 'data-in="' + JM.esc(o.in) + '"' + (o.kind ? ' data-kind="' + JM.esc(o.kind) + '"' : '') +
+      (o.target ? ' data-target="' + JM.esc(o.target) + '"' : '') +
       (o.preview != null ? ' data-preview="' + JM.esc(o.preview) + '"' : '') +
-      (o.shape ? ' data-shape="' + JM.esc(o.shape) + '"' : '') +
+      (shapeAttr ? ' data-shape="' + JM.esc(shapeAttr) + '"' : '') +
       (o.pvtitle ? ' data-pvtitle="1"' : '');
-    const input = '<input type="file" class="upl-input" accept="' + JM.esc(o.accept || '') + '" ' + attrs + '>';
+    const input = '<input type="file" class="upl-input" accept="' + JM.esc(accept) + '" ' + attrs + '>';
     if (o.size === 'sm') return '<label class="upl-btn">' + ic('upload', 15) + '<span>' + JM.esc(o.label || 'Upload') + '</span>' + input + '</label>';
     return '<label class="upl"><span class="upl-ic">' + ic('upload', 22) + '</span><span class="upl-tx"><b>' + JM.esc(o.label || 'Upload') + '</b><small>' + JM.esc(o.hint || 'Click to browse or drag and drop a file here') + '</small></span><span class="upl-cta">Upload</span>' + input + '</label>';
   };
   JM.fileSize = function (n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; };
 
-  JM.compressCrop = function (imgEl, opts) {
+  // Single source of truth for crop rectangle used by BOTH canvas preview and canvas export
+  JM.cropRect = function (state, naturalW, naturalH, targetRatio) {
+    const nw = Math.max(1, Number(naturalW) || 1);
+    const nh = Math.max(1, Number(naturalH) || 1);
+    const ratio = Number(targetRatio) || (nw / nh);
+    const zoom = Math.max(1, Math.min(4, Number(state && state.zoom) || 1));
+    const srcRatio = nw / nh;
+    let baseW, baseH;
+    if (srcRatio > ratio) {
+      baseH = nh;
+      baseW = nh * ratio;
+    } else {
+      baseW = nw;
+      baseH = nw / ratio;
+    }
+    const sw = Math.min(nw, baseW / zoom);
+    const sh = Math.min(nh, baseH / zoom);
+    const minCx = sw / 2, maxCx = nw - sw / 2;
+    const minCy = sh / 2, maxCy = nh - sh / 2;
+    const rawCx = (state && state.cx != null) ? Number(state.cx) : (nw / 2);
+    const rawCy = (state && state.cy != null) ? Number(state.cy) : (nh / 2);
+    const cx = Math.max(minCx, Math.min(maxCx, rawCx));
+    const cy = Math.max(minCy, Math.min(maxCy, rawCy));
+    if (state) { state.zoom = zoom; state.cx = cx; state.cy = cy; }
+    return {
+      sx: Math.max(0, cx - sw / 2),
+      sy: Math.max(0, cy - sh / 2),
+      sw: sw,
+      sh: sh,
+      cx: cx,
+      cy: cy
+    };
+  };
+
+  function resolveTargetCfg(targetOrShape) {
+    if (targetOrShape && JM.IMG_TARGETS[targetOrShape]) return { key: targetOrShape, cfg: JM.IMG_TARGETS[targetOrShape] };
+    if (targetOrShape === 'circle') return { key: 'avatar', cfg: JM.IMG_TARGETS.avatar };
+    if (targetOrShape === 'portrait') return { key: 'photo', cfg: JM.IMG_TARGETS.photo };
+    if (targetOrShape === 'cover43') return { key: 'jobphoto', cfg: JM.IMG_TARGETS.jobphoto };
+    return { key: 'cert', cfg: JM.IMG_TARGETS.cert };
+  }
+
+  function canvasToBlobP(canvas, mime, quality) {
     return new Promise(function (resolve) {
-      const shape = opts.shape || 'contain';
-      const zoom = Number(opts.zoom || 1);
-      const fx = Number(opts.fx != null ? opts.fx : 50) / 100;
-      const fy = Number(opts.fy != null ? opts.fy : 50) / 100;
-      const nw = imgEl.naturalWidth || 800, nh = imgEl.naturalHeight || 600;
-      let tw, th;
-      if (shape === 'circle') { tw = 512; th = 512; }
-      else if (shape === 'cover43') { tw = Math.min(1600, nw); th = Math.round(tw * 3 / 4); if (tw < 800) { tw = 1200; th = 900; } }
-      else {
-        const scale = Math.min(1, 1600 / Math.max(nw, nh));
-        tw = Math.max(1, Math.round(nw * scale)); th = Math.max(1, Math.round(nh * scale));
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = tw; canvas.height = th;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, tw, th);
-      if (shape === 'circle' || shape === 'cover43') {
-        const targetRatio = tw / th, srcRatio = nw / nh;
-        let sw, sh;
-        if (srcRatio > targetRatio) { sh = nh / zoom; sw = sh * targetRatio; }
-        else { sw = nw / zoom; sh = sw / targetRatio; }
-        const sx = Math.max(0, Math.min(nw - sw, (nw - sw) * fx));
-        const sy = Math.max(0, Math.min(nh - sh, (nh - sh) * fy));
-        ctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, tw, th);
-      } else {
-        ctx.drawImage(imgEl, 0, 0, tw, th);
-      }
-      const mime = 'image/webp';
-      canvas.toBlob(function (blob) {
-        if (blob && blob.type === 'image/webp') return resolve({ blob: blob, ext: 'webp', type: 'image/webp' });
-        canvas.toBlob(function (jb) { resolve({ blob: jb, ext: 'jpg', type: 'image/jpeg' }); }, 'image/jpeg', 0.86);
-      }, mime, 0.85);
+      try {
+        canvas.toBlob(function (b) { resolve(b || null); }, mime, quality);
+      } catch (e) { resolve(null); }
     });
+  }
+
+  JM.compressCrop = async function (imgEl, opts) {
+    opts = opts || {};
+    const resolved = resolveTargetCfg(opts.target || opts.shape);
+    const cfg = resolved.cfg;
+    const nw = imgEl.naturalWidth || 800, nh = imgEl.naturalHeight || 600;
+    let rect, tw, th;
+    if (cfg.ratio) {
+      rect = JM.cropRect(opts.state || { zoom: 1, cx: nw / 2, cy: nh / 2 }, nw, nh, cfg.ratio);
+      tw = cfg.w;
+      th = cfg.h;
+    } else {
+      rect = { sx: 0, sy: 0, sw: nw, sh: nh };
+      const maxSide = cfg.maxSide || 2000;
+      const scale = Math.min(1, maxSide / Math.max(nw, nh));
+      tw = Math.max(1, Math.round(nw * scale));
+      th = Math.max(1, Math.round(nh * scale));
+    }
+
+    const drawToCanvas = function (w, h) {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      if (cfg.alpha) {
+        ctx.clearRect(0, 0, w, h);
+      } else {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(imgEl, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, w, h);
+      return c;
+    };
+
+    const MAX_BYTES = 5 * 1024 * 1024;
+    const formats = cfg.formats && cfg.formats.length ? cfg.formats : ['image/jpeg'];
+    let curW = tw, curH = th;
+    let bestBlob = null, bestMime = formats[formats.length - 1];
+
+    // Pick the first browser-supported format in cfg.formats
+    const testCanvas = drawToCanvas(curW, curH);
+    let chosenMime = null;
+    for (let i = 0; i < formats.length; i++) {
+      const m = formats[i];
+      const probe = await canvasToBlobP(testCanvas, m, m === 'image/png' ? undefined : 0.86);
+      if (probe && probe.type === m) {
+        chosenMime = m;
+        bestBlob = probe;
+        bestMime = m;
+        break;
+      }
+    }
+    if (!chosenMime) {
+      const fallbackMime = cfg.alpha ? 'image/png' : 'image/jpeg';
+      bestBlob = await canvasToBlobP(testCanvas, fallbackMime, fallbackMime === 'image/png' ? undefined : 0.86);
+      bestMime = (bestBlob && bestBlob.type) || fallbackMime;
+    }
+
+    // Step quality 0.86 -> 0.7 if > 5 MB
+    if (bestBlob && bestBlob.size > MAX_BYTES && bestMime !== 'image/png') {
+      const q7 = await canvasToBlobP(testCanvas, bestMime, 0.7);
+      if (q7 && q7.type === bestMime) bestBlob = q7;
+    }
+
+    // Downscale progressively if still > 5 MB
+    let step = 0;
+    while (bestBlob && bestBlob.size > MAX_BYTES && step < 4 && Math.max(curW, curH) > 400) {
+      step++;
+      curW = Math.max(200, Math.round(curW * 0.75));
+      curH = Math.max(200, Math.round(curH * 0.75));
+      const c2 = drawToCanvas(curW, curH);
+      const b2 = await canvasToBlobP(c2, bestMime, bestMime === 'image/png' ? undefined : 0.7);
+      if (b2) bestBlob = b2;
+    }
+
+    const finalType = (bestBlob && bestBlob.type) || bestMime;
+    const ext = MIME_EXT[finalType] || (finalType === 'image/png' ? 'png' : 'jpg');
+    return { blob: bestBlob, ext: ext, type: finalType };
   };
 
   JM.previewFile = function (file, o) {
@@ -867,106 +1158,318 @@
       if (o.onCancel) o.onCancel();
       return;
     }
+    const resolved = resolveTargetCfg(o.target || o.shape);
+    const targetKey = resolved.key, cfg = resolved.cfg;
     const isImg = /^image\//.test(file.type || '') || /\.(jpe?g|png|webp)$/i.test(file.name || '');
-    const url = isImg ? URL.createObjectURL(file) : '';
-    const shape = o.shape || 'contain';
-    const canCrop = isImg && (shape === 'circle' || shape === 'cover43');
+    const srcUrl = isImg ? URL.createObjectURL(file) : '';
+    const canCrop = isImg && !!cfg.ratio;
     const preTitle = (document.getElementById('cert-title') && document.getElementById('cert-title').value.trim()) || file.name.replace(/\.[^.]+$/, '');
     const preDesc = (document.getElementById('cert-desc') && document.getElementById('cert-desc').value.trim()) || '';
-    JM._pv = { o: o, url: url, file: file, shape: shape, zoom: 1, fx: 50, fy: 50 };
+    const pv = JM._pv = {
+      o: o, srcUrl: srcUrl, file: file, isImg: isImg, target: targetKey, cfg: cfg,
+      img: null, ready: !isImg, state: { zoom: 1, cx: 0, cy: 0 }, raf: 0
+    };
+
     const pvVisual = isImg
       ? (canCrop
-          ? '<div class="pv-crop-wrap mt"><div class="pv-frame pv-' + shape + '" id="pv-frame"><img class="pv-crop-img" id="pv-img" src="' + url + '" alt="Selected image preview" draggable="false"></div>' +
-            '<div class="row gap-s mt" style="width:100%;max-width:340px"><span class="xs muted">Zoom</span><input type="range" id="pv-zoom" min="1" max="2.5" step="0.05" value="1"><span class="xs muted" id="pv-zoom-lbl">1.0×</span></div>' +
-            '<div class="xs muted">Drag photo to adjust framing · auto-optimized before upload</div></div>'
-          : '<div class="pv-box mt"><img class="pv-img" id="pv-img" src="' + url + '" alt="Selected image preview"></div>') +
+          ? '<div class="pv-crop-wrap mt"><div class="pv-frame pv-' + cfg.shape + (cfg.alpha ? ' pv-alpha' : '') + '" id="pv-frame">' +
+              '<canvas class="pv-canvas" id="pv-canvas"></canvas>' +
+              '<div class="pv-loading" id="pv-loading"><span class="jm-spin dark"></span></div>' +
+            '</div>' +
+            '<div class="row gap-s mt" style="width:100%;max-width:340px"><span class="xs muted">Zoom</span>' +
+              '<input type="range" id="pv-zoom" min="1" max="4" step="0.05" value="1" disabled>' +
+              '<span class="xs muted" id="pv-zoom-lbl" style="min-width:34px;text-align:right">1.0×</span>' +
+              '<button type="button" class="btn ghost sm" id="pv-reset" disabled style="padding:0 8px;height:28px">Reset</button></div>' +
+            '<div class="xs muted">Drag to move · pinch, scroll or use slider to zoom</div></div>'
+          : '<div class="pv-box mt" id="pv-contain-box"><div class="skel" id="pv-loading" style="width:280px;height:220px;border-radius:10px"></div><img class="pv-img hide" id="pv-img" alt="Selected image preview"></div>') +
+        '<div class="notice bad hide mt" id="pv-err" role="alert"></div>' +
         '<div class="xs muted mt">' + JM.esc(file.name) + ' · ' + JM.fileSize(file.size) + '</div>'
       : '<div class="pv-file mt"><span class="upl-ic">' + ic('file', 22) + '</span><div class="grow"><b>' + JM.esc(file.name) + '</b><div class="xs muted">' + JM.fileSize(file.size) + ' · ' + JM.esc(file.type || 'document') + '</div></div></div>';
+
     JM.modal('<h2>' + JM.esc(o.title || 'Preview before uploading') + '</h2><p class="small muted mt">Check how it looks, then confirm the upload.</p>' +
       pvVisual +
       (o.titleField ? '<div class="field mt"><label class="label">Certificate title</label><input type="text" id="pv-title" maxlength="120" value="' + JM.esc(preTitle) + '" placeholder="e.g. TESDA NC II Barista"></div><div class="field"><label class="label">Details / description (optional)</label><textarea id="pv-desc" rows="2" maxlength="300" placeholder="e.g. Issued by TESDA Laguna · Completed May 2026">' + JM.esc(preDesc) + '</textarea></div>' : '') +
-      '<div class="row mt-l" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="pvcancel">Cancel</button><button type="button" class="btn" data-act="pvconfirm">' + ic('upload', 16) + 'Confirm upload</button></div>', 'wide');
+      '<div class="row mt-l" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="pvcancel">Cancel</button><button type="button" class="btn" id="pv-confirm-btn" data-act="pvconfirm"' + (isImg ? ' disabled' : '') + '>' + ic('upload', 16) + 'Confirm upload</button></div>', 'wide');
 
-    if (canCrop) {
-      const frame = document.getElementById('pv-frame'), img = document.getElementById('pv-img'), zInp = document.getElementById('pv-zoom'), zLbl = document.getElementById('pv-zoom-lbl');
-      const apply = function () {
-        if (!JM._pv || !img) return;
-        img.style.objectPosition = JM._pv.fx + '% ' + JM._pv.fy + '%';
-        img.style.transform = 'scale(' + JM._pv.zoom + ')';
-        if (zLbl) zLbl.textContent = Number(JM._pv.zoom).toFixed(1) + '×';
-      };
-      if (zInp) zInp.addEventListener('input', function () { if (JM._pv) { JM._pv.zoom = Number(zInp.value); apply(); } });
-      let drag = false, sx = 0, sy = 0, sfx = 50, sfy = 50;
-      if (frame) {
-        frame.addEventListener('pointerdown', function (e) { drag = true; sx = e.clientX; sy = e.clientY; sfx = JM._pv.fx; sfy = JM._pv.fy; frame.setPointerCapture(e.pointerId); });
-        frame.addEventListener('pointermove', function (e) {
-          if (!drag || !JM._pv) return;
-          JM._pv.fx = Math.max(0, Math.min(100, Math.round(sfx - (e.clientX - sx) * 0.4)));
-          JM._pv.fy = Math.max(0, Math.min(100, Math.round(sfy - (e.clientY - sy) * 0.4)));
-          apply();
-        });
-        const stop = function () { drag = false; };
-        frame.addEventListener('pointerup', stop); frame.addEventListener('pointercancel', stop);
+    if (!isImg) return;
+
+    const confirmBtn = document.getElementById('pv-confirm-btn');
+    const errBox = document.getElementById('pv-err');
+    const loadEl = document.getElementById('pv-loading');
+    const showReadErr = function () {
+      if (loadEl) loadEl.classList.add('hide');
+      if (errBox) { errBox.textContent = "This image can't be read. Try a JPG or PNG."; errBox.classList.remove('hide'); }
+      if (confirmBtn) confirmBtn.disabled = true;
+    };
+
+    const img = new Image();
+    img.style.imageOrientation = 'from-image';
+    img.src = srcUrl;
+
+    const onDecoded = function () {
+      if (JM._pv !== pv) return;
+      if (!img.naturalWidth || !img.naturalHeight) { showReadErr(); return; }
+      pv.img = img;
+      pv.ready = true;
+      pv.state = { zoom: 1, cx: img.naturalWidth / 2, cy: img.naturalHeight / 2 };
+      if (loadEl) loadEl.classList.add('hide');
+      if (confirmBtn) confirmBtn.disabled = false;
+
+      if (!canCrop) {
+        const plainImg = document.getElementById('pv-img');
+        if (plainImg) { plainImg.src = srcUrl; plainImg.classList.remove('hide'); }
+        return;
       }
+
+      const frame = document.getElementById('pv-frame');
+      const canvas = document.getElementById('pv-canvas');
+      const zInp = document.getElementById('pv-zoom');
+      const zLbl = document.getElementById('pv-zoom-lbl');
+      const resetBtn = document.getElementById('pv-reset');
+      if (zInp) zInp.disabled = false;
+      if (resetBtn) resetBtn.disabled = false;
+
+      const draw = function () {
+        pv.raf = 0;
+        if (JM._pv !== pv || !canvas || !frame || !pv.img) return;
+        const rect = frame.getBoundingClientRect();
+        const fw = Math.max(1, rect.width), fh = Math.max(1, rect.height);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cw = Math.round(fw * dpr), ch = Math.round(fh * dpr);
+        if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+        const ctx = canvas.getContext('2d');
+        const r = JM.cropRect(pv.state, pv.img.naturalWidth, pv.img.naturalHeight, cfg.ratio);
+        if (cfg.alpha) {
+          ctx.clearRect(0, 0, cw, ch);
+        } else {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, cw, ch);
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(pv.img, r.sx, r.sy, r.sw, r.sh, 0, 0, cw, ch);
+        if (zInp && document.activeElement !== zInp) zInp.value = pv.state.zoom.toFixed(2);
+        if (zLbl) zLbl.textContent = pv.state.zoom.toFixed(1) + '×';
+      };
+      const scheduleDraw = function () {
+        if (!pv.raf) pv.raf = requestAnimationFrame(draw);
+      };
+      const setZoom = function (z) {
+        pv.state.zoom = Math.max(1, Math.min(4, Number(z) || 1));
+        JM.cropRect(pv.state, pv.img.naturalWidth, pv.img.naturalHeight, cfg.ratio);
+        if (zInp) zInp.value = pv.state.zoom.toFixed(2);
+        scheduleDraw();
+      };
+
+      scheduleDraw();
+
+      if (zInp) zInp.addEventListener('input', function () { setZoom(zInp.value); });
+      if (resetBtn) resetBtn.addEventListener('click', function () {
+        pv.state = { zoom: 1, cx: pv.img.naturalWidth / 2, cy: pv.img.naturalHeight / 2 };
+        if (zInp) zInp.value = '1';
+        scheduleDraw();
+      });
+
+      if (frame) {
+        const ptrs = new Map();
+        let lastPt = null, pinchStartDist = 0, pinchStartZoom = 1, lastMid = null;
+        const getTwo = function () {
+          const vals = Array.from(ptrs.values());
+          const dx = vals[1].x - vals[0].x, dy = vals[1].y - vals[0].y;
+          return { dist: Math.hypot(dx, dy) || 1, mx: (vals[0].x + vals[1].x) / 2, my: (vals[0].y + vals[1].y) / 2 };
+        };
+        const panByCss = function (dxCss, dyCss) {
+          const rect = frame.getBoundingClientRect();
+          const fw = Math.max(1, rect.width), fh = Math.max(1, rect.height);
+          const cur = JM.cropRect(pv.state, pv.img.naturalWidth, pv.img.naturalHeight, cfg.ratio);
+          pv.state.cx -= dxCss * (cur.sw / fw);
+          pv.state.cy -= dyCss * (cur.sh / fh);
+          JM.cropRect(pv.state, pv.img.naturalWidth, pv.img.naturalHeight, cfg.ratio);
+          scheduleDraw();
+        };
+        frame.addEventListener('pointerdown', function (e) {
+          e.preventDefault();
+          try { frame.setPointerCapture(e.pointerId); } catch (err) {}
+          ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (ptrs.size === 1) {
+            lastPt = { x: e.clientX, y: e.clientY };
+          } else if (ptrs.size === 2) {
+            const two = getTwo();
+            pinchStartDist = two.dist;
+            pinchStartZoom = pv.state.zoom;
+            lastMid = { x: two.mx, y: two.my };
+          }
+        });
+        frame.addEventListener('pointermove', function (e) {
+          if (!ptrs.has(e.pointerId)) return;
+          ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (ptrs.size === 1 && lastPt) {
+            const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
+            lastPt = { x: e.clientX, y: e.clientY };
+            panByCss(dx, dy);
+          } else if (ptrs.size === 2 && pinchStartDist > 0) {
+            const two = getTwo();
+            pv.state.zoom = Math.max(1, Math.min(4, pinchStartZoom * (two.dist / pinchStartDist)));
+            if (lastMid) {
+              panByCss(two.mx - lastMid.x, two.my - lastMid.y);
+              lastMid = { x: two.mx, y: two.my };
+            } else {
+              scheduleDraw();
+            }
+          }
+        });
+        const onUp = function (e) {
+          ptrs.delete(e.pointerId);
+          if (ptrs.size === 1) {
+            const rem = Array.from(ptrs.values())[0];
+            lastPt = { x: rem.x, y: rem.y };
+            pinchStartDist = 0; lastMid = null;
+          } else if (ptrs.size === 0) {
+            lastPt = null; pinchStartDist = 0; lastMid = null;
+          }
+        };
+        frame.addEventListener('pointerup', onUp);
+        frame.addEventListener('pointercancel', onUp);
+        frame.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          const factor = e.deltaY < 0 ? 1.08 : (1 / 1.08);
+          setZoom(pv.state.zoom * factor);
+        }, { passive: false });
+      }
+    };
+
+    if (typeof img.decode === 'function') {
+      img.decode().then(onDecoded, function () {
+        if (img.complete && img.naturalWidth > 0) onDecoded();
+        else showReadErr();
+      });
+    } else {
+      img.onload = onDecoded;
+      img.onerror = showReadErr;
     }
   };
+
   JM.actions.pvcancel = function () {
     const p = JM._pv; JM._pv = null;
-    if (p && p.url) URL.revokeObjectURL(p.url);
+    if (p && p.raf) cancelAnimationFrame(p.raf);
+    if (p && p.srcUrl) URL.revokeObjectURL(p.srcUrl);
     JM.close();
     if (p && p.o.onCancel) p.o.onCancel();
   };
+
   JM.actions.pvconfirm = async function (el) {
     const p = JM._pv; if (!p) { JM.close(); return; }
-    const t = document.getElementById('pv-title'), ds = document.getElementById('pv-desc'), imgEl = document.getElementById('pv-img');
-    JM._pv = null; el.disabled = true; el.textContent = 'Uploading…';
+    if (p.isImg && (!p.ready || !p.img || !p.img.naturalWidth)) return;
+    const t = document.getElementById('pv-title'), ds = document.getElementById('pv-desc');
+    const titleVal = t ? t.value.trim() : '';
+    const descVal = ds ? ds.value.trim() : '';
+    el.disabled = true; el.textContent = 'Preparing…';
     let outFile = p.file;
+    let outBlobUrl = '';
     try {
-      if (imgEl && imgEl.complete && imgEl.naturalWidth > 0 && (p.shape === 'circle' || p.shape === 'cover43' || p.file.size > 1500000)) {
-        const res = await JM.compressCrop(imgEl, { shape: p.shape, zoom: p.zoom, fx: p.fx, fy: p.fy });
-        if (res && res.blob) {
-          const base = (p.file.name || 'image').replace(/\.[^.]+$/, '');
-          outFile = new File([res.blob], base + '.' + res.ext, { type: res.type });
-        }
+      if (p.isImg && p.img) {
+        const res = await JM.compressCrop(p.img, { target: p.target, state: p.state });
+        if (!res || !res.blob) throw new Error("Couldn't process this image. Try a JPG or PNG.");
+        const base = (p.file.name || 'image').replace(/\.[^.]+$/, '');
+        outFile = new File([res.blob], base + '.' + res.ext, { type: res.type });
       }
       if (outFile.size > 5 * 1024 * 1024) {
-        JM.toast('Image is still larger than 5 MB after compression. Try a smaller photo.', 'bad');
-        el.disabled = false; el.textContent = 'Confirm upload';
+        JM.toast('File is still larger than 5 MB after compression. Try a smaller file.', 'bad');
+        el.disabled = false; el.innerHTML = ic('upload', 16) + 'Confirm upload';
         return;
       }
+      if (p.isImg) outBlobUrl = URL.createObjectURL(outFile);
+      JM._pv = null;
+      if (p.raf) cancelAnimationFrame(p.raf);
+      if (p.srcUrl) URL.revokeObjectURL(p.srcUrl);
+      JM.close();
       await p.o.onConfirm({
         file: outFile,
-        focus: p.fx + '% ' + p.fy + '%',
-        blobUrl: p.url,
-        title: t ? t.value.trim() : '',
-        desc: ds ? ds.value.trim() : ''
+        blobUrl: outBlobUrl,
+        target: p.target,
+        focus: '50% 50%',
+        title: titleVal,
+        desc: descVal
       });
-    } finally {
-      setTimeout(function () { if (p.url) URL.revokeObjectURL(p.url); }, 2000);
+    } catch (e) {
+      if (outBlobUrl) URL.revokeObjectURL(outBlobUrl);
+      JM.toast(JM.err(e), 'bad');
+      if (el && el.isConnected) { el.disabled = false; el.innerHTML = ic('upload', 16) + 'Confirm upload'; }
     }
-    if (document.querySelector('[data-act=pvconfirm]')) JM.close();
   };
-  JM.actions.imgview = async function (el) {
-    let src = el.dataset.src || '';
-    if (!src && el.dataset.bucket && el.dataset.path) {
-      src = await JM.getUrl(el.dataset.bucket, el.dataset.path, false);
+
+  async function openFullPreview(opts) {
+    const bucket = opts.bucket || '', path = opts.path || '', directUrl = opts.directUrl || '';
+    const title = opts.title || 'Preview', desc = opts.desc || '';
+    const isPdf = /\.pdf(\?|$)/i.test(path);
+    if (isPdf) {
+      const url = directUrl || (bucket && path ? await JM.getUrl(bucket, path, false) : '');
+      JM.modal('<h2>' + JM.esc(title) + '</h2>' + (desc ? '<p class="small muted mt">' + JM.esc(desc) + '</p>' : '') +
+        (url ? '<p class="muted mt">PDF document ready to view.</p><a class="btn mt" href="' + JM.esc(url) + '" target="_blank" rel="noopener">Open PDF</a>'
+          : '<div class="notice bad mt"><span>Couldn\'t load this PDF right now.</span></div>') +
+        '<div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>', 'wide');
+      return;
     }
-    if (!src) return JM.toast('Image unavailable.', 'bad');
-    const desc = el.dataset.desc || '';
-    JM.modal('<h2>' + JM.esc(el.dataset.title || 'Preview') + '</h2>' + (desc ? '<p class="small muted mt">' + JM.esc(desc) + '</p>' : '') +
-      '<div class="pv-box mt"><img class="pv-img" src="' + JM.esc(src) + '" alt="Preview"></div><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>', 'wide');
+    if (!directUrl && (!bucket || !path)) { JM.toast('Image unavailable.', 'bad'); return; }
+    JM.modal('<h2>' + JM.esc(title) + '</h2>' + (desc ? '<p class="small muted mt">' + JM.esc(desc) + '</p>' : '') +
+      '<div class="pv-box pv-box-full mt">' +
+        JM.img({ bucket: bucket, path: path, directUrl: directUrl, shape: 'contain', modal: true, alt: title }) +
+      '</div><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>', 'wide');
+  }
+
+  JM.actions.imgview = async function (el) {
+    await openFullPreview({
+      bucket: el.dataset.bucket || '',
+      path: el.dataset.path || '',
+      directUrl: el.dataset.src || '',
+      title: el.dataset.title || 'Preview',
+      desc: el.dataset.desc || ''
+    });
   };
   JM.actions.mediaview = async function (el) {
-    await JM.busy(el, async function () {
-      const bucket = el.dataset.bucket || 'seeker-media', path = el.dataset.path;
-      const url = await JM.getUrl(bucket, path, false);
-      if (!url) throw new Error('Could not load file.');
-      const isPdf = /\.pdf(\?|$)/i.test(path), desc = el.dataset.desc || '';
-      JM.modal('<h2>' + JM.esc(el.dataset.title || 'Preview') + '</h2>' + (desc ? '<p class="small muted mt">' + JM.esc(desc) + '</p>' : '') +
-        (isPdf ? '<p class="muted mt">PDF document ready to view.</p><a class="btn mt" href="' + JM.esc(url) + '" target="_blank" rel="noopener">Open PDF</a>'
-          : '<div class="pv-box mt"><img class="pv-img" src="' + JM.esc(url) + '" alt="Preview"></div>') +
-        '<div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>', 'wide');
+    await openFullPreview({
+      bucket: el.dataset.bucket || 'seeker-media',
+      path: el.dataset.path || '',
+      directUrl: el.dataset.src || '',
+      title: el.dataset.title || 'Preview',
+      desc: el.dataset.desc || ''
     });
+  };
+  JM.actions.imgretry = async function (el) {
+    const wrap = el.closest('.jm-img');
+    if (!wrap) return;
+    const bucket = el.dataset.bucket || wrap.dataset.jmBucket || '';
+    const path = el.dataset.path || wrap.dataset.jmPath || '';
+    const direct = el.dataset.src || wrap.dataset.jmDirect || '';
+    if (bucket && path) delete JM.urlCache[bucket + '/' + path];
+    wrap.classList.remove('jm-img-err', 'loaded');
+    delete wrap.dataset.jmSigning;
+    delete wrap.dataset.jmBound;
+    const errBox = wrap.querySelector('.jm-img-errbox');
+    if (errBox) errBox.classList.add('hide');
+    let img = wrap.querySelector('img.jm-img-el');
+    if (!img) {
+      img = document.createElement('img');
+      img.className = 'jm-img-el';
+      img.alt = 'Preview';
+      wrap.appendChild(img);
+    }
+    delete img.dataset.retried;
+    img.removeAttribute('src');
+    if (direct && !bucket) {
+      img.src = direct;
+      startImgTimer(wrap, '', '');
+      return;
+    }
+    if (bucket && path) {
+      const fresh = await JM.getUrl(bucket, path, true);
+      if (fresh) {
+        img.src = fresh;
+        startImgTimer(wrap, bucket, path);
+      } else {
+        markImgFailed(wrap, img, bucket, path, 'retry failed');
+      }
+    }
   };
 
   // ---------- unified payment modal ----------

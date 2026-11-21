@@ -561,7 +561,7 @@
     const hasFile = !!s.resume_path, hasLink = !!(s.resume_link && s.resume_link.trim());
     const fileBox = hasFile
       ? '<div class="row card flat mb" style="padding:10px 14px">' + ic('file') + '<span class="grow small">Uploaded: ' + esc(s.resume_path.split('/').pop()) + '</span><button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="resumes" data-path="' + esc(s.resume_path) + '" data-title="Uploaded résumé">View</button></div>'
-      : '<div class="field"><label class="label">Upload résumé file (PDF, Word, or image)</label>' + JM.uploadBtn({ in: 'revresume', accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png', label: 'Upload résumé', hint: 'PDF, Word, JPG or PNG · max 5 MB · preview before saving', preview: 'Preview résumé before uploading' }) + '</div>';
+      : '<div class="field"><label class="label">Upload résumé file (PDF, Word, or image)</label>' + JM.uploadBtn({ in: 'revresume', target: 'resume', label: 'Upload résumé', hint: 'PDF, Word, JPG or PNG · max 5 MB · preview before saving', preview: 'Preview résumé before uploading' }) + '</div>';
     const body = pro ? '<div class="card card-b"><p class="muted small">Upload a résumé file, provide a résumé link, or paste your résumé text below to generate a grade. Your name, age, gender and photo are never sent.</p>' + fileBox +
       '<form data-form="review"><div class="field"><label class="label">Résumé or portfolio link (optional)</label><input type="url" name="link" value="' + esc(s.resume_link || '') + '" placeholder="https://drive.google.com/..."></div>' +
       '<div class="field"><label class="label">Or paste résumé text (optional)</label><textarea name="text" placeholder="Paste your résumé text here" style="min-height:110px"></textarea></div>' +
@@ -571,17 +571,23 @@
     return '<div class="page narrow">' + JM.pageHead('Résumé review', 'Get a score and specific fixes before employers see your profile.') + body + '</div>';
   } });
   JM.inputs.revresume = async function (el) {
-    const f = el.files[0]; if (!f) return;
-    if (f.size > 5 * 1024 * 1024) { JM.toast('File is larger than 5 MB.', 'bad'); el.value = ''; return; }
+    const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
+    if (JM.isHeic(f)) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('File is larger than 5 MB.', 'bad'); el.value = ''; return; }
     const ext = (f.name.split('.').pop() || 'pdf').toLowerCase();
-    if (['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'].indexOf(ext) < 0) { JM.toast('Upload a PDF, Word, JPG or PNG file.', 'bad'); el.value = ''; return; }
+    if (['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'].indexOf(ext) < 0) { if (blobUrl) URL.revokeObjectURL(blobUrl); JM.toast('Upload a PDF, Word, JPG or PNG file.', 'bad'); el.value = ''; return; }
+    const oldPath = JM.me && JM.me.seeker && JM.me.seeker.resume_path;
     const path = JM.me.id + '/resume-' + Date.now() + '.' + ext;
     try {
       const r = await JM.sb.storage.from('resumes').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
       await JM.q(JM.sb.from('seeker_profiles').update({ resume_path: path, resume_mode: 'uploaded' }).eq('user_id', JM.me.id));
+      if (oldPath && oldPath !== path) JM.sb.storage.from('resumes').remove([oldPath]);
+      if (/^(jpe?g|png)$/.test(ext)) await JM.seedUrl('resumes', path);
       await JM.loadMe(); JM.toast('Résumé uploaded.', 'ok'); JM.render();
     } catch (e) { JM.toast(JM.err(e), 'bad'); }
+    finally { if (blobUrl) URL.revokeObjectURL(blobUrl); el.value = ''; }
   };
   JM.forms.review = async function (form, d) {
     const link = String(d.link || '').trim(), text = String(d.text || '').trim();
