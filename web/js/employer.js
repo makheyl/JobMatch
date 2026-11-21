@@ -287,9 +287,11 @@
       const r = await JM.sb.storage.from('job-photos').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
       const pubUrl = await JM.seedUrl('job-photos', path);
-      await JM.preloadUrl(pubUrl);
+      const preloaded = await JM.preloadUrl(pubUrl);
+      if (!preloaded && blobUrl) JM.keepBlobFallback('job-photos', path, blobUrl);
       if (oldPath && oldPath !== path) {
         delete JM.urlCache['job-photos/' + oldPath];
+        delete JM.blobCache['job-photos/' + oldPath];
         JM.sb.storage.from('job-photos').remove([oldPath]);
       }
       JM.jd.photo_path = path;
@@ -297,7 +299,7 @@
       JM.jd._photoBlob = null;
       JM.jd._photoUploading = false;
       JM.drawDraft();
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (preloaded && blobUrl) URL.revokeObjectURL(blobUrl);
       JM.toast('Listing photo uploaded.', 'ok');
     } catch (e) {
       JM.jd._photoBlob = null;
@@ -764,7 +766,8 @@
         JM.sb.storage.from('company-logos').remove([oldPath]);
       }
       const pubUrl = await JM.seedUrl('company-logos', path);
-      await JM.preloadUrl(pubUrl);
+      const preloaded = await JM.preloadUrl(pubUrl);
+      if (!preloaded && blobUrl) JM.keepBlobFallback('company-logos', path, blobUrl);
       await JM.loadMe();
       JM._logoBlob = null;
       JM._logoUploading = false;
@@ -772,7 +775,7 @@
       JM._shellAvatarUploading = false;
       refreshEmpLogoSlot();
       JM.refreshShellAvatar();
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (preloaded && blobUrl) URL.revokeObjectURL(blobUrl);
       JM.toast('Company logo updated.', 'ok');
     } catch (e) {
       JM._logoBlob = null;

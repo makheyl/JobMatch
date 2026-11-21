@@ -131,10 +131,17 @@
     vdoc:     { bucket: 'verification-docs', pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'],               accept: '.pdf,.jpg,.jpeg,.png' }
   };
   JM.urlCache = {};
+  JM.blobCache = {};
+  JM._forceBlobImgs = false;
+  document.addEventListener('securitypolicyviolation', function (e) {
+    if (e && (e.violatedDirective === 'img-src' || e.effectiveDirective === 'img-src') && String(e.blockedURI || '').indexOf('supabase.co') >= 0) {
+      JM._forceBlobImgs = true;
+    }
+  });
   JM.publicUrl = function (bucket, path, bust) {
     if (!bucket || !path) return '';
     const k = bucket + '/' + path;
-    if (!bust && JM.urlCache[k]) return JM.urlCache[k].url;
+    if (!bust && JM.urlCache[k] && JM.urlCache[k].exp > Date.now()) return JM.urlCache[k].url;
     const base = JM.sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     const u = bust ? base + (base.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now() : base;
     JM.urlCache[k] = { url: u, exp: Infinity };
@@ -145,12 +152,52 @@
     if (PUB_BUCKETS[bucket]) return JM.publicUrl(bucket, path, true);
     return await JM.getUrl(bucket, path, true);
   };
+  JM.keepBlobFallback = function (bucket, path, blobUrl) {
+    if (!bucket || !path || !blobUrl) return;
+    const k = bucket + '/' + path;
+    JM.blobCache[k] = blobUrl;
+    JM.urlCache[k] = { url: blobUrl, exp: Date.now() + 50 * 60 * 1000 };
+  };
+  JM.fetchBlobUrl = async function (bucket, path, force) {
+    if (!bucket || !path) return '';
+    const k = bucket + '/' + path;
+    if (!force && JM.blobCache[k]) return JM.blobCache[k];
+    try {
+      let blob = null;
+      if (PUB_BUCKETS[bucket]) {
+        const base = JM.sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+        const u = force ? base + (base.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now() : base;
+        const res = await fetch(u, { mode: 'cors', credentials: 'omit' });
+        if (res.ok) blob = await res.blob();
+      } else {
+        const dl = await JM.sb.storage.from(bucket).download(path);
+        if (!dl.error && dl.data) blob = dl.data;
+        else {
+          const signed = await JM.getUrl(bucket, path, true);
+          if (signed && signed.indexOf('blob:') !== 0) {
+            const res = await fetch(signed, { mode: 'cors', credentials: 'omit' });
+            if (res.ok) blob = await res.blob();
+          }
+        }
+      }
+      if (!blob || !blob.size) return '';
+      if (JM.blobCache[k]) { try { URL.revokeObjectURL(JM.blobCache[k]); } catch (e) {} }
+      const bUrl = URL.createObjectURL(blob);
+      JM.blobCache[k] = bUrl;
+      JM.urlCache[k] = { url: bUrl, exp: Date.now() + 50 * 60 * 1000 };
+      return bUrl;
+    } catch (e) {
+      console.warn('[img]', bucket, path, (e && e.message) || 'blob fetch failed');
+      return '';
+    }
+  };
   JM.preloadUrl = function (url) {
     return new Promise(function (resolve) {
       if (!url) return resolve(false);
+      if (JM._forceBlobImgs && url.indexOf('blob:') !== 0) return resolve(false);
       const im = new Image();
       const done = function (ok) { im.onload = im.onerror = null; resolve(ok); };
-      im.onload = function () { done(true); };
+      im.onload = function () { done(im.naturalWidth > 0); };
       im.onerror = function () { done(false); };
       im.src = url;
       setTimeout(function () { done(false); }, 8000);
@@ -198,8 +245,11 @@
     let immediateSrc = o.directUrl || '';
     if (!immediateSrc && o.bucket && o.path) {
       const k = o.bucket + '/' + o.path;
-      if (PUB_BUCKETS[o.bucket]) immediateSrc = JM.publicUrl(o.bucket, o.path);
-      else if (JM.urlCache[k] && JM.urlCache[k].exp > Date.now()) immediateSrc = JM.urlCache[k].url;
+      if (JM.blobCache[k]) immediateSrc = JM.blobCache[k];
+      else if (!JM._forceBlobImgs) {
+        if (PUB_BUCKETS[o.bucket]) immediateSrc = JM.publicUrl(o.bucket, o.path);
+        else if (JM.urlCache[k] && JM.urlCache[k].exp > Date.now()) immediateSrc = JM.urlCache[k].url;
+      }
     }
     const actAttrs = o.act ? ' data-act="' + JM.esc(o.act) + '" data-bucket="' + JM.esc(o.bucket || '') + '" data-path="' + JM.esc(o.path || '') + '" data-title="' + JM.esc(o.title || o.alt || 'Preview') + '"' + (o.desc ? ' data-desc="' + JM.esc(o.desc) + '"' : '') + (o.directUrl ? ' data-src="' + JM.esc(o.directUrl) + '"' : '') + ' role="button" tabindex="0"' : '';
     const dataAttrs = (hasMedia ? ' data-jm-bucket="' + JM.esc(o.bucket || '') + '" data-jm-path="' + JM.esc(o.path || '') + '"' + (o.directUrl ? ' data-jm-direct="' + JM.esc(o.directUrl) + '"' : '') : '') +
@@ -262,11 +312,20 @@
     const wrap = img.closest('.jm-img');
     if (!wrap) return;
     const bucket = wrap.dataset.jmBucket || '', path = wrap.dataset.jmPath || '';
-    if (!img.dataset.retried && bucket && path) {
-      img.dataset.retried = '1';
+    const retries = Number(img.dataset.retries || 0);
+    if (bucket && path && retries === 0) {
+      img.dataset.retries = '1';
+      // Fetch as local blob: URL (bypasses stale CSP img-src, third-party image blockers & CDN cache hiccups)
+      const bUrl = await JM.fetchBlobUrl(bucket, path, true);
+      if (bUrl && img.isConnected) {
+        img.src = bUrl;
+        startImgTimer(wrap, bucket, path);
+        return;
+      }
+      // Fallback: try fresh direct/signed URL once
       try {
         const fresh = await JM.getUrl(bucket, path, true);
-        if (fresh && fresh !== img.getAttribute('src')) {
+        if (fresh && fresh !== img.getAttribute('src') && img.isConnected) {
           img.src = fresh;
           startImgTimer(wrap, bucket, path);
           return;
@@ -285,19 +344,17 @@
     }
     if (!wraps.length) return;
     const needByBucket = {};
+    const needBlob = [];
     const attach = function (wrap, img, bucket, path, url) {
       if (!img || !url) return;
       wrap.dataset.jmBound = '1';
       if (img.getAttribute('src') !== url) {
         img.src = url;
         startImgTimer(wrap, bucket, path);
-      } else if (img.complete) {
-        if (img.naturalWidth > 0) {
-          wrap.classList.add('loaded');
-          wrap.classList.remove('jm-img-err');
-        } else {
-          markImgFailed(wrap, img, bucket, path, 'naturalWidth=0');
-        }
+      } else if (img.complete && img.naturalWidth > 0) {
+        wrap.classList.add('loaded');
+        wrap.classList.remove('jm-img-err');
+        if (wrap._jmTimer) { clearTimeout(wrap._jmTimer); wrap._jmTimer = null; }
       } else {
         startImgTimer(wrap, bucket, path);
       }
@@ -309,8 +366,17 @@
       if (w.dataset.jmDirect) { attach(w, img, '', '', w.dataset.jmDirect); return; }
       const b = w.dataset.jmBucket, p = w.dataset.jmPath;
       if (!b || !p) return;
+      const k = b + '/' + p;
+      if (JM.blobCache[k]) { attach(w, img, b, p, JM.blobCache[k]); return; }
+      if (JM._forceBlobImgs) {
+        if (w.dataset.jmSigning === '1') return;
+        w.dataset.jmSigning = '1';
+        startImgTimer(w, b, p);
+        needBlob.push({ w: w, img: img, b: b, p: p });
+        return;
+      }
       if (PUB_BUCKETS[b]) { attach(w, img, b, p, JM.publicUrl(b, p)); return; }
-      const cached = JM.urlCache[b + '/' + p];
+      const cached = JM.urlCache[k];
       if (cached && cached.exp > Date.now()) { attach(w, img, b, p, cached.url); return; }
       if (w.dataset.jmSigning === '1') return;
       w.dataset.jmSigning = '1';
@@ -319,6 +385,14 @@
       needByBucket[b][p] = needByBucket[b][p] || [];
       needByBucket[b][p].push({ w: w, img: img });
     });
+    if (needBlob.length) {
+      await Promise.all(needBlob.map(async function (it) {
+        const bUrl = await JM.fetchBlobUrl(it.b, it.p, false);
+        delete it.w.dataset.jmSigning;
+        if (bUrl && it.w.isConnected) attach(it.w, it.img, it.b, it.p, bUrl);
+        else markImgFailed(it.w, it.img, it.b, it.p, 'blob load failed');
+      }));
+    }
     const buckets = Object.keys(needByBucket);
     await Promise.all(buckets.map(async function (b) {
       const paths = Object.keys(needByBucket[b]);
@@ -1441,7 +1515,13 @@
     const bucket = el.dataset.bucket || wrap.dataset.jmBucket || '';
     const path = el.dataset.path || wrap.dataset.jmPath || '';
     const direct = el.dataset.src || wrap.dataset.jmDirect || '';
-    if (bucket && path) delete JM.urlCache[bucket + '/' + path];
+    if (bucket && path) {
+      delete JM.urlCache[bucket + '/' + path];
+      if (JM.blobCache[bucket + '/' + path]) {
+        try { URL.revokeObjectURL(JM.blobCache[bucket + '/' + path]); } catch (e) {}
+        delete JM.blobCache[bucket + '/' + path];
+      }
+    }
     wrap.classList.remove('jm-img-err', 'loaded');
     delete wrap.dataset.jmSigning;
     delete wrap.dataset.jmBound;
@@ -1454,7 +1534,7 @@
       img.alt = 'Preview';
       wrap.appendChild(img);
     }
-    delete img.dataset.retried;
+    delete img.dataset.retries;
     img.removeAttribute('src');
     if (direct && !bucket) {
       img.src = direct;
@@ -1462,6 +1542,12 @@
       return;
     }
     if (bucket && path) {
+      const bUrl = await JM.fetchBlobUrl(bucket, path, true);
+      if (bUrl) {
+        img.src = bUrl;
+        startImgTimer(wrap, bucket, path);
+        return;
+      }
       const fresh = await JM.getUrl(bucket, path, true);
       if (fresh) {
         img.src = fresh;

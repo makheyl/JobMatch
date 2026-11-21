@@ -361,7 +361,8 @@
           JM.sb.storage.from('seeker-media').remove([oldPath]);
         }
         const signed = await JM.seedUrl('seeker-media', path);
-        await JM.preloadUrl(signed);
+        const preloaded = await JM.preloadUrl(signed);
+        if (!preloaded && blobUrl) JM.keepBlobFallback('seeker-media', path, blobUrl);
         JM.draft.avatar_path = path;
         JM.draft._avatarBlob = null;
         JM.draft._avatarUploading = false;
@@ -370,19 +371,21 @@
         if (JM.me && JM.me.seeker) JM.me.seeker.avatar_path = path;
         JM.refreshShellAvatar();
         JM.drawDraft();
-        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        if (preloaded && blobUrl) URL.revokeObjectURL(blobUrl);
       } else if (kind === 'photo') {
         const signed = await JM.seedUrl('seeker-media', path);
-        await JM.preloadUrl(signed);
+        const preloaded = await JM.preloadUrl(signed);
+        if (!preloaded && blobUrl) JM.keepBlobFallback('seeker-media', path, blobUrl);
         if (oldPath && oldPath !== path) {
           delete JM.urlCache['seeker-media/' + oldPath];
+          delete JM.blobCache['seeker-media/' + oldPath];
           JM.sb.storage.from('seeker-media').remove([oldPath]);
         }
         JM.draft.photo_path = path;
         JM.draft._photoBlob = null;
         JM.draft._photoUploading = false;
         JM.drawDraft();
-        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        if (preloaded && blobUrl) URL.revokeObjectURL(blobUrl);
       } else {
         if (ext !== 'pdf') await JM.seedUrl('seeker-media', path);
         const ct = document.getElementById('cert-title'), cd = document.getElementById('cert-desc');
