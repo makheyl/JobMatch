@@ -1,0 +1,9 @@
+project_id = "repxbwvcylwbscdklyli"
+
+[auth.email.template.confirmation]
+subject = "Welcome to JobMatch — Let's unlock your matches!"
+content_path = "./supabase/templates/confirm-signup.html"
+
+[auth.email.template.magic_link]
+subject = "Your JobMatch sign-in link & verification code"
+content_path = "./supabase/templates/login-confirmation.html"

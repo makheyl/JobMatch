@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,15 +9,6 @@
   <meta name="color-scheme" content="light dark">
   <meta name="supported-color-schemes" content="light dark">
   <title>Welcome to JobMatch — Let's unlock your matches!</title>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
   <style>
     :root {
       color-scheme: light dark;
@@ -93,20 +84,16 @@
 </head>
 <body style="margin: 0; padding: 0; background-color: #F5F7FA; color: #0F172A; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
 
-  <!-- 1. Hidden Preheader Text for Mobile Notifications -->
   <div style="display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all;">
-    Hi{{ if .Data.full_name }} {{ .Data.full_name }}{{ end }}! Tap once to confirm your email, build your skill profile, and discover verified local jobs in Biñan.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+    Hi{{ with .Data }}{{ if .full_name }} {{ .full_name }}{{ end }}{{ end }}! Tap once to confirm your email, build your skill profile, and discover verified local jobs in Biñan.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
   </div>
 
-  <!-- Outer Canvas Wrapper -->
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-bg" style="background-color: #F5F7FA; width: 100%; margin: 0; padding: 0;">
     <tr>
       <td align="center" style="padding: 32px 14px 44px 14px;">
 
-        <!-- 600px Max-Width Main Container -->
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="email-container" style="width: 100%; max-width: 600px; margin: 0 auto;">
 
-          <!-- Top Brand Bar -->
           <tr>
             <td align="left" style="padding: 0 4px 16px 4px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -124,16 +111,13 @@
             </td>
           </tr>
 
-          <!-- Main Card -->
           <tr>
             <td>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-card" style="background-color: #FFFFFF; border: 1px solid #E3E8EF; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);">
 
-                <!-- Visual Hook: Styled Deep-Navy & Brand-Blue Mascot Header Card -->
                 <tr>
                   <td align="center" class="mobile-pad" style="background-color: #0A2B6D; background-image: linear-gradient(135deg, #061E52 0%, #0A2B6D 52%, #0C70F8 100%); padding: 32px 32px 28px 32px; text-align: center;">
 
-                    <!-- Email-Safe Spark / Pop-Line Accents + Mascot Avatar Frame -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
                       <tr>
                         <td valign="top" style="padding-top: 6px; padding-right: 10px;">
@@ -141,7 +125,7 @@
                         </td>
                         <td align="center" valign="middle">
                           <div style="width: 76px; height: 76px; border-radius: 22px; background-color: #0C70F8; border: 3px solid #FFFFFF; box-shadow: 0 8px 20px rgba(6, 30, 82, 0.45); overflow: hidden; line-height: 76px; text-align: center;">
-                            <img src="{{ .SiteURL }}/assets/logo.png" width="76" height="76" alt="Jomo — JobMatch Robot Mascot" style="display: block; width: 76px; height: 76px; object-fit: cover; color: #FFFFFF; font-family: sans-serif; font-size: 13px; font-weight: 800; background-color: #0C70F8;">
+                            <img src="https://jobmatch-amber-kappa.vercel.app/assets/logo.png" width="76" height="76" alt="Jomo — JobMatch Robot Mascot" style="display: block; width: 76px; height: 76px; object-fit: cover; color: #FFFFFF; font-family: sans-serif; font-size: 13px; font-weight: 800; background-color: #0C70F8;">
                           </div>
                         </td>
                         <td valign="top" style="padding-top: 2px; padding-left: 10px; text-align: left;">
@@ -151,14 +135,12 @@
                       </tr>
                     </table>
 
-                    <!-- Mascot Speech Pill -->
                     <div style="margin-top: 14px;">
                       <span style="display: inline-block; padding: 5px 14px; background-color: #FFF4DC; color: #9A5B00; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.02em;">
-                        &#9733; Hi{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! I'm Jomo — your career buddy
+                        &#9733; Hi{{ with .Data }}{{ if .full_name }}, {{ .full_name }}{{ end }}{{ end }}! I'm Jomo — your career buddy
                       </span>
                     </div>
 
-                    <!-- Playful, Clear Headline -->
                     <h1 style="margin: 14px 0 8px 0; color: #FFFFFF; font-size: 26px; line-height: 1.25; font-weight: 800; letter-spacing: -0.02em;">
                       Let’s unlock your local job matches!
                     </h1>
@@ -168,7 +150,6 @@
                   </td>
                 </tr>
 
-                <!-- Main Body Content -->
                 <tr>
                   <td class="mobile-pad" style="padding: 32px 36px 28px 36px;">
 
@@ -176,26 +157,16 @@
                       Confirm your email address below to activate your account for <strong class="dark-ink" style="color: #0F172A;">{{ if .Email }}{{ .Email }}{{ else }}your JobMatch account{{ end }}</strong> and pick up right where you left off.
                     </p>
 
-                    <!-- 3. High-Contrast Bulletproof Primary CTA Button -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 26px auto;">
                       <tr>
                         <td align="center" bgcolor="#0C70F8" style="border-radius: 12px; background-color: #0C70F8;">
-                          <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .ConfirmationURL }}" style="height:50px;v-text-anchor:middle;width:280px;" arcsize="24%" strokecolor="#0A5BD0" fillcolor="#0C70F8">
-                            <w:anchorlock/>
-                            <center style="color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold;">Confirm Email &amp; Start Matching &rarr;</center>
-                          </v:roundrect>
-                          <![endif]-->
-                          <!--[if !mso]><!-- -->
                           <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 15px 30px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 12px; background-color: #0C70F8; border: 1px solid #0A5BD0; box-shadow: 0 4px 14px rgba(12, 112, 248, 0.28);">
                             Confirm Email &amp; Start Matching &rarr;
                           </a>
-                          <!--<![endif]-->
                         </td>
                       </tr>
                     </table>
 
-                    <!-- Prominent Styled OTP / Verification Code Box (supports Supabase {{ .Token }} flows) -->
                     {{ if .Token }}
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="dark-subcard" style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 14px; margin-bottom: 26px;">
                       <tr>
@@ -211,7 +182,6 @@
                     </table>
                     {{ end }}
 
-                    <!-- 4. Compact 3-Step Visual Mini-Preview of What Happens Next -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="dark-subcard" style="background-color: #F5F9FF; border: 1px solid #DCE8FA; border-radius: 14px; margin-bottom: 24px;">
                       <tr>
                         <td style="padding: 18px 20px;">
@@ -220,7 +190,6 @@
                           </div>
                           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                             <tr>
-                              <!-- Step 1 -->
                               <td width="33%" valign="top" class="step-col" style="padding-right: 10px;">
                                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                   <tr>
@@ -234,7 +203,6 @@
                                   </tr>
                                 </table>
                               </td>
-                              <!-- Step 2 -->
                               <td width="33%" valign="top" class="step-col" style="padding-right: 10px;">
                                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                   <tr>
@@ -248,7 +216,6 @@
                                   </tr>
                                 </table>
                               </td>
-                              <!-- Step 3 -->
                               <td width="34%" valign="top" class="step-col">
                                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                   <tr>
@@ -268,7 +235,6 @@
                       </tr>
                     </table>
 
-                    <!-- Fair-Hiring & Privacy Reassurance Pill -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #E7F5EE; border-radius: 10px; margin-bottom: 22px;">
                       <tr>
                         <td style="padding: 11px 14px; font-size: 12.5px; line-height: 1.5; color: #14804F;">
@@ -277,7 +243,6 @@
                       </tr>
                     </table>
 
-                    <!-- 5. Fallback Raw URL Link & Expiration Notice -->
                     <div class="dark-muted" style="border-top: 1px solid #E3E8EF; padding-top: 18px; font-size: 12.5px; line-height: 1.6; color: #64748B;">
                       <p style="margin: 0 0 8px 0;">
                         <strong>Link expires in 24 hours.</strong> If the button above doesn’t open, copy and paste this link into your browser:
@@ -296,7 +261,6 @@
             </td>
           </tr>
 
-          <!-- Calm Footer -->
           <tr>
             <td align="center" style="padding: 22px 16px 0 16px; text-align: center; font-size: 12px; line-height: 1.6; color: #64748B;">
               <p class="dark-muted" style="margin: 0 0 4px 0; font-weight: 600; color: #475569;">

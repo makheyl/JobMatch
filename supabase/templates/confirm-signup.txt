@@ -1,4 +1,4 @@
-Hi{{ if .Data.full_name }} {{ .Data.full_name }}{{ end }}! I'm Jomo — welcome to JobMatch!
+Hi{{ with .Data }}{{ if .full_name }} {{ .full_name }}{{ end }}{{ end }}! I'm Jomo — welcome to JobMatch!
 
 Let's unlock your local job matches in Biñan, Laguna.
 Confirm your email address ({{ if .Email }}{{ .Email }}{{ else }}your account{{ end }}) by opening the link below:
