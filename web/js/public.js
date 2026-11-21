@@ -8,17 +8,17 @@
     const homeHref = '#' + JM.home();
     return '<header class="lnav"><div class="lwrap"><a class="brand" href="' + homeHref + '" data-act="brandhome" style="padding:0"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<nav aria-label="Sections"><a href="#/" data-scroll="how">How it works</a><a href="#/" data-scroll="employers">For employers</a><a href="#/" data-scroll="pricing">Pricing</a><a href="#/" data-scroll="faq">FAQ</a></nav>' +
-      '<div class="grow"></div><a class="btn ghost sm" href="#/login">Sign in</a><a class="btn sm" href="#/signup">Get started</a></div></header>';
+      '<div class="grow"></div><div class="lnav-actions"><a class="btn ghost sm" href="#/login">Sign in</a><a class="btn sm" href="#/signup">Get started</a></div></div></header>';
   }
   function footer() {
     return '<footer class="foot"><div class="lwrap row wrap between"><div><b style="color:var(--ink)">JobMatch</b><br>Job matching and career guidance for Biñan, Laguna.</div>' +
-      '<div class="row wrap" style="gap:22px"><a href="#/privacy">Privacy</a><a href="#/terms">Terms</a><a href="mailto:' + esc(SUPPORT) + '">' + esc(SUPPORT) + '</a></div></div></footer>';
+      '<div class="row wrap foot-links"><a href="#/privacy">Privacy</a><a href="#/terms">Terms</a><a href="mailto:' + esc(SUPPORT) + '">' + esc(SUPPORT) + '</a></div></div></footer>';
   }
   JM.publicNav = nav; JM.publicFooter = footer;
 
   function phoneMock() {
     return '<div class="phone" aria-hidden="true"><div class="phone-top"><span class="phone-pill">Discover</span><span class="xs muted">3 stars left today</span></div>' +
-      '<div class="mini-card"><div class="row between"><div><div class="bold" style="font-size:17px">Sales Associate</div><div class="small muted">Kape Biñan · Poblacion</div></div>' +
+      '<div class="mini-card"><div class="row between"><div class="grow"><div class="bold" style="font-size:17px">Sales Associate</div><div class="small muted">Kape Biñan · Poblacion</div></div>' +
       JM.ring(87, 54, '#0C70F8') + '</div>' +
       '<div class="row wrap gap-s mt"><span class="badge brand">Full-time</span><span class="badge">₱14,000 – 16,000</span><span class="badge ok">2.1 km</span></div>' +
       '<div class="skill mt"><div class="row between small"><span>Customer service</span><b class="num">90%</b></div>' + JM.bar(90, 'ok') + '</div>' +
@@ -51,33 +51,33 @@
     ];
     const li = function (t) { return '<li>' + ic('check') + '<span>' + t + '</span></li>'; };
     return nav() + '<main id="main">' +
-      '<section class="lwrap hero"><div><span class="eyebrow">Biñan, Laguna</span><h1>Find work that fits, and see exactly how to get there.</h1>' +
+      '<section class="lwrap hero"><div class="hero-copy"><span class="eyebrow">Biñan, Laguna</span><h1>Find work that fits, and see exactly how to get there.</h1>' +
       '<p class="lead">JobMatch ranks local jobs by how well they suit your skills, commute and pay, then shows you the skills to build when a job is just out of reach.</p>' +
-      '<div class="row wrap"><a class="btn lg" href="#/signup">Create a free account</a><a class="btn lg secondary" href="#/signup?role=employer">I am hiring</a></div>' +
+      '<div class="row wrap hero-cta"><a class="btn lg" href="#/signup">Create a free account</a><a class="btn lg secondary" href="#/signup?role=employer">I am hiring</a></div>' +
       '<p class="small muted mt">Free for job seekers. Every employer is verified by hand.</p></div><div class="mock">' + phoneMock() + '</div></section>' +
 
       '<section class="sec" id="how"><div class="lwrap"><span class="eyebrow">How it works</span><h2>From profile to interview in three steps</h2><p class="sub">Built for first-time and early-career job seekers who are tired of sending résumés into silence.</p>' +
-      '<div class="grid g3">' + steps.map(function (s) { return '<div class="card feat"><div class="avatar">' + s[0] + '</div><h3>' + s[1] + '</h3><p>' + s[2] + '</p></div>'; }).join('') + '</div></div></section>' +
+      '<div class="grid g3 l-g3">' + steps.map(function (s) { return '<div class="card feat"><div class="avatar">' + s[0] + '</div><h3>' + s[1] + '</h3><p>' + s[2] + '</p></div>'; }).join('') + '</div></div></section>' +
 
       '<section class="sec"><div class="lwrap"><span class="eyebrow">What you get</span><h2>Clear matches, honest guidance</h2><p class="sub">Every number on screen has a reason you can read.</p>' +
-      '<div class="grid g3">' + feats.map(function (f) { return '<div class="card feat"><div class="avatar">' + ic(f[0]) + '</div><h3>' + f[1] + '</h3><p>' + f[2] + '</p></div>'; }).join('') + '</div></div></section>' +
+      '<div class="grid g3 feat-grid">' + feats.map(function (f) { return '<div class="card feat"><div class="avatar">' + ic(f[0]) + '</div><h3>' + f[1] + '</h3><p>' + f[2] + '</p></div>'; }).join('') + '</div></div></section>' +
 
-      '<section class="sec" id="employers"><div class="lwrap grid g2" style="align-items:center;gap:48px"><div><span class="eyebrow">For employers</span><h2>Hire people who are ready, not just available</h2>' +
+      '<section class="sec" id="employers"><div class="lwrap grid g2 emp-split"><div><span class="eyebrow">For employers</span><h2>Hire people who are ready, not just available</h2>' +
       '<p class="sub" style="margin-bottom:20px">Post a role in minutes and review applicants ranked by fit. Pay only when you need more reach.</p>' +
-      '<ul class="price" style="padding:0;margin:0 0 24px;list-style:none"><li style="display:flex;gap:9px;margin-bottom:9px">' + ic('check') + '<span>Applicants ranked by match score and skill fit (Growth and up)</span></li>' +
-      '<li style="display:flex;gap:9px;margin-bottom:9px">' + ic('check') + '<span>Search candidates who opted in and invite them to apply (Business)</span></li>' +
-      '<li style="display:flex;gap:9px;margin-bottom:9px">' + ic('check') + '<span>Boost a listing to the top of every deck for seven days</span></li>' +
-      '<li style="display:flex;gap:9px">' + ic('check') + '<span>Verified badge builds trust with candidates</span></li></ul><a class="btn" href="#/signup?role=employer">Register your business</a></div>' +
-      '<div class="card" style="padding:18px"><div class="row between mb"><b>Applicants · Barista</b><span class="badge ok">Growth plan</span></div>' +
+      '<ul class="l-emp-list"><li>' + ic('check') + '<span>Applicants ranked by match score and skill fit (Growth and up)</span></li>' +
+      '<li>' + ic('check') + '<span>Search candidates who opted in and invite them to apply (Business)</span></li>' +
+      '<li>' + ic('check') + '<span>Boost a listing to the top of every deck for seven days</span></li>' +
+      '<li>' + ic('check') + '<span>Verified badge builds trust with candidates</span></li></ul><a class="btn" href="#/signup?role=employer">Register your business</a></div>' +
+      '<div class="card" style="padding:18px"><div class="row between wrap mb"><b>Applicants · Barista</b><span class="badge ok">Growth plan</span></div>' +
       [['Maria R.', 94, true], ['Jun S.', 88, false], ['Joy B.', 76, false], ['Carlo R.', 61, false]].map(function (a) {
         return '<div class="row" style="padding:10px 0;border-top:1px solid var(--line)">' + JM.avatar(a[0]) + '<div class="grow"><div class="bold">' + a[0] + (a[2] ? ' ' + JM.badge('Starred', 'star') : '') + '</div><div class="xs muted">Applied today</div></div><b class="num">' + a[1] + '%</b></div>';
       }).join('') + '</div></div></section>' +
 
       '<section class="sec" id="pricing"><div class="lwrap"><span class="eyebrow">Pricing</span><h2>Free to start. Pay when it helps.</h2><p class="sub">Prices in Philippine pesos. Cancel any time.</p>' +
-      '<h3 class="mb">Job seekers</h3><div class="grid g3 mb"><div class="card price"><b>Free Plan</b><div class="amt">₱0</div><ul>' + li('Swipe and apply to local jobs') + li('3 stars a day') + li('Week 1 of every roadmap') + li('Reply when employers message first') + '</ul><a class="btn secondary block" href="#/signup">Start free</a></div>' +
+      '<h3 class="mb">Job seekers</h3><div class="grid g3 l-g3 mb"><div class="card price"><b>Free Plan</b><div class="amt">₱0</div><ul>' + li('Swipe and apply to local jobs') + li('3 stars a day') + li('Week 1 of every roadmap') + li('Reply when employers message first') + '</ul><a class="btn secondary block" href="#/signup">Start free</a></div>' +
       '<div class="card price"><b>Monthly Plan</b><div class="amt">₱99<span class="small muted" style="font-weight:500"> / month</span></div><ul>' + li('Unlimited stars &amp; undo swipes') + li('Full roadmap &amp; quiz backtracking') + li('Full application &amp; swipe history') + li('Initiate chat with matches + Résumé review') + '</ul><a class="btn secondary block" href="#/signup">Choose Monthly</a></div>' +
-      '<div class="card price pop"><div class="row between"><b>Annual Plan</b>' + JM.badge('Best value · Save 24%', 'ok') + '</div><div class="amt">₱899<span class="small muted" style="font-weight:500"> / year</span></div><ul>' + li('Everything in Monthly Plan') + li('Priority profile badge for employers') + li('Unlimited detailed AI résumé reviews') + li('Early job alerts &amp; downloadable reports') + '</ul><a class="btn block" href="#/signup">Choose Annual</a></div></div>' +
-      '<h3 class="mb mt-l">Employers</h3><div class="grid g3"><div class="card price"><b>Starter</b><div class="amt">₱0</div><ul>' + li('2 active listings') + li('Applicants in order received') + li('Verified badge') + '</ul><a class="btn secondary block" href="#/signup?role=employer">Register</a></div>' +
+      '<div class="card price pop"><div class="row between wrap"><b>Annual Plan</b>' + JM.badge('Best value · Save 24%', 'ok') + '</div><div class="amt">₱899<span class="small muted" style="font-weight:500"> / year</span></div><ul>' + li('Everything in Monthly Plan') + li('Priority profile badge for employers') + li('Unlimited detailed AI résumé reviews') + li('Early job alerts &amp; downloadable reports') + '</ul><a class="btn block" href="#/signup">Choose Annual</a></div></div>' +
+      '<h3 class="mb mt-l">Employers</h3><div class="grid g3 l-g3"><div class="card price"><b>Starter</b><div class="amt">₱0</div><ul>' + li('2 active listings') + li('Applicants in order received') + li('Verified badge') + '</ul><a class="btn secondary block" href="#/signup?role=employer">Register</a></div>' +
       '<div class="card price pop"><b>Growth</b><div class="amt">₱999<span class="small muted" style="font-weight:500"> / month</span></div><ul>' + li('10 active listings') + li('Ranked applicants and match scores') + li('Full analytics, trends &amp; report exports') + '</ul><a class="btn block" href="#/signup?role=employer">Register</a></div>' +
       '<div class="card price"><b>Business</b><div class="amt">₱2,499<span class="small muted" style="font-weight:500"> / month</span></div><ul>' + li('Unlimited listings') + li('Candidate search, AI overviews &amp; direct chat') + li('Everything in Growth') + '</ul><a class="btn secondary block" href="#/signup?role=employer">Register</a></div></div>' +
       '<p class="small muted mt">Boosted listing: ₱299 for 7 days on any plan.</p></div></section>' +

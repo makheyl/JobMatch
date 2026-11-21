@@ -1083,7 +1083,29 @@
         '<form data-form="review"><div class="field"><label class="label">Résumé or portfolio link (optional)</label><input type="url" name="link" value="' + esc(s.resume_link || '') + '" placeholder="https://drive.google.com/..."></div>' +
         '<div class="field"><label class="label">Or paste résumé text (optional)</label><textarea name="text" placeholder="Paste your résumé text here" style="min-height:110px"></textarea></div>' +
         '<button class="btn" type="submit">' + ic('sparkle', 16) + 'Review my résumé</button></form></div><div id="review-out">' + (last[0] ? show(last[0]) : '') + '</div>' :
-        '<div class="card card-b"><div class="lock"><div class="blur"><h2>Score 82 out of 100</h2><p>Add numbers to your achievements. List at least 5 skills. Upload a PDF résumé.</p></div><div class="veil">' + ic('lock', 22) + '<b>Résumé review is part of Pro</b><a class="btn sm" href="#/pro">See Pro</a></div></div></div>';
+        '<div class="card" style="overflow:hidden"><div class="lock">' +
+          '<div class="blur" aria-hidden="true">' +
+            '<div class="row" style="gap:18px;flex-wrap:wrap">' + JM.ring(82, 72, '#14804F') + '<div class="grow"><h2>Score 82 out of 100</h2><div class="xs muted">Strong local profile · 3 specific fixes found</div></div></div>' +
+            '<div class="divider"></div>' +
+            '<h4 class="mb" style="color:var(--ok)">' + ic('check', 15) + ' Strong areas</h4>' +
+            '<ul class="small" style="margin:0;padding-left:18px;line-height:1.7;color:var(--ink2)"><li>Clear work history with relevant local service &amp; operations skills</li><li>Availability, commute preferences, and work setup are complete</li></ul>' +
+            '<div class="divider"></div>' +
+            '<h4 class="mb" style="color:var(--warn)">Areas to improve &amp; solutions</h4>' +
+            '<div class="col gap-s">' +
+              '<div class="card flat card-b" style="padding:12px;background:#FFFDF7"><div class="small"><b>Achievements:</b> Add measurable numbers to your past roles (e.g. daily customers served or targets met).</div></div>' +
+              '<div class="card flat card-b" style="padding:12px;background:#FFFDF7"><div class="small"><b>Skills &amp; résumé file:</b> List at least 5 job-specific skills and upload a clean PDF résumé.</div></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="veil">' +
+            '<div class="lock-panel">' +
+              '<div class="lock-icon" aria-hidden="true">' + ic('lock', 20) + '</div>' +
+              '<h3>Résumé review is part of Pro</h3>' +
+              '<p>Get a 0–100 résumé score, highlight your strong areas, and unlock specific fixes before employers see your profile.</p>' +
+              '<div class="lock-perks"><span class="badge ok">0–100 score</span><span class="badge brand">Line-by-line fixes</span><span class="badge">Fair-hiring safe</span></div>' +
+              '<a class="btn" href="#/pro">' + ic('crown', 16) + 'See JobMatch Pro</a>' +
+            '</div>' +
+          '</div>' +
+        '</div></div>';
       JM.showReview = show;
       return '<div class="page narrow">' + JM.pageHead('Résumé review', 'Get a score and specific fixes before employers see your profile.') + body + '</div>';
     }
