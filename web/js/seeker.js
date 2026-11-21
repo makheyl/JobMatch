@@ -743,8 +743,10 @@
     const root = document.getElementById('deck'); if (!root) return;
     const items = JM.deckItems || [], stack = items.slice(0, 3);
     root.innerHTML = stack.length ? stack.map(function (j, i) { return cardHtml(j, i); }).reverse().join('') : '';
+    root.classList.toggle('hide', !stack.length);
     const empty = document.getElementById('deck-empty'); if (empty) empty.classList.toggle('hide', !!stack.length);
     const tools = document.getElementById('deck-tools'); if (tools) tools.classList.toggle('hide', !stack.length);
+    const hint = document.getElementById('deck-hint'); if (hint) hint.classList.toggle('hide', !stack.length);
     const stars = document.getElementById('stars-left'); if (stars) { const n = JM.me.seeker.stars_left; stars.textContent = n >= 999 ? 'Unlimited stars' : n + (n === 1 ? ' star left today' : ' stars left today'); }
     JM.hydrateImages(root);
     preloadNext(items);
@@ -929,10 +931,10 @@
         return '<div class="card flat card-b mb" style="padding:12px;margin-bottom:8px"><div class="row wrap between"><div><b>' + esc(iv.job_title) + '</b> <span class="small muted">· ' + esc(iv.employer_name) + '</span><div class="xs muted mt" style="margin-top:4px">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + JM.badge(iv.interview_type, 'brand') + ' · ' + loc + '</div></div><div class="row gap-s">' + JM.badge(iv.status, stCls) + (iv.status === 'scheduled' ? '<button class="btn ok sm" data-act="ivstatus" data-id="' + iv.id + '" data-s="confirmed">Confirm</button>' : '') + '</div></div></div>';
       }).join('') + '</div>' : '';
     const f = JM.me.seeker.filters || {}, nf = (f.nearMe ? 1 : 0) + (f.type ? 1 : 0) + (f.setup ? 1 : 0) + (f.area ? 1 : 0) + (f.minSalary ? 1 : 0), isPaid = JM.me.seeker.plan === 'pro';
-    const setupBar = '<div class="chips" style="margin-bottom:8px">' + [''].concat(SETUPS).map(function (s) {
+    const setupBar = '<div class="chips deck-chips" style="margin-bottom:6px">' + [''].concat(SETUPS).map(function (s) {
       return '<button type="button" class="chip' + ((f.setup || '') === s ? ' on' : '') + '" data-act="quicksetup" data-s="' + esc(s) + '">' + (s ? ic(JM.setupIcon(s), 13) + esc(s) : 'All setups') + '</button>';
     }).join('') + '</div>';
-    const typeBar = '<div class="chips mb">' + [''].concat(TYPES).map(function (t) {
+    const typeBar = '<div class="chips deck-chips" style="margin-bottom:10px">' + [''].concat(TYPES).map(function (t) {
       return '<button type="button" class="chip' + ((f.type || '') === t ? ' on' : '') + '" data-act="quicktype" data-t="' + esc(t) + '">' + (t || 'All work types') + '</button>';
     }).join('') + '</div>';
     return '<div class="page narrow">' + ivBox + '<div class="row between wrap mb"><div><h1 style="font-size:22px">Discover</h1><div class="small muted" id="stars-left"></div></div><div class="row gap-s wrap"><button class="btn secondary sm" data-act="swipehistory">' + ic(isPaid ? 'clock' : 'lock', 15) + 'History</button><button class="btn secondary sm" data-act="requeue">' + ic('undo', 15) + 'Passed</button><button class="btn secondary sm" data-act="filters">' + ic('sliders', 16) + 'Filters' + (nf ? ' (' + nf + ')' : '') + '</button></div></div>' +
@@ -965,7 +967,7 @@
     return '<div class="page narrow"><a class="small row gap-s" href="#/deck" style="margin-bottom:14px">' + ic('left', 16) + 'Back</a>' +
       '<div class="card card-b"><div class="row" style="align-items:flex-start"><div class="grow"><div class="row gap-s wrap">' + (j.boosted ? JM.badge('Featured', 'star') : '') + JM.badge(j.type, 'brand') + JM.setupBadge(j.work_setup, j.onsite_days) + (j.company.verified ? JM.badge('Verified business', 'ok') : '') + '</div><h1 style="margin-top:12px">' + esc(j.title) + '</h1><p class="muted mt" style="margin-bottom:0">' + esc(j.company.name) + ' · ' + esc(JM.area(j.area_id)) + '</p></div>' + JM.ring(m.score || 0, 64, scoreColor(m.score || 0)) + '</div>' +
       mediaHead +
-      '<div class="row wrap jdetails" style="gap:20px;margin-top:34px"><div><div class="xs muted">Pay</div><b>' + JM.salary(j) + '</b></div><div><div class="xs muted">Work setup</div><b>' + esc(j.work_setup || 'On-site') + (j.work_setup === 'Hybrid' && j.onsite_days ? ' · ' + j.onsite_days + ' days on-site' : '') + '</b></div><div><div class="xs muted">Distance</div><b>' + (isRemote ? 'Remote' : m.dist != null ? m.dist + ' km' : 'n/a') + '</b></div><div><div class="xs muted">Posted</div><b>' + JM.ago(j.posted_at) + '</b></div></div><div class="mt-l">' + cta + '</div></div>' +
+      '<div class="row wrap" style="gap:24px;margin-top:38px"><div><div class="xs muted">Pay</div><b>' + JM.salary(j) + '</b></div><div><div class="xs muted">Work setup</div><b>' + esc(j.work_setup || 'On-site') + (j.work_setup === 'Hybrid' && j.onsite_days ? ' · ' + j.onsite_days + ' days on-site' : '') + '</b></div><div><div class="xs muted">Distance</div><b>' + (isRemote ? 'Remote' : m.dist != null ? m.dist + ' km' : 'n/a') + '</b></div><div><div class="xs muted">Posted</div><b>' + JM.ago(j.posted_at) + '</b></div></div><div class="mt-l">' + cta + '</div></div>' +
       '<div class="card mt"><div class="card-h"><h3>Why you match</h3></div><div class="card-b">' + part('Skills', parts.skills || 0, 55) + part('Location', parts.location || 0, 20) + part('Interests', parts.interest || 0, 15) + part('Pay', parts.salary || 0, 10) +
       '<div class="divider"></div><div class="label">Skills for this job</div><div class="chips">' + JM.skillChips(j) + '</div>' + ((m.missing || []).length ? '<p class="small muted mt" style="margin-bottom:0">Skills in amber are not at a hiring level yet. ' + (j.role_id ? '<a href="#/career/job/' + j.id + '">See how to close the gap</a>.' : '') + '</p>' : '') + '</div></div>' +
       '<div class="card mt"><div class="card-h"><h3>About the job</h3></div><div class="card-b" style="white-space:pre-wrap">' + (j.intern_requirements ? '<div class="notice mb">' + ic('award') + '<div><b>Specific / Intern Requirements:</b> ' + esc(j.intern_requirements) + '</div></div>' : '') + esc(j.description) + '</div></div>' +

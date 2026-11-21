@@ -438,7 +438,7 @@
     JM.cs = { jobs: jobs };
     const qSource = (JM.skillsRaw || []).map(function (s) { return { value: s.name, label: s.name, group: JM.skillCatName(s.name), aliases: s.aliases || [] }; })
       .concat((JM.roles || []).map(function (r) { return { value: r.title, label: r.title, group: 'Role · ' + r.category, aliases: r.aliases || [] }; }));
-    const qTa = JM.typeahead({ id: 'cs-q-ta', name: 'q', value: '', allowCustom: true, minChars: 1, placeholder: 'Skill or role (e.g. Excel, Barista, React)…', source: qSource });
+    const qTa = JM.typeahead({ id: 'cs-q-ta', name: 'q', value: '', allowCustom: true, minChars: 1, placeholder: 'e.g. Excel, Barista, React…', source: qSource });
     const areaTa = JM.typeahead({ id: 'cs-area-ta', name: 'area', value: '', minChars: 0, placeholder: 'Anywhere (or type area)…', source: [{ value: '', label: 'Anywhere' }].concat(JM.areaItems || []) });
     return '<div class="page">' + JM.pageHead('Candidate search', 'These candidates chose to be discoverable. You see a masked name and skills until they apply and you shortlist them.') +
       '<form data-form="csearch" class="card card-b mb"><div class="grid g4"><div class="field" style="margin:0"><label class="label">Skill or role</label>' + qTa + '</div><div class="field" style="margin:0"><label class="label">Area</label>' + areaTa + '</div>' +

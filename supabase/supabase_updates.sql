@@ -2878,7 +2878,7 @@ grant execute on function public.suggest_text(text, text) to authenticated;
 revoke all on function public.add_custom_skill(text, text) from public, anon, authenticated;
 grant execute on function public.add_custom_skill(text, text) to authenticated;
 revoke all on function public.popular_roles() from public, anon, authenticated;
-grant execute on function public.popular_roles() to authenticated;
+grant execute on function public.popular_roles() to anon, authenticated;
 revoke all on function public.admin_custom_role_requests() from public, anon, authenticated;
 grant execute on function public.admin_custom_role_requests() to authenticated;
 
