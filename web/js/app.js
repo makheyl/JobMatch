@@ -33,13 +33,13 @@
     // Preview-before-upload for file inputs marked with data-preview
     if (el.type === 'file' && el.dataset.preview != null && el.files && el.files[0] && !el._pvOk && JM.previewFile) {
       JM.previewFile(el.files[0], {
-        title: el.dataset.preview, titleField: !!el.dataset.pvtitle,
+        title: el.dataset.preview, titleField: !!el.dataset.pvtitle, shape: el.dataset.shape || 'contain',
         onConfirm: function (extra) { el._pvOk = true; el._pvExtra = extra || {}; return fire(el, ev); },
         onCancel: function () { el.value = ''; }
       });
       return;
     }
-    if (el.dataset.in && JM.inputs[el.dataset.in]) { try { await JM.inputs[el.dataset.in](el, ev); } catch (err) { JM.toast(JM.err(err), 'bad'); } finally { el._pvOk = false; } }
+    if (el.dataset.in && JM.inputs[el.dataset.in]) { try { await JM.inputs[el.dataset.in](el, ev); } catch (err) { JM.toast(JM.err(err), 'bad'); } finally { el._pvOk = false; el._pvExtra = null; } }
     else if (ev.type === 'change' && el.tagName === 'INPUT' && el.type === 'checkbox' && el.dataset.act && JM.actions[el.dataset.act]) { try { await JM.actions[el.dataset.act](el, ev); } catch (err) { JM.toast(JM.err(err), 'bad'); } }
   };
   document.addEventListener('input', function (e) {
@@ -59,7 +59,17 @@
     try { inp.files = e.dataTransfer.files; } catch (x) { return; }
     inp.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.getElementById('overlay-root').classList.contains('open')) JM.close(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      if (JM.closeMsgMenu && JM.msgMenuOpen) { JM.closeMsgMenu(); return; }
+      if (document.getElementById('overlay-root').classList.contains('open')) JM.close();
+      return;
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button' && e.target.dataset && e.target.dataset.act) {
+      e.preventDefault();
+      e.target.click();
+    }
+  });
 
   // ---------- realtime ----------
   JM.unsubscribe = function () { if (JM.rt) { JM.sb.removeChannel(JM.rt); JM.rt = null; } };

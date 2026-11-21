@@ -2,15 +2,20 @@
 (function () {
   const JM = window.JM, ic = JM.icon, esc = JM.esc;
 
-  // ---------- messages (seekers and employers) ----------
+  // ---------- messages (seekers and employers — long-press dropdown + real replies) ----------
   JM.route('/messages', { auth: 'both', title: 'Messages', render: function () { return chatPage(null); } });
   JM.route('/messages/:id', { auth: 'both', title: 'Messages', render: function (p) { return chatPage(p.id); } });
   async function chatPage(id) {
+    JM.replyTo = null;
+    if (JM.closeMsgMenu) JM.closeMsgMenu();
     const convs = await JM.rpc('my_conversations'), mine = await JM.q(JM.sb.from('blocks').select('blocked_id'));
     JM.myBlocks = mine.map(function (b) { return b.blocked_id; }); JM.convs = convs;
     const cur = id ? convs.find(function (c) { return c.id === id; }) : null; JM.curConv = cur || null;
+    const convAv = function (c, sz) {
+      return JM.img({ bucket: c.other_avatar_bucket || 'company-logos', path: c.other_avatar, shape: 'circle', size: sz || 38, name: c.other_name, alt: c.other_name });
+    };
     const list = convs.map(function (c) {
-      return '<a class="li" href="#/messages/' + c.id + '" style="' + (cur && cur.id === c.id ? 'background:var(--brand-t)' : '') + '">' + JM.avatar(c.other_name) + '<div class="grow"><div class="row between"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.other_name) + '</b><span class="xs muted">' + JM.ago(c.last_at) + '</span></div><div class="small muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.job_title) + '</div><div class="small ' + (c.unread ? 'bold' : 'muted') + '" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.last_body || 'No messages yet') + '</div></div>' + (c.unread ? '<span class="badge dark">' + c.unread + '</span>' : '') + '</a>';
+      return '<a class="li" href="#/messages/' + c.id + '" style="' + (cur && cur.id === c.id ? 'background:var(--brand-t)' : '') + '">' + convAv(c, 38) + '<div class="grow"><div class="row between"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.other_name) + '</b><span class="xs muted">' + JM.ago(c.last_at) + '</span></div><div class="small muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.job_title) + '</div><div class="small ' + (c.unread ? 'bold' : 'muted') + '" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.last_body || 'No messages yet') + '</div></div>' + (c.unread ? '<span class="badge dark">' + c.unread + '</span>' : '') + '</a>';
     }).join('');
     let thread = '<div class="pane thread-pane">' + JM.empty('chat', 'Select a conversation', 'Chats open when an employer shortlists an applicant.') + '</div>';
     if (id && !cur) thread = '<div class="pane thread-pane">' + JM.empty('chat', 'Conversation not found', 'It may have been removed.') + '</div>';
@@ -18,23 +23,29 @@
       ? ['Hi! Are you available for a short interview this week?', 'Thanks for applying! Please bring a copy of your résumé.', 'What time works best for a quick call?']
       : ['Hi! I am available for an interview.', 'Thank you for shortlisting me! When is a good time to talk?', 'Could you share the exact interview location or link?'];
     if (cur) {
-      const rawMsgs = await JM.q(JM.sb.from('messages').select('id,sender_id,body,created_at,edited_at,unsent_at,hidden_by').eq('conversation_id', id).order('created_at'));
+      const rawMsgs = await JM.q(JM.sb.from('messages').select('id,sender_id,body,created_at,edited_at,unsent_at,hidden_by,reply_to').eq('conversation_id', id).order('created_at'));
       const msgs = rawMsgs.filter(function (m) { return !Array.isArray(m.hidden_by) || m.hidden_by.indexOf(JM.me.id) < 0; });
       JM.curMsgs = {}; msgs.forEach(function (m) { JM.curMsgs[m.id] = m; });
       JM.rpc('mark_conversation_read', { p_conv: id }).then(function () { JM.loadMe().then(JM.updateBadges); });
       const iBlocked = JM.myBlocks.indexOf(cur.other_id) >= 0;
       const freeSeekerWait = JM.me.role === 'seeker' && JM.me.seeker.plan !== 'pro' && !rawMsgs.some(function (m) { return m.sender_id !== JM.me.id; });
-      thread = '<div class="pane thread-pane"><div class="row" style="padding:12px 16px;border-bottom:1px solid var(--line)"><a class="iconbtn chat-back" href="#/messages" aria-label="Back to conversations">' + ic('left') + '</a>' + JM.avatar(cur.other_name) + '<div class="grow"><b>' + esc(cur.other_name) + '</b><div class="xs muted">' + esc(cur.job_title) + '</div></div>' +
+      let showTip = false;
+      try { if (!localStorage.getItem('jm.msgTipSeen')) { showTip = true; localStorage.setItem('jm.msgTipSeen', '1'); } } catch (e) {}
+      const tipBar = showTip ? '<div class="msg-tip" id="msg-tip"><span>Tip: press and hold a message (or right-click) for Reply, Copy, Edit, Unsend and more.</span><button type="button" class="iconbtn" style="width:24px;height:24px" data-act="hidemsgtip" aria-label="Dismiss tip">' + ic('x', 13) + '</button></div>' : '';
+      thread = '<div class="pane thread-pane"><div class="row" style="padding:12px 16px;border-bottom:1px solid var(--line)"><a class="iconbtn chat-back" href="#/messages" aria-label="Back to conversations">' + ic('left') + '</a>' + convAv(cur, 38) + '<div class="grow"><b>' + esc(cur.other_name) + '</b><div class="xs muted">' + esc(cur.job_title) + '</div></div>' +
         '<button class="iconbtn" data-act="reportuser" data-id="' + cur.other_id + '" aria-label="Report" title="Report">' + ic('flag', 16) + '</button><button class="btn secondary sm" data-act="' + (iBlocked ? 'unblock' : 'block') + '" data-id="' + cur.other_id + '">' + (iBlocked ? 'Unblock' : 'Block') + '</button></div>' +
+        tipBar +
         '<div class="bubbles" id="bubbles">' + (msgs.length ? msgs.map(bubble).join('') : '<p class="center small muted" style="margin:auto">Say hello. Keep it professional.</p>') + '</div>' +
         (cur.blocked ? '<div class="notice warn" style="margin:12px;border-radius:10px">' + ic('lock') + '<span>Messaging is turned off between you and this person.</span></div>' :
           freeSeekerWait ? '<div class="notice warn" style="margin:12px;border-radius:10px">' + ic('lock') + '<span>Free plan users can reply once the employer messages first. <a href="#/pro">Upgrade to Monthly or Annual</a> to initiate conversations.</span></div>' :
+          '<div class="reply-bar hide" id="reply-bar"></div>' +
           '<div class="quick-msgs">' + quickMsgs.map(function (qm) { return '<button type="button" class="chip" data-act="quickmsg" data-msg="' + esc(qm) + '">' + esc(qm) + '</button>'; }).join('') + '</div>' +
           '<form data-form="send" class="row" style="padding:12px;border-top:1px solid var(--line)"><input type="text" name="body" id="chat-input" maxlength="2000" placeholder="Write a message" autocomplete="off" aria-label="Message" style="flex:1"><button class="btn" type="submit" aria-label="Send">' + ic('send', 16) + '</button></form>') + '</div>';
     }
     const canNew = JM.me.role === 'employer' || (JM.me.seeker && JM.me.seeker.plan === 'pro');
     return '<div class="page"><div class="chat' + (id ? ' has-thread' : '') + '"><div class="pane list-pane"><div class="card-h"><h3 class="grow">Conversations</h3>' + (canNew ? '<button class="btn secondary sm" data-act="newmsg">' + ic('plus', 15) + 'New</button>' : '<a class="btn secondary sm" href="#/pro">' + ic('lock', 14) + 'New</a>') + '</div><div class="list" style="overflow:auto">' + (convs.length ? list : JM.empty('chat', 'No conversations yet', canNew ? 'Start a message with a shortlisted match.' : 'You can reply once an employer messages you first.', canNew ? '<button class="btn sm" data-act="newmsg">Start a message</button>' : '<a class="btn sm" href="#/pro">Upgrade to start chats</a>')) + '</div></div>' + thread + '</div></div>';
   }
+  JM.actions.hidemsgtip = function () { const el = document.getElementById('msg-tip'); if (el) el.remove(); };
   JM.actions.quickmsg = function (el) {
     const inp = document.getElementById('chat-input');
     if (inp) { inp.value = el.dataset.msg; inp.focus(); }
@@ -55,13 +66,34 @@
           });
         }
       }
-      const list = items.length ? '<div class="list mt" style="max-height:50vh;overflow:auto">' + items.map(function (x) {
+      const taSearch = items.length ? '<div class="mt">' + JM.typeahead({
+        id: 'newmsg-ta',
+        minChars: 0,
+        placeholder: 'Search matches by name or job…',
+        source: items.map(function (x) { return { value: x.conv_id || x.app_id, label: x.name, group: x.sub, _item: x }; }),
+        onPick: function (it) {
+          const x = it._item; if (!x) return;
+          if (x.conv_id) { JM.close(); JM.go('/messages/' + x.conv_id); }
+          else JM.actions.startmsg({ dataset: { app: x.app_id } });
+        }
+      }) + '</div>' : '';
+      const list = items.length ? '<div class="list mt" style="max-height:46vh;overflow:auto">' + items.map(function (x) {
         return '<div class="li" style="padding:10px 4px">' + JM.avatar(x.name) + '<div class="grow"><b>' + esc(x.name) + '</b><div class="xs muted">' + esc(x.sub) + ' · ' + esc(x.status) + '</div></div>' +
           (x.conv_id ? '<a class="btn sm" href="#/messages/' + x.conv_id + '" data-act="close">Open</a>' : '<button class="btn sm" data-act="startmsg" data-app="' + x.app_id + '">Message</button>') + '</div>';
       }).join('') + '</div>' : '<p class="muted mt">No shortlisted or hired matches yet. Matches appear here once shortlisted.</p>';
-      JM.modal('<h2>Start a message</h2><p class="small muted mt">Choose a shortlisted or hired match to message directly.</p>' + list + '<div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>');
+      JM.modal('<h2>Start a message</h2><p class="small muted mt">Choose a shortlisted or hired match to message directly.</p>' + taSearch + list + '<div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>');
     });
   };
+  function quoteHtml(replyId) {
+    if (!replyId) return '';
+    const orig = (JM.curMsgs || {})[replyId];
+    if (!orig || orig.unsent_at || (Array.isArray(orig.hidden_by) && orig.hidden_by.indexOf(JM.me.id) >= 0)) {
+      return '<div class="msg-quote unavailable">Original message unavailable</div>';
+    }
+    const who = orig.sender_id === JM.me.id ? 'You' : (JM.curConv ? JM.curConv.other_name : 'Match');
+    const snip = String(orig.body || '').replace(/\s+/g, ' ').slice(0, 90);
+    return '<button type="button" class="msg-quote" data-act="jumpmsg" data-id="' + orig.id + '"><b>' + esc(who) + '</b><span>' + esc(snip) + (orig.body.length > 90 ? '…' : '') + '</span></button>';
+  }
   function bubble(m) {
     JM.curMsgs = JM.curMsgs || {};
     JM.curMsgs[m.id] = m;
@@ -69,25 +101,135 @@
     const unsent = !!m.unsent_at;
     const timeStr = new Date(m.created_at).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });
     const editedTag = (!unsent && m.edited_at) ? ' · <span class="msg-edited">edited</span>' : '';
-    const btns = [];
-    if (!unsent) {
-      btns.push('<button type="button" class="msg-act" data-act="replymsg" data-id="' + m.id + '">Reply</button>');
-      if (me) {
-        btns.push('<button type="button" class="msg-act" data-act="editmsg" data-id="' + m.id + '">Edit</button>');
-        btns.push('<button type="button" class="msg-act" data-act="unsendmsg" data-id="' + m.id + '">Unsend</button>');
-      }
-    }
-    btns.push('<button type="button" class="msg-act" data-act="rmmsgme" data-id="' + m.id + '">Remove for you</button>');
-    if (!me && !unsent) {
-      btns.push('<button type="button" class="msg-act" data-act="reportmsg" data-id="' + m.id + '">Report</button>');
-    }
     const textHtml = unsent
       ? '<span class="msg-unsent">' + (me ? 'You unsent a message' : 'This message was unsent') + '</span>'
       : '<div class="msg-body">' + esc(m.body) + '</div>';
-    return '<div class="bub ' + (me ? 'me' : '') + (unsent ? ' unsent' : '') + '" data-mid="' + m.id + '">' +
+    const moreBtn = '<button type="button" class="bub-more" data-act="msgmore" data-id="' + m.id + '" aria-label="Message options" title="Message options">' + ic('more', 14) + '</button>';
+    return '<div class="bub ' + (me ? 'me' : '') + (unsent ? ' unsent' : '') + '" data-mid="' + m.id + '" tabindex="0">' +
+      moreBtn +
+      (!unsent ? quoteHtml(m.reply_to) : '') +
       textHtml +
-      '<small class="msg-meta"><span>' + timeStr + editedTag + '</span><span class="msg-actions">' + btns.join('') + '</span></small></div>';
+      '<small class="msg-meta"><span>' + timeStr + editedTag + '</span></small></div>';
   }
+
+  // ---------- Long-press / context-menu dropdown for message bubbles (Section 4.2-4.3) ----------
+  let openMenuMsgId = null, openMenuTrigger = null;
+  function closeMsgMenu(restoreFocus) {
+    const existing = document.getElementById('msg-menu-wrap');
+    if (existing) existing.remove();
+    const prev = openMenuTrigger;
+    openMenuMsgId = null; openMenuTrigger = null; JM.msgMenuOpen = false;
+    if (restoreFocus && prev && prev.isConnected) { try { prev.focus(); } catch (e) {} }
+  }
+  JM.closeMsgMenu = function () { closeMsgMenu(false); };
+
+  function openMsgMenu(bubEl) {
+    if (!bubEl) return;
+    const id = bubEl.dataset.mid, m = (JM.curMsgs || {})[id];
+    if (!m) return;
+    closeMsgMenu(false);
+    const me = m.sender_id === JM.me.id, unsent = !!m.unsent_at;
+    const items = [];
+    if (!unsent) {
+      items.push({ act: 'replymsg', icon: 'reply', label: 'Reply' });
+      items.push({ act: 'copymsg', icon: 'copy', label: 'Copy' });
+      if (me) {
+        items.push({ act: 'editmsg', icon: 'edit', label: 'Edit' });
+        items.push({ act: 'unsendmsg', icon: 'undo', label: 'Unsend', danger: true });
+      }
+    }
+    items.push({ act: 'rmmsgme', icon: 'trash', label: 'Remove for you' });
+    if (!me && !unsent) items.push({ act: 'reportmsg', icon: 'flag', label: 'Report', danger: true });
+
+    const wrap = document.createElement('div');
+    wrap.id = 'msg-menu-wrap';
+    wrap.className = 'msg-menu-bg';
+    wrap.innerHTML = '<div class="msg-menu" role="menu" aria-label="Message options">' +
+      items.map(function (it) {
+        return '<button type="button" role="menuitem" class="' + (it.danger ? 'danger' : '') + '" data-act="' + it.act + '" data-id="' + id + '">' + ic(it.icon, 15) + '<span>' + it.label + '</span></button>';
+      }).join('') + '</div>';
+    document.body.appendChild(wrap);
+
+    const menu = wrap.querySelector('.msg-menu');
+    const rect = bubEl.getBoundingClientRect();
+    const mw = 200, mh = menu.offsetHeight || (items.length * 40 + 12);
+    let left = me ? (rect.right - mw) : rect.left;
+    left = Math.max(10, Math.min(window.innerWidth - mw - 10, left));
+    let top = rect.bottom + 6;
+    if (top + mh > window.innerHeight - 14) top = Math.max(12, rect.top - mh - 6);
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+
+    openMenuMsgId = id; openMenuTrigger = bubEl; JM.msgMenuOpen = true;
+    if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+
+    const btns = Array.from(menu.querySelectorAll('[role=menuitem]'));
+    if (btns[0]) setTimeout(function () { try { btns[0].focus(); } catch (e) {} }, 10);
+
+    wrap.addEventListener('pointerdown', function (e) {
+      if (e.target === wrap) { e.preventDefault(); closeMsgMenu(true); }
+    });
+    menu.addEventListener('click', function () {
+      setTimeout(function () { closeMsgMenu(false); }, 0);
+    });
+    menu.addEventListener('keydown', function (e) {
+      const idx = btns.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); btns[(idx + 1) % btns.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeMsgMenu(true); }
+    });
+  }
+  JM.actions.msgmore = function (el, ev) {
+    if (ev) ev.stopPropagation();
+    openMsgMenu(el.closest('.bub'));
+  };
+
+  function bindBubblesGestures(box) {
+    if (!box || box._gesturesBound) return;
+    box._gesturesBound = true;
+    let pressTimer = null, pressBub = null, sx = 0, sy = 0;
+    const cancelPress = function () {
+      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      if (pressBub) { pressBub.classList.remove('pressing'); pressBub = null; }
+    };
+    box.addEventListener('pointerdown', function (e) {
+      if (e.button > 0) return;
+      if (e.target.closest('button')) return;
+      const bub = e.target.closest('.bub');
+      if (!bub) return;
+      cancelPress();
+      sx = e.clientX; sy = e.clientY; pressBub = bub;
+      bub.classList.add('pressing');
+      pressTimer = setTimeout(function () {
+        const target = pressBub;
+        cancelPress();
+        if (target && target.isConnected) openMsgMenu(target);
+      }, 450);
+    });
+    box.addEventListener('pointermove', function (e) {
+      if (!pressTimer) return;
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancelPress();
+    });
+    box.addEventListener('pointerup', cancelPress);
+    box.addEventListener('pointercancel', cancelPress);
+    box.addEventListener('scroll', function () { cancelPress(); if (JM.msgMenuOpen) closeMsgMenu(false); }, { passive: true });
+    box.addEventListener('contextmenu', function (e) {
+      const bub = e.target.closest('.bub');
+      if (!bub) return;
+      e.preventDefault();
+      cancelPress();
+      openMsgMenu(bub);
+    });
+    box.addEventListener('keydown', function (e) {
+      const bub = e.target.closest('.bub');
+      if (!bub || e.target !== bub) return;
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+        e.preventDefault();
+        openMsgMenu(bub);
+      }
+    });
+  }
+
   JM.appendBubble = function (m) {
     if (Array.isArray(m.hidden_by) && m.hidden_by.indexOf(JM.me.id) >= 0) return;
     const box = document.getElementById('bubbles'); if (!box) return;
@@ -97,6 +239,7 @@
     box.insertAdjacentHTML('beforeend', bubble(m)); box.scrollTop = box.scrollHeight;
   };
   JM.updateBubble = function (m) {
+    if (openMenuMsgId && openMenuMsgId === m.id) closeMsgMenu(false);
     const box = document.getElementById('bubbles'); if (!box) return;
     if (Array.isArray(m.hidden_by) && m.hidden_by.indexOf(JM.me.id) >= 0) {
       const el = box.querySelector('[data-mid="' + m.id + '"]'); if (el) el.remove();
@@ -105,21 +248,51 @@
     const el = box.querySelector('[data-mid="' + m.id + '"]');
     if (el) el.outerHTML = bubble(m);
   };
-  JM.afterChat = function () { const b = document.getElementById('bubbles'); if (b) b.scrollTop = b.scrollHeight; };
+  JM.afterChat = function () {
+    const b = document.getElementById('bubbles');
+    if (b) { b.scrollTop = b.scrollHeight; bindBubblesGestures(b); }
+  };
+  function drawReplyBar() {
+    const bar = document.getElementById('reply-bar'); if (!bar) return;
+    if (!JM.replyTo) { bar.classList.add('hide'); bar.innerHTML = ''; return; }
+    const m = JM.replyTo;
+    const who = m.sender_id === JM.me.id ? 'yourself' : (JM.curConv ? JM.curConv.other_name : 'match');
+    const snip = String(m.body || '').replace(/\s+/g, ' ').slice(0, 80);
+    bar.innerHTML = '<div class="grow xs"><b>Replying to ' + esc(who) + ':</b> <span class="muted">' + esc(snip) + (m.body.length > 80 ? '…' : '') + '</span></div>' +
+      '<button type="button" class="iconbtn" style="width:26px;height:26px" data-act="cancelreply" aria-label="Cancel reply">' + ic('x', 14) + '</button>';
+    bar.classList.remove('hide');
+  }
+  JM.actions.cancelreply = function () { JM.replyTo = null; drawReplyBar(); };
+  JM.actions.jumpmsg = function (el) {
+    const target = document.querySelector('#bubbles [data-mid="' + el.dataset.id + '"]');
+    if (!target) return JM.toast('Original message is not in view.');
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.remove('bub-flash');
+    void target.offsetWidth;
+    target.classList.add('bub-flash');
+    setTimeout(function () { target.classList.remove('bub-flash'); }, 1200);
+  };
   JM.forms.send = async function (form, d) {
     const body = String(d.body || '').trim(); if (!body || !JM.curConv) return;
+    const replyId = JM.replyTo ? JM.replyTo.id : null;
     const input = form.querySelector('input'); input.value = '';
+    JM.replyTo = null; drawReplyBar();
     try {
-      const r = await JM.rpc('send_message', { p_conv: JM.curConv.id, p_body: body });
-      JM.appendBubble({ id: r.id, sender_id: JM.me.id, body: body, created_at: new Date().toISOString() });
+      const r = await JM.rpc('send_message', { p_conv: JM.curConv.id, p_body: body, p_reply_to: replyId });
+      JM.appendBubble({ id: r.id, sender_id: JM.me.id, body: body, reply_to: replyId, created_at: new Date().toISOString() });
     } catch (e) { input.value = body; JM.toast(JM.err(e), 'bad'); }
   };
   JM.actions.replymsg = function (el) {
     const m = (JM.curMsgs || {})[el.dataset.id]; if (!m || m.unsent_at) return;
-    const inp = document.getElementById('chat-input'); if (!inp) return;
-    const snippet = String(m.body || '').replace(/\s+/g, ' ').slice(0, 60);
-    inp.value = 'Re: "' + snippet + (m.body.length > 60 ? '…' : '') + '" — ';
-    inp.focus();
+    JM.replyTo = m; drawReplyBar();
+    const inp = document.getElementById('chat-input'); if (inp) inp.focus();
+  };
+  JM.actions.copymsg = async function (el) {
+    const m = (JM.curMsgs || {})[el.dataset.id]; if (!m || m.unsent_at) return;
+    try {
+      await navigator.clipboard.writeText(m.body || '');
+      JM.toast('Message copied.', 'ok');
+    } catch (e) { JM.toast('Could not copy to clipboard.', 'bad'); }
   };
   JM.actions.editmsg = function (el) {
     const m = (JM.curMsgs || {})[el.dataset.id]; if (!m || m.unsent_at) return;
@@ -142,7 +315,7 @@
   JM.actions.unsendmsg = function (el) {
     const id = el.dataset.id;
     JM.confirm({
-      title: 'Unsend this message?',
+      title: 'Unsend for everyone?',
       text: 'This message will be unsent for everyone in the chat.',
       ok: 'Unsend',
       danger: true,
@@ -162,7 +335,7 @@
     const id = el.dataset.id;
     JM.confirm({
       title: 'Remove for you?',
-      text: 'This message will be removed from your view. Other participants in the chat will still be able to see it.',
+      text: 'This message will be removed from your view. The other person still sees it.',
       ok: 'Remove for me',
       danger: true,
       onOk: function () {
@@ -202,18 +375,35 @@
 
   // ---------- career ----------
   const rcol = function (v) { return v >= 70 ? 'ok' : v >= 40 ? '' : 'star'; };
+  JM.careerCat = JM.careerCat || '';
   JM.route('/career', { auth: 'seeker', title: 'Career', render: async function () {
     const o = await JM.rpc('career_overview'), g = o.goal;
+    const customGoal = !g && JM.me.seeker && JM.me.seeker.goal_text;
     const goal = g ? '<div class="card card-b mb"><div class="row" style="gap:18px;flex-wrap:wrap">' + JM.ring(g.readiness.ready, 72, g.readiness.ready >= 70 ? '#14804F' : '#0C70F8') + '<div class="grow"><div class="xs muted bold" style="text-transform:uppercase;letter-spacing:.05em">Your goal</div><h2>' + esc(g.role.title) + '</h2><p class="muted small" style="margin:4px 0 0">You are ' + g.readiness.ready + '% ready. Finish roadmap tasks to raise it.</p></div><a class="btn" href="#/career/role/' + g.role.id + '">Open roadmap</a></div></div>' :
+      customGoal ? '<div class="card card-b mb tint"><div class="row wrap between"><div><div class="xs muted bold" style="text-transform:uppercase;letter-spacing:.05em">Your custom goal</div><h2>' + esc(JM.me.seeker.goal_text) + '</h2><p class="small muted" style="margin:4px 0 0">Pick a similar role below to follow a structured 4-week roadmap, or update your goal anytime.</p></div><a class="btn secondary sm" href="#/profile">Edit goal</a></div></div>' :
       '<div class="notice mb">' + ic('award') + '<span>Choose a career goal in your <a href="#/profile">profile</a> to get a personal roadmap.</span></div>';
     const tracked = o.tracked.length ? '<h3 class="mb">Jobs you are going for</h3><div class="card list mb">' + o.tracked.map(function (t) {
       return '<a class="li" href="#/career/job/' + t.job_id + '" style="color:inherit"><div class="avatar sq">' + esc(JM.initials(t.company)) + '</div><div class="grow"><div class="bold">' + esc(t.title) + '</div><div class="small muted">' + esc(t.company) + ' · ' + t.reason + '</div></div><div style="width:110px">' + JM.bar(t.ready, rcol(t.ready)) + '<div class="xs muted" style="margin-top:3px;text-align:right">' + t.ready + '% ready</div></div>' + ic('right', 16) + '</a>';
     }).join('') + '</div>' : '';
-    const roles = '<h3 class="mb">Explore roles</h3><div class="grid g3">' + o.roles.map(function (r) {
+    const allCats = Array.from(new Set(o.roles.map(function (r) { return r.category; }))).sort();
+    const roleSearch = '<div class="mb">' + JM.typeahead({
+      id: 'career-role-ta',
+      minChars: 1,
+      max: 10,
+      placeholder: 'Search ' + o.roles.length + ' career roles by title or category…',
+      source: o.roles.map(function (r) { return { value: r.id, label: r.title, group: r.category }; }),
+      onPick: function (item) { JM.go('/career/role/' + item.value); }
+    }) + '</div>';
+    const catChips = '<div class="chips mb">' + [''].concat(allCats).map(function (c) {
+      return '<button type="button" class="chip' + (JM.careerCat === c ? ' on' : '') + '" data-act="careercat" data-c="' + esc(c) + '">' + (c || 'All categories (' + o.roles.length + ')') + '</button>';
+    }).join('') + '</div>';
+    const filtered = JM.careerCat ? o.roles.filter(function (r) { return r.category === JM.careerCat; }) : o.roles;
+    const roles = '<h3 class="mb">Explore roles</h3>' + roleSearch + catChips + '<div class="grid g3">' + filtered.map(function (r) {
       return '<a class="card card-b" href="#/career/role/' + r.id + '" style="color:inherit"><div class="xs muted">' + esc(r.category) + '</div><h3 style="margin:4px 0 8px">' + esc(r.title) + '</h3><div class="small" style="color:var(--ink2)">' + JM.peso(r.salary.min) + ' – ' + Number(r.salary.max).toLocaleString('en-PH') + ' / mo</div></a>';
     }).join('') + '</div>';
     return '<div class="page">' + JM.pageHead('Career', 'See what each job needs and build a plan to get there.') + goal + tracked + roles + '</div>';
   } });
+  JM.actions.careercat = function (el) { JM.careerCat = el.dataset.c || ''; JM.render(); };
   const wt = function (t) { return String(t || '').replace(/^Week\s*\d+\s*:\s*/i, ''); };
   JM.openWeeks = JM.openWeeks || {};
   document.addEventListener('toggle', function (e) { const d = e.target; if (d.classList && d.classList.contains('week')) JM.openWeeks[d.dataset.w] = d.open; }, true);
@@ -261,7 +451,7 @@
       '<div class="card card-b mb"><div class="row" style="gap:18px;flex-wrap:wrap;align-items:flex-start">' + JM.ring(rd.ready, 76, rd.ready >= 70 ? '#14804F' : '#0C70F8') + '<div class="grow" style="min-width:240px"><div class="xs muted">' + esc(r.category) + (b.job ? ' · from ' + esc(b.job.company) : '') + '</div><h1 style="font-size:24px;margin:2px 0 6px">' + esc(r.title) + '</h1><p class="muted" style="margin:0">' + esc(r.overview) + '</p></div>' +
       '<div><div class="xs muted">Typical pay</div><b style="font-size:18px">' + JM.peso(s.min) + ' – ' + Number(s.max).toLocaleString('en-PH') + '</b><div class="xs muted" style="max-width:190px">' + esc(s.source) + '</div></div></div></div>' +
       progressCard +
-      '<div class="grid g2" style="align-items:start"><div><div class="card mb"><div class="card-h"><h3>Skill readiness</h3></div><div class="card-b">' + rd.skills.map(function (x) { return '<div class="skill"><div class="row between"><span>' + esc(x.name) + '</span><b class="num">' + x.pct + '%</b></div>' + JM.bar(x.pct, rcol(x.pct)) + '</div>'; }).join('') +
+      '<div class="grid g2" style="align-items:start"><div><div class="card mb"><div class="card-h"><h3>Skill readiness</h3></div><div class="card-b">' + rd.skills.map(function (x) { return '<div class="skill"><div class="row between"><span>' + esc(x.name) + ' <span class="xs muted">· ' + esc(JM.skillCatName(x.name)) + '</span></span><b class="num">' + x.pct + '%</b></div>' + JM.bar(x.pct, rcol(x.pct)) + '</div>'; }).join('') +
       (needs.length ? '<p class="small muted" style="margin:0">Focus on ' + needs.slice(0, 3).map(function (n) { return '<b>' + esc(n.name) + '</b>'; }).join(', ') + ' first.</p>' : '<p class="small" style="margin:0;color:var(--ok)">You meet the bar for every skill. Time to apply.</p>') + '</div></div>' +
       '<div class="card mb"><div class="card-h"><h3>What you will do</h3></div><div class="card-b"><ul class="small" style="margin:0;padding-left:18px;line-height:1.8;color:var(--ink2)">' + (r.duties || []).map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul></div></div></div>' +
       '<div><h3 class="mb">Your roadmap</h3>' + weeks + '<div class="mt">' + (pro ? '<div class="card mb"><div class="card-h"><h3>Growth path</h3></div><div class="card-b">' + growth + '</div></div><div class="card"><div class="card-h"><h3>Recommended courses</h3></div><div class="card-b list" style="padding-top:0;padding-bottom:0">' + courses + '</div></div>' : lockCard) + '</div></div></div></div>';

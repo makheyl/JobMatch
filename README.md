@@ -7,10 +7,10 @@ Job matching and career guidance for Biñan, Laguna. A static website (installab
 | Path | What it is |
 | --- | --- |
 | `web/` | The whole website. No build step. Upload this folder to any static host. |
-| `supabase/migrations/` | Database: tables, row level security, server-side logic, reference data, storage. Run in order 001 to 005. |
-| `supabase/functions/` | Edge functions: `checkout`, `resume-review`, `delete-account`, `send-push`. |
+| `supabase/migrations/` | Database: tables, row level security, server-side logic, reference data, storage (`resumes`, `verification-docs`, `seeker-media`, `company-logos`, `job-photos`). Run in order `001` to `011`. |
+| `supabase/functions/` | Edge functions: `checkout`, `resume-review`, `parse-resume`, `candidate-overview`, `delete-account`, `send-push`. |
 | `supabase/seed_demo.sql` | Optional fictional demo data and demo logins. Never run it on a real production database. |
-| `firebase.json`, `web/_headers` | Security headers (CSP) for Firebase Hosting and for Netlify or Cloudflare Pages. |
+| `firebase.json`, `web/_headers`, `web/vercel.json` | Security headers (CSP including Supabase Storage `img-src`) for Firebase Hosting, Netlify/Cloudflare Pages, and Vercel. |
 | `DEPLOY.md` | Step by step: go live, then the launch checklist. |
 
 ## How it works

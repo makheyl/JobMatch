@@ -28,23 +28,23 @@ function ruleReview(c: { summary: string; skills: string[]; experience: { role?:
   const s = c.summary.trim();
   const expText = c.experience.map((e) => `${e.role ?? ''} ${e.org ?? ''} ${e.years ?? ''}`).join(' ');
 
-  if (s.length >= 60 && s.length <= 600) {
+  if (s.length >= 120 && s.length <= 2000) {
     score += 20;
-    strengths.push('Clear, well-sized professional summary that introduces your background concisely.');
-  } else if (s.length < 60) {
+    strengths.push('Detailed, well-structured professional summary that clearly presents your background and readiness.');
+  } else if (s.length < 120) {
     weaknesses.push({
       area: 'Professional Summary',
-      issue: 'Your summary is too brief or missing, making it harder for recruiters to grasp your strengths in the first 10 seconds.',
-      solution: 'Write a focused 2–3 sentence summary covering your background, top 2–3 skills, and target role.',
-      example: 'Example: "Detail-oriented BS Business Administration graduate skilled in customer service, POS operations, and Excel, seeking a Sales Associate role in Biñan."'
+      issue: 'Your summary is too brief or missing, making it harder for recruiters to grasp your strengths quickly.',
+      solution: 'Write a detailed 120–250 word summary covering your target role, education, experience highlights, key skills, and availability.',
+      example: 'Example: Cover your target role & work setup, education, measurable OJT/work highlights, top categorized skills, and credentials.'
     });
   } else {
-    score += 12;
+    score += 14;
     weaknesses.push({
       area: 'Summary Length',
-      issue: 'Your summary exceeds 600 characters and may be skipped by busy MSME employers.',
-      solution: 'Trim filler words and keep your summary to 3–4 crisp lines.',
-      example: 'Example: Focus on 1 sentence for background, 1 for key skills/results, and 1 for your target role.'
+      issue: 'Your summary exceeds 2,000 characters and may feel dense on mobile screens.',
+      solution: 'Keep your summary focused around 120–250 words in 2–3 short paragraphs.',
+      example: 'Example: 1 paragraph for headline & education, 1 for experience & highlights, and 1 for grouped skills & availability.'
     });
   }
 
@@ -152,7 +152,7 @@ async function aiReview(text: string): Promise<Review | null> {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-3-5-haiku-latest',
+        model: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-haiku-4-5-20251001',
         max_tokens: 1100,
         system: 'You review résumés for Filipino job seekers. Be detailed, specific, kind and practical. Never mention or infer age, gender, religion or appearance. Reply with JSON only: {"score":0-100,"summary":"one clear sentence","strengths":["..."],"weaknesses":[{"area":"...","issue":"...","solution":"...","example":"..."}],"recommendations":["..."]}.',
         messages: [{ role: 'user', content: text.slice(0, 6000) }],
@@ -211,10 +211,15 @@ Deno.serve(async (req) => {
 
     const skills = (sk ?? []).map((k) => k.skill as string);
     const experience = (sp.experience ?? []) as { role?: string; org?: string; years?: string }[];
+    const certs = Array.isArray(sp.certificates) ? (sp.certificates as { title?: string }[]).map((c) => c.title).filter(Boolean) : [];
     const compiled = [
-      `Goal: ${sp.goal_text}`, `Summary: ${sp.resume_summary}`, `Education: ${sp.edu_level}, ${sp.course}, ${sp.school}`,
+      `Goal: ${sp.goal_text}${sp.goal_level ? ` (${sp.goal_level})` : ''}`,
+      `Work setups: ${(sp.work_setups ?? []).join(', ')}`,
+      `Summary: ${sp.resume_summary}`,
+      `Education: ${sp.edu_level}, ${sp.course}, ${sp.school}${sp.grad_year ? ` (${sp.grad_year})` : ''}`,
       `Skills: ${(sk ?? []).map((k) => `${k.skill} (${k.level})`).join(', ')}`,
       `Experience: ${experience.map((e) => `${e.role} at ${e.org} (${e.years} yr)`).join('; ')}`,
+      certs.length ? `Credentials: ${certs.join(', ')}` : '',
       link ? `Resume link provided: yes` : '',
     ].filter(Boolean).join('\n');
 

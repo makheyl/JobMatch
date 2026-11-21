@@ -20,8 +20,10 @@
     const q = await JM.rpc('admin_verification_queue'), pending = q.filter(function (e) { return e.status === 'pending'; });
     const card = function (e) {
       const st = e.status === 'verified' ? ['Verified', 'ok'] : e.status === 'rejected' ? ['Rejected', 'bad'] : ['Pending', 'warn'];
-      return '<div class="card card-b mb"><div class="row wrap" style="align-items:flex-start"><div class="avatar lg sq">' + esc(JM.initials(e.name)) + '</div><div class="grow"><div class="row gap-s wrap"><h3>' + esc(e.name) + '</h3>' + JM.badge(st[0], st[1]) + '</div><div class="small muted">' + esc(e.type) + ' · submitted ' + JM.ago(e.submitted_at) + '</div><div class="small mt">' + esc(e.address) + '<br>' + esc(e.contact_name) + ' · ' + esc(e.contact_phone) + ' · ' + esc(e.contact_email) + '</div>' + (e.reason ? '<div class="small mt" style="color:var(--bad)">Reason: ' + esc(e.reason) + '</div>' : '') + '</div></div>' +
-        '<div class="row wrap mt">' + e.docs.map(function (d) { return '<button class="btn secondary sm" data-act="viewdoc" data-path="' + esc(d.path) + '">' + ic('file', 15) + esc(d.kind) + '</button>'; }).join('') + '</div>' +
+      return '<div class="card card-b mb"><div class="row wrap" style="align-items:flex-start">' +
+        JM.img({ bucket: 'company-logos', path: e.logo_path, shape: 'circle', size: 52, name: e.name, act: e.logo_path ? 'imgview' : '', title: e.name }) +
+        '<div class="grow"><div class="row gap-s wrap"><h3>' + esc(e.name) + '</h3>' + JM.badge(st[0], st[1]) + '</div><div class="small muted">' + esc(e.type) + ' · submitted ' + JM.ago(e.submitted_at) + '</div><div class="small mt">' + esc(e.address) + '<br>' + esc(e.contact_name) + ' · ' + esc(e.contact_phone) + ' · ' + esc(e.contact_email) + '</div>' + (e.reason ? '<div class="small mt" style="color:var(--bad)">Reason: ' + esc(e.reason) + '</div>' : '') + '</div></div>' +
+        '<div class="row wrap mt">' + e.docs.map(function (d) { return '<button class="btn secondary sm" data-act="mediaview" data-bucket="verification-docs" data-path="' + esc(d.path) + '" data-title="' + esc(e.name + ' – ' + d.kind) + '">' + ic('file', 15) + esc(d.kind) + '</button>'; }).join('') + '</div>' +
         '<div class="row wrap mt">' + (e.status === 'pending' ? '<button class="btn ok" data-act="approve" data-id="' + e.user_id + '" data-name="' + esc(e.name) + '">Approve</button><button class="btn secondary danger" data-act="reject" data-id="' + e.user_id + '">Reject</button>' : e.status === 'verified' ? '<button class="btn secondary danger sm" data-act="revoke" data-id="' + e.user_id + '" data-name="' + esc(e.name) + '">Revoke verification</button>' : '') + '</div></div>';
     };
     return '<div class="page narrow">' + JM.pageHead('Employer verification', pending.length + ' awaiting review') + (q.length ? q.map(card).join('') : '<div class="card">' + JM.empty('shield', 'Nothing to review', 'New employer registrations appear here.') + '</div>') + '</div>';
@@ -107,28 +109,57 @@
   };
 
   // ---------- career data ----------
-  JM.cdTab = 'roles';
+  JM.cdTab = 'roles'; JM.cdRoleCat = ''; JM.cdSkillCat = '';
   JM.route('/admin/career', { auth: 'admin', title: 'Career data', render: async function () {
     const t = JM.cdTab;
     const tabs = '<div class="tabs">' + [['roles', 'Roles'], ['skills', 'Skills'], ['quiz', 'Quiz questions']].map(function (x) { return '<button class="' + (t === x[0] ? 'on' : '') + '" data-act="cdtab" data-t="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
     let body = '';
     if (t === 'roles') {
-      const roles = await JM.q(JM.sb.from('career_roles').select('id,title,category,salary_min,salary_max,active').order('title'));
-      body = '<div class="row between mb"><span class="muted small">' + roles.length + ' roles. Roadmaps are generated per role; new roles start without roadmap tasks.</span><button class="btn" data-act="editrole" data-id="">' + ic('plus', 16) + 'Add role</button></div><div class="card"><div class="tablewrap"><table><thead><tr><th>Role</th><th>Category</th><th>Typical pay</th><th>Status</th><th></th></tr></thead><tbody>' + roles.map(function (r) { return '<tr><td><b>' + esc(r.title) + '</b></td><td>' + esc(r.category) + '</td><td class="small">' + JM.peso(r.salary_min) + ' – ' + Number(r.salary_max).toLocaleString('en-PH') + '</td><td>' + JM.badge(r.active ? 'Active' : 'Hidden', r.active ? 'ok' : '') + '</td><td><button class="btn secondary sm" data-act="editrole" data-id="' + r.id + '">Edit</button></td></tr>'; }).join('') + '</tbody></table></div></div>';
+      const roles = await JM.q(JM.sb.from('career_roles').select('id,title,category,level,salary_min,salary_max,active').order('title'));
+      let reqs = []; try { reqs = await JM.rpc('admin_custom_role_requests'); } catch (e) { reqs = []; }
+      const cats = Array.from(new Set(roles.map(function (r) { return r.category; }))).sort();
+      const filtered = JM.cdRoleCat ? roles.filter(function (r) { return r.category === JM.cdRoleCat; }) : roles;
+      const reqBox = reqs.length ? '<div class="card mb"><div class="card-h"><h3>Custom role requests (' + reqs.length + ')</h3><span class="xs muted">Submitted via "Other / specify"</span></div><div class="list">' +
+        reqs.slice(0, 15).map(function (rq) {
+          return '<div class="li"><div class="grow"><b>' + esc(rq.label) + '</b> <span class="xs muted">· ' + esc(rq.source) + ' (' + rq.count + ')</span></div><button class="btn secondary sm" data-act="editrole" data-id="" data-prefill="' + esc(rq.label) + '">Promote to role</button></div>';
+        }).join('') + '</div></div>' : '';
+      body = reqBox + '<div class="row between wrap mb"><div class="row gap-s wrap"><span class="muted small">' + filtered.length + ' of ' + roles.length + ' roles</span><select data-in="cdrcat" style="width:200px;height:34px"><option value="">All categories</option>' + cats.map(function (c) { return '<option' + (JM.cdRoleCat === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div><button class="btn" data-act="editrole" data-id="">' + ic('plus', 16) + 'Add role</button></div>' +
+        '<div class="card"><div class="tablewrap"><table><thead><tr><th>Role</th><th>Category</th><th>Level</th><th>Typical pay</th><th>Status</th><th></th></tr></thead><tbody>' +
+        filtered.map(function (r) { return '<tr><td><b>' + esc(r.title) + '</b></td><td>' + esc(r.category) + '</td><td class="small">' + esc(r.level || 'Entry') + '</td><td class="small">' + JM.peso(r.salary_min) + ' – ' + Number(r.salary_max).toLocaleString('en-PH') + '</td><td>' + JM.badge(r.active ? 'Active' : 'Hidden', r.active ? 'ok' : '') + '</td><td><button class="btn secondary sm" data-act="editrole" data-id="' + r.id + '">Edit</button></td></tr>'; }).join('') + '</tbody></table></div></div>';
     } else if (t === 'skills') {
-      const sk = await JM.q(JM.sb.from('skills').select('name,active').order('name'));
-      body = '<form data-form="addskill" class="row mb"><input type="text" name="name" placeholder="New skill name" maxlength="60" required style="max-width:300px"><button class="btn" type="submit">Add skill</button></form><div class="card card-b"><div class="chips">' + sk.map(function (s) { return '<button class="chip' + (s.active ? '' : ' ') + '" style="' + (s.active ? '' : 'opacity:.5;text-decoration:line-through') + '" data-act="toggleskill" data-n="' + esc(s.name) + '" data-a="' + s.active + '" title="Click to ' + (s.active ? 'hide' : 'show') + '">' + esc(s.name) + '</button>'; }).join('') + '</div><p class="help mt">Click a skill to hide or show it. Hidden skills cannot be picked by new profiles or listings.</p></div>';
+      const sk = await JM.q(JM.sb.from('skills').select('name,category,is_custom,active').order('name'));
+      const cats = JM.skillCategories || [];
+      const custom = sk.filter(function (s) { return s.is_custom; });
+      const filtered = JM.cdSkillCat ? sk.filter(function (s) { return s.category === JM.cdSkillCat; }) : sk;
+      const customBox = custom.length ? '<div class="card mb"><div class="card-h"><h3>Custom skills review (' + custom.length + ')</h3><span class="xs muted">Added by users</span></div><div class="list">' +
+        custom.map(function (s) {
+          return '<div class="li" style="flex-wrap:wrap"><b class="grow">' + esc(s.name) + '</b><select data-in="skcatupd" data-n="' + esc(s.name) + '" style="width:210px;height:32px;font-size:12.5px">' +
+            cats.map(function (c) { return '<option value="' + esc(c.id) + '"' + (s.category === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') +
+            '</select><button class="btn secondary sm" data-act="toggleskill" data-n="' + esc(s.name) + '" data-a="' + s.active + '">' + (s.active ? 'Hide' : 'Show') + '</button></div>';
+        }).join('') + '</div></div>' : '';
+      body = customBox + '<form data-form="addskill" class="row wrap mb"><input type="text" name="name" placeholder="New skill name" maxlength="60" required style="max-width:260px">' +
+        '<select name="category" style="max-width:240px">' + cats.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
+        '<button class="btn" type="submit">Add skill</button>' +
+        '<select data-in="cdscat" style="max-width:220px;margin-left:auto"><option value="">All categories (' + sk.length + ')</option>' + cats.map(function (c) { return '<option value="' + esc(c.id) + '"' + (JM.cdSkillCat === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select></form>' +
+        '<div class="card card-b"><div class="chips">' + filtered.map(function (s) { return '<button class="chip" style="' + (s.active ? '' : 'opacity:.5;text-decoration:line-through') + '" data-act="toggleskill" data-n="' + esc(s.name) + '" data-a="' + s.active + '" title="' + esc(JM.skillCatName(s.name)) + ' · Click to ' + (s.active ? 'hide' : 'show') + '">' + esc(s.name) + '</button>'; }).join('') + '</div><p class="help mt">Click a skill to hide or show it. Hidden skills cannot be picked by new profiles or listings.</p></div>';
     } else {
       const skills = await JM.q(JM.sb.from('skills').select('name').order('name')); JM.cdSkill = JM.cdSkill || skills[0].name;
       const qs = await JM.q(JM.sb.from('quiz_questions').select('*').eq('skill', JM.cdSkill).order('id'));
-      body = '<div class="row wrap mb"><select id="cd-skill" data-in="cdskill" style="max-width:280px">' + skills.map(function (s) { return '<option' + (s.name === JM.cdSkill ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select><button class="btn" data-act="addq">' + ic('plus', 16) + 'Add question</button><span class="small muted">The first three questions per skill are used in quizzes.</span></div>' +
+      const skillTa = JM.typeahead({ id: 'cd-skill-ta', value: JM.cdSkill, label: JM.cdSkill, minChars: 0, max: 12, placeholder: 'Search skill…', source: skills.map(function (s) { return { value: s.name, label: s.name, group: JM.skillCatName(s.name) }; }), onPick: function (it) { JM.cdSkill = it.value; JM.render(); } });
+      body = '<div class="row wrap mb"><div style="min-width:260px">' + skillTa + '</div><button class="btn" data-act="addq">' + ic('plus', 16) + 'Add question</button><span class="small muted">Up to 5 questions per skill are used in quizzes.</span></div>' +
         (qs.length ? '<div class="card list">' + qs.map(function (q) { return '<div class="li" style="align-items:flex-start"><div class="grow"><b>' + esc(q.question) + '</b><div class="small muted mt">' + q.options.map(function (o, i) { return (i === q.answer ? '<b style="color:var(--ok)">' : '') + esc(o) + (i === q.answer ? ' (correct)</b>' : '') ; }).join(' · ') + '</div></div><button class="iconbtn" data-act="delq" data-id="' + q.id + '" aria-label="Delete question" style="width:32px;height:32px">' + ic('trash', 15) + '</button></div>'; }).join('') + '</div>' : '<div class="card">' + JM.empty('book', 'No questions for this skill', 'Quizzes fall back to a self-rating until you add questions.') + '</div>');
     }
     return '<div class="page">' + JM.pageHead('Career data', 'Manage the roles, skills and quiz questions that power matching and roadmaps.') + tabs + body + '</div>';
   } });
   JM.actions.cdtab = function (el) { JM.cdTab = el.dataset.t; JM.render(); };
+  JM.inputs.cdrcat = function (el) { JM.cdRoleCat = el.value; JM.render(); };
+  JM.inputs.cdscat = function (el) { JM.cdSkillCat = el.value; JM.render(); };
+  JM.inputs.skcatupd = async function (el) {
+    await JM.q(JM.sb.from('skills').update({ category: el.value, is_custom: false }).eq('name', el.dataset.n));
+    await JM.loadRef(); JM.toast('Skill categorized.', 'ok'); JM.render();
+  };
   JM.inputs.cdskill = function (el) { JM.cdSkill = el.value; JM.render(); };
-  JM.forms.addskill = async function (form, d) { await JM.q(JM.sb.from('skills').insert({ name: d.name.trim() })); await JM.loadRef(); JM.toast('Added.', 'ok'); JM.render(); };
+  JM.forms.addskill = async function (form, d) { await JM.q(JM.sb.from('skills').insert({ name: d.name.trim(), category: d.category || 'core' })); await JM.loadRef(); JM.toast('Added.', 'ok'); JM.render(); };
   JM.actions.toggleskill = async function (el) { await JM.busy(el, async function () { await JM.q(JM.sb.from('skills').update({ active: el.dataset.a !== 'true' }).eq('name', el.dataset.n)); await JM.loadRef(); JM.render(); }); };
   JM.actions.addq = function () {
     JM.modal('<h2>Add question for ' + esc(JM.cdSkill) + '</h2><form data-form="addq" class="mt"><div class="field"><label class="label">Question</label><input type="text" name="question" required></div><div class="field"><label class="label">Answer options (one per line, 2 to 5)</label><textarea name="options" required></textarea></div><div class="field"><label class="label">Number of the correct option (1 is the first line)</label><input type="number" name="answer" min="1" max="5" value="1" required></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">Add</button></div></form>');
@@ -141,14 +172,19 @@
   JM.actions.delq = function (el) { JM.confirm({ title: 'Delete this question?', text: '', ok: 'Delete', danger: true, onOk: function () { JM.busy(null, async function () { await JM.q(JM.sb.from('quiz_questions').delete().eq('id', el.dataset.id)); JM.render(); }); } }); };
   JM.actions.editrole = async function (el) {
     await JM.busy(el, async function () {
-      const id = el.dataset.id; let r = { id: '', title: '', category: (JM.categories || [])[0] || '', salary_min: 12000, salary_max: 16000, overview: '', duties: [], growth: [], courses: [], active: true }, rs = [];
+      const id = el.dataset.id, prefill = el.dataset.prefill || '';
+      const slug = prefill ? prefill.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '';
+      let r = { id: slug, title: prefill, category: (JM.categories || [])[0] || '', level: 'Entry', aliases: [], salary_min: 14000, salary_max: 22000, overview: '', duties: [], growth: [], courses: [], active: true }, rs = [];
       if (id) { r = await JM.q(JM.sb.from('career_roles').select('*').eq('id', id).single()); rs = await JM.q(JM.sb.from('role_skills').select('skill,weight').eq('role_id', id).order('weight', { ascending: false })); }
+      const catTa = JM.typeahead({ id: 'adm-cat-ta', name: 'category', value: r.category, label: r.category, allowCustom: true, minChars: 0, placeholder: 'Select or type category…', source: (JM.categories || []).map(function (c) { return { value: c, label: c }; }), required: true });
       JM.modal('<h2>' + (id ? 'Edit role' : 'Add role') + '</h2><form data-form="role" data-id="' + esc(id) + '" class="mt">' +
-        (id ? '' : '<div class="field"><label class="label">ID (short, lowercase, hyphens)</label><input type="text" name="id" pattern="[a-z0-9-]+" required></div>') +
-        '<div class="grid g2"><div class="field"><label class="label">Title</label><input type="text" name="title" value="' + esc(r.title) + '" required></div><div class="field"><label class="label">Category</label><input type="text" name="category" value="' + esc(r.category) + '" list="cats" required><datalist id="cats">' + (JM.categories || []).map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</datalist></div>' +
+        (id ? '' : '<div class="field"><label class="label">ID (short, lowercase, hyphens)</label><input type="text" name="id" value="' + esc(r.id) + '" pattern="[a-z0-9-]+" required></div>') +
+        '<div class="grid g2"><div class="field"><label class="label">Title</label><input type="text" name="title" value="' + esc(r.title) + '" required></div><div class="field"><label class="label">Category</label>' + catTa + '</div>' +
+        '<div class="field"><label class="label">Level</label><select name="level">' + ['Entry', 'Mid', 'Senior', 'Lead'].map(function (l) { return '<option' + ((r.level || 'Entry') === l ? ' selected' : '') + '>' + l + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label class="label">Aliases (comma-separated)</label><input type="text" name="aliases" value="' + esc((r.aliases || []).join(', ')) + '" placeholder="e.g. CSR, Call Center Agent"></div>' +
         '<div class="field"><label class="label">Typical pay, minimum (₱)</label><input type="number" name="salary_min" value="' + r.salary_min + '" min="1" required></div><div class="field"><label class="label">Typical pay, maximum (₱)</label><input type="number" name="salary_max" value="' + r.salary_max + '" min="1" required></div></div>' +
         '<div class="field"><label class="label">Overview</label><textarea name="overview">' + esc(r.overview) + '</textarea></div><div class="field"><label class="label">Duties (one per line)</label><textarea name="duties">' + esc((r.duties || []).join('\n')) + '</textarea></div>' +
-        '<div class="field"><label class="label">Skills and weight (one per line: Skill, 10)</label><textarea name="skills">' + esc(rs.map(function (x) { return x.skill + ', ' + x.weight; }).join('\n')) + '</textarea></div>' +
+        '<div class="field"><label class="label">Skills and weight (one per line: Skill, 25)</label><textarea name="skills">' + esc(rs.map(function (x) { return x.skill + ', ' + x.weight; }).join('\n')) + '</textarea></div>' +
         '<div class="field"><label class="label">Growth path (one per line: Level | Title | min | max)</label><textarea name="growth">' + esc((r.growth || []).map(function (g) { return [g.level, g.title, g.min, g.max].join(' | '); }).join('\n')) + '</textarea></div>' +
         '<div class="field"><label class="label">Courses (one per line: Title | Provider | URL)</label><textarea name="courses">' + esc((r.courses || []).map(function (c) { return [c.title, c.provider, c.url].join(' | '); }).join('\n')) + '</textarea></div>' +
         '<label class="check mb"><input type="checkbox" name="active"' + (r.active ? ' checked' : '') + '><span>Active (visible to job seekers and employers)</span></label><div class="err hide" id="form-err"></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">Save</button></div></form>', 'wide');
@@ -158,11 +194,12 @@
     const id = form.dataset.id || d.id, lines = function (s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
     const growth = lines(d.growth).map(function (l) { const p = l.split('|').map(function (x) { return x.trim(); }); return { level: p[0], title: p[1], min: Number(p[2]), max: Number(p[3]) }; });
     const courses = lines(d.courses).map(function (l) { const p = l.split('|').map(function (x) { return x.trim(); }); return { title: p[0], provider: p[1], url: p[2] }; });
-    const skills = lines(d.skills).map(function (l) { const p = l.split(','); return { skill: p[0].trim(), weight: Number(p[1]) || 10 }; });
+    const skills = lines(d.skills).map(function (l) { const p = l.split(','); return { skill: p[0].trim(), weight: Number(p[1]) || 20 }; });
+    const aliases = String(d.aliases || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
     const unknown = skills.filter(function (s) { return JM.skillList.indexOf(s.skill) < 0; });
     if (unknown.length) return JM.toast('Unknown skill: ' + unknown[0].skill + '. Add it on the Skills tab first.', 'bad');
     if (Number(d.salary_max) < Number(d.salary_min)) return JM.toast('Maximum pay must be at least the minimum.', 'bad');
-    const row = { title: d.title.trim(), category: d.category.trim(), salary_min: Number(d.salary_min), salary_max: Number(d.salary_max), overview: d.overview.trim(), duties: lines(d.duties), growth: growth, courses: courses, active: !!d.active };
+    const row = { title: d.title.trim(), category: d.category.trim(), level: d.level || 'Entry', aliases: aliases, salary_min: Number(d.salary_min), salary_max: Number(d.salary_max), overview: d.overview.trim(), duties: lines(d.duties), growth: growth, courses: courses, active: !!d.active };
     if (form.dataset.id) await JM.q(JM.sb.from('career_roles').update(row).eq('id', id)); else await JM.q(JM.sb.from('career_roles').insert(Object.assign({ id: id }, row)));
     await JM.q(JM.sb.from('role_skills').delete().eq('role_id', id));
     if (skills.length) await JM.q(JM.sb.from('role_skills').insert(skills.map(function (s) { return { role_id: id, skill: s.skill, weight: s.weight }; })));

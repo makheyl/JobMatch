@@ -1,31 +1,47 @@
 /* Employer: registration, overview, jobs, applicants, candidate search, analytics, billing, company. */
 (function () {
   const JM = window.JM, ic = JM.icon, esc = JM.esc;
-  const BIZ = ['Café / restaurant', 'Retail / store', 'Grocery', 'Hardware / construction', 'Healthcare clinic', 'IT services', 'Logistics', 'Accounting / office services', 'Marketing / creative', 'Customer support', 'School / training', 'Manufacturing', 'Other'];
+  const BIZ_ITEMS = [
+    ['Retail / store', 'Retail'], ['Grocery / supermarket', 'Retail'], ['Hardware / construction supply', 'Retail'], ['Pharmacy / drugstore', 'Retail'], ['E-commerce / online shop', 'Retail'],
+    ['Café / restaurant', 'Food & Beverage'], ['Bakery / pastry shop', 'Food & Beverage'], ['Fast food / commissary', 'Food & Beverage'], ['Catering / events', 'Food & Beverage'],
+    ['BPO / contact center', 'BPO & IT'], ['IT services / software', 'BPO & IT'], ['Digital / creative agency', 'BPO & IT'],
+    ['Manufacturing / electronics', 'Manufacturing'], ['Food manufacturing', 'Manufacturing'], ['Packaging / assembly', 'Manufacturing'],
+    ['Healthcare clinic', 'Healthcare'], ['Dental clinic', 'Healthcare'], ['Hospital / diagnostics', 'Healthcare'],
+    ['School / university', 'Education'], ['Training center / tutorial', 'Education'],
+    ['Construction / engineering', 'Construction'], ['Real estate / property', 'Construction'],
+    ['Logistics / trucking', 'Logistics'], ['Warehousing / courier', 'Logistics'],
+    ['Accounting / office services', 'Professional Services'], ['Legal / consulting', 'Professional Services'], ['HR / staffing', 'Professional Services'], ['Beauty salon / spa / wellness', 'Professional Services'],
+    ['Government / LGU', 'Government / NGO'], ['Non-profit / NGO', 'Government / NGO']
+  ].map(function (x) { return { value: x[0], label: x[0], group: x[1] }; });
+  const SETUPS = ['On-site', 'Hybrid', 'Remote'];
+  const SETUP_HELP = {
+    'On-site': 'Work at your business location',
+    'Hybrid': 'Mix of on-site and remote',
+    'Remote': 'Work from anywhere'
+  };
   const PLAN = { starter: { name: 'Starter', posts: 2 }, growth: { name: 'Growth', posts: 10 }, business: { name: 'Business', posts: Infinity } };
   const JSTAT = { draft: ['Draft', ''], published: ['Live', 'ok'], paused: ['Paused', 'warn'], closed: ['Closed', ''], removed: ['Removed', 'bad'] };
   const ASTAT = { applied: ['New', 'brand'], shortlisted: ['Shortlisted', 'ok'], hired: ['Hired', 'ok'], rejected: ['Rejected', 'bad'] };
   const opts = function (arr, sel) { return arr.map(function (x) { return '<option' + (x === sel ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); };
-  const areaOpts = function (sel) { return (JM.areas || []).map(function (a) { return '<option value="' + a.id + '"' + (a.id === sel ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join(''); };
   const lock = function (title, text, plan) { return '<div class="card">' + JM.empty('lock', title, text, '<a class="btn" href="#/employer/billing">Upgrade to ' + plan + '</a>') + '</div>'; };
   const stat = function (n, l) { return '<div class="card stat"><div class="n num">' + n + '</div><div class="l">' + l + '</div></div>'; };
 
   // ---------- verification documents ----------
   async function uploadDoc(file) {
+    if (JM.isHeic(file)) throw new Error(JM.HEIC_MSG);
     if (file.size > 5 * 1024 * 1024) throw new Error('File is larger than 5 MB.');
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (['pdf', 'jpg', 'jpeg', 'png'].indexOf(ext) < 0) throw new Error('Upload a PDF, JPG or PNG file.');
+    if (['pdf', 'jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) throw new Error('Upload a PDF, JPG, PNG or WEBP file.');
     const path = JM.me.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
     const r = await JM.sb.storage.from('verification-docs').upload(path, file, { contentType: file.type || undefined });
     if (r.error) throw r.error; return { path: path, name: file.name };
   }
   JM.docs = {};
   JM.inputs.doc = async function (el) {
-    const f = el.files[0]; if (!f) return; const k = el.dataset.kind;
+    const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return; const k = el.dataset.kind;
     try { JM.docs[k] = Object.assign({ kind: k }, await uploadDoc(f)); const s = document.getElementById('doc-' + k); if (s) s.innerHTML = ic('check', 15) + esc(f.name); } catch (e) { JM.toast(JM.err(e), 'bad'); el.value = ''; }
   };
-  const docPick = function (kind, label) { return '<div class="field"><label class="label">' + label + '</label>' + JM.uploadBtn({ in: 'doc', kind: kind, accept: '.pdf,.jpg,.jpeg,.png', label: 'Upload ' + label, hint: 'PDF, JPG or PNG · max 5 MB · preview before saving', preview: 'Preview: ' + label }) + '<div class="help row gap-s" id="doc-' + kind + '" style="color:var(--ok)"></div></div>'; };
-  // Employer plans are billed monthly: a renewal date further than one month ahead is invalid (e.g. old demo data), so show next month.
+  const docPick = function (kind, label) { return '<div class="field"><label class="label">' + label + '</label>' + JM.uploadBtn({ in: 'doc', kind: kind, accept: '.pdf,.jpg,.jpeg,.png,.webp', label: 'Upload ' + label, hint: 'PDF, JPG, PNG or WEBP · max 5 MB · preview before saving', preview: 'Preview: ' + label }) + '<div class="help row gap-s" id="doc-' + kind + '" style="color:var(--ok)"></div></div>'; };
   const nextBill = function (e) {
     if (!e.plan_renews_at) return null;
     const d = new Date(e.plan_renews_at), now = new Date(), cap = new Date(now);
@@ -37,22 +53,24 @@
   // ---------- setup ----------
   JM.route('/employer/setup', { auth: 'employer', plain: true, pre: true, title: 'Register your business', render: function () {
     if (JM.me.employer) { JM.go('/employer'); return ''; } JM.docs = {};
+    const bizTa = JM.typeahead({ id: 'setup-biz-ta', name: 'type', value: '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type (e.g. Café, Retail, BPO)…', source: BIZ_ITEMS, required: true });
+    const areaTa = JM.typeahead({ id: 'setup-area-ta', name: 'area', value: 'bin-poblacion', label: JM.area('bin-poblacion'), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [], required: true });
     return '<div class="auth-main" style="min-height:100vh;background:var(--bg);align-items:flex-start"><div style="width:100%;max-width:680px"><a class="brand" href="#/" style="padding:8px 0 22px"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<h2 style="font-size:24px">Register your business</h2><p class="muted mt mb">We verify every employer by hand so job seekers can trust listings. Review usually takes one business day. You can draft jobs while you wait.</p>' +
-      '<form data-form="setup" class="card card-b" novalidate><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" required></div><div class="field"><label class="label">Type of business</label><select name="type">' + opts(BIZ) + '</select></div>' +
-      '<div class="field"><label class="label">Area</label><select name="area">' + areaOpts('bin-poblacion') + '</select></div><div class="field"><label class="label">Street address</label><input type="text" name="address" required></div>' +
+      '<form data-form="setup" class="card card-b" novalidate><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" required></div><div class="field"><label class="label">Type of business</label>' + bizTa + '</div>' +
+      '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Street address</label><input type="text" name="address" required></div>' +
       '<div class="field"><label class="label">Contact person</label><input type="text" name="cname" value="' + esc(JM.me.full_name) + '" required></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="cphone" required></div></div>' +
       '<div class="field"><label class="label">Contact email</label><input type="email" name="cemail" required></div><div class="field"><label class="label">About the business</label><textarea name="about" maxlength="600" placeholder="What you do and what working here is like."></textarea></div>' +
-      '<div class="divider"></div><h3 class="mb">Verification documents</h3><p class="small muted">Upload clear photos (JPG, PNG) or PDFs, up to 5 MB each. Only you and JobMatch administrators can see them.</p><div class="grid g2">' + docPick('DTI certificate', 'DTI / SEC / CDA Certificate') + docPick("Mayor's permit", "Mayor's / Business Permit") + '</div>' + docPick('Valid ID', "Owner's valid government ID") +
+      '<div class="divider"></div><h3 class="mb">Verification documents</h3><p class="small muted">Upload clear photos (JPG, PNG, WEBP) or PDFs, up to 5 MB each. Only you and JobMatch administrators can see them.</p><div class="grid g2">' + docPick('DTI certificate', 'DTI / SEC / CDA Certificate') + docPick("Mayor's permit", "Mayor's / Business Permit") + '</div>' + docPick('Valid ID', "Owner's valid government ID") +
       '<div class="err hide" id="form-err" role="alert"></div><div class="row mt" style="justify-content:space-between"><button type="button" class="btn ghost" data-act="logout">Sign out</button><button class="btn lg" type="submit">Submit for verification</button></div></form></div></div>';
   } });
   JM.forms.setup = async function (form, d) {
     const err = function (m) { const e = form.querySelector('#form-err'); e.textContent = m; e.classList.remove('hide'); };
-    if (!d.name.trim() || !d.address.trim() || !d.cname.trim() || !d.cphone.trim() || !/^\S+@\S+\.\S+$/.test(d.cemail || '')) return err('Fill in every required field with valid details.');
+    if (!d.name.trim() || !String(d.type || '').trim() || !String(d.area || '').trim() || !d.address.trim() || !d.cname.trim() || !d.cphone.trim() || !/^\S+@\S+\.\S+$/.test(d.cemail || '')) return err('Fill in every required field with valid details.');
     if (!JM.docs['DTI certificate'] || !JM.docs["Mayor's permit"] || !JM.docs['Valid ID']) return err('Upload your DTI certificate, Mayor\'s permit, and valid ID to continue.');
     const btn = form.querySelector('[type=submit]'); btn.disabled = true;
     try {
-      JM.me = await JM.rpc('register_employer', { p_name: d.name, p_type: d.type, p_area: d.area, p_address: d.address, p_cname: d.cname, p_cemail: d.cemail, p_cphone: d.cphone, p_about: d.about || '', p_docs: Object.keys(JM.docs).map(function (k) { return { kind: k, path: JM.docs[k].path, name: JM.docs[k].name }; }) });
+      JM.me = await JM.rpc('register_employer', { p_name: d.name, p_type: d.type.trim(), p_area: d.area, p_address: d.address, p_cname: d.cname, p_cemail: d.cemail, p_cphone: d.cphone, p_about: d.about || '', p_docs: Object.keys(JM.docs).map(function (k) { return { kind: k, path: JM.docs[k].path, name: JM.docs[k].name }; }) });
       JM.go('/employer'); JM.toast('Submitted. We will review your documents shortly.', 'ok');
     } catch (e) { err(JM.err(e)); btn.disabled = false; }
   };
@@ -97,7 +115,7 @@
 
   // ---------- jobs list ----------
   JM.route('/employer/jobs', { auth: 'employer', title: 'Jobs', render: async function () {
-    const jobs = await JM.q(JM.sb.from('jobs').select('id,title,status,type,salary_min,salary_max,posted_at,boosted_until,area_id').eq('employer_id', JM.me.id).order('created_at', { ascending: false }));
+    const jobs = await JM.q(JM.sb.from('jobs').select('id,title,status,type,work_setup,onsite_days,salary_min,salary_max,posted_at,boosted_until,area_id').eq('employer_id', JM.me.id).order('created_at', { ascending: false }));
     const live = jobs.filter(function (j) { return j.status !== 'draft' && j.status !== 'removed'; });
     const counts = {}; await Promise.all(live.map(async function (j) { try { counts[j.id] = (await JM.rpc('employer_applicants', { p_job: j.id })).items.length; } catch (e) { counts[j.id] = 0; } }));
     const e = JM.me.employer, publishedN = jobs.filter(function (j) { return j.status === 'published'; }).length, lim = PLAN[e.plan].posts;
@@ -105,7 +123,7 @@
       const s = JSTAT[j.status], boosted = j.boosted_until && new Date(j.boosted_until) > new Date();
       const act = j.status === 'published' ? '<button class="btn secondary sm" data-act="jobstatus" data-id="' + j.id + '" data-s="paused">Pause</button><button class="btn secondary sm" data-act="jobstatus" data-id="' + j.id + '" data-s="closed">Close</button>' :
         j.status === 'removed' ? '' : '<button class="btn sm" data-act="jobstatus" data-id="' + j.id + '" data-s="published">' + (j.status === 'draft' ? 'Publish' : 'Reopen') + '</button>' + (j.status === 'draft' ? '<button class="iconbtn" data-act="jobdel" data-id="' + j.id + '" aria-label="Delete draft" style="width:32px;height:32px">' + ic('trash', 15) + '</button>' : '');
-      return '<tr><td><a class="bold" href="#/employer/jobs/' + j.id + '/edit" style="color:var(--ink)">' + esc(j.title) + '</a><div class="xs muted">' + esc(j.type) + ' · ' + JM.salary(j) + '</div></td><td>' + JM.badge(s[0], s[1]) + (boosted ? ' ' + JM.badge('Boosted', 'star') : '') + '</td>' +
+      return '<tr><td><a class="bold" href="#/employer/jobs/' + j.id + '/edit" style="color:var(--ink)">' + esc(j.title) + '</a><div class="xs muted row gap-s wrap" style="margin-top:3px"><span>' + esc(j.type) + ' · ' + JM.salary(j) + '</span>' + JM.setupBadge(j.work_setup, j.onsite_days) + '</div></td><td>' + JM.badge(s[0], s[1]) + (boosted ? ' ' + JM.badge('Boosted', 'star') : '') + '</td>' +
         '<td class="num">' + (counts[j.id] != null ? '<a href="#/employer/jobs/' + j.id + '/applicants">' + counts[j.id] + '</a>' : '–') + '</td><td><div class="row gap-s" style="justify-content:flex-end">' + act + '<a class="iconbtn" href="#/employer/jobs/' + j.id + '/edit" aria-label="Edit" style="width:32px;height:32px">' + ic('edit', 15) + '</a></div></td></tr>';
     }).join('');
     return '<div class="page">' + JM.pageHead('Jobs', publishedN + ' of ' + (lim === Infinity ? 'unlimited' : lim) + ' live listings used', '<a class="btn" href="#/employer/jobs/new">' + ic('plus', 16) + 'Post a job</a>') + banner() +
@@ -123,46 +141,169 @@
   };
   JM.actions.jobdel = function (el) { JM.confirm({ title: 'Delete this draft?', text: 'This cannot be undone.', ok: 'Delete', danger: true, onOk: function () { JM.busy(null, async function () { await JM.q(JM.sb.from('jobs').delete().eq('id', el.dataset.id)); JM.render(); }); } }); };
 
-  // ---------- job form ----------
-  const blankJob = function () { return { title: '', role_id: '', custom_role: '', category: '', type: 'Full-time', salary_min: '', salary_max: '', area_id: JM.me.employer.area_id, description: '', intern_requirements: '', skills: [] }; };
+  // ---------- job form (Work setup + 4:3 photo + categorized skillPicker + rolePicker + typeaheads) ----------
+  const blankJob = function () {
+    return {
+      title: '', role_id: '', custom_role: '', role_other: false, category: '', type: 'Full-time',
+      work_setup: 'On-site', onsite_days: 3, photo_path: null, photo_focus: '50% 50%',
+      salary_min: '', salary_max: '', area_id: JM.me.employer.area_id, description: '',
+      intern_requirements: '', skills: [], _roleSkills: []
+    };
+  };
+  async function applyJobRole(rid) {
+    JM.jd.role_id = rid; JM.jd.role_other = false;
+    const r = (JM.roles || []).find(function (x) { return x.id === rid; });
+    if (r && !JM.jd.category) JM.jd.category = r.category;
+    if (r && !JM.jd.title) JM.jd.title = r.title;
+    try {
+      const rs = await JM.q(JM.sb.from('role_skills').select('skill,weight').eq('role_id', rid).order('weight', { ascending: false }).limit(8));
+      JM.jd._roleSkills = rs.map(function (x) { return x.skill; });
+      if (!JM.jd.skills.length) JM.jd.skills = JM.jd._roleSkills.slice(0, 6);
+    } catch (e) { /* ignore */ }
+    JM.drawDraft();
+  }
   function jobForm(j, isNew) {
-    JM.jd = j; JM.jerr = {}; const cats = JM.categories || [];
+    JM.jd = Object.assign(blankJob(), j, { role_other: !j.role_id && !!j.custom_role });
+    JM.jerr = {};
     const req = '<span class="req" aria-hidden="true">*</span>';
     const ferr = function (k) { return JM.jerr && JM.jerr[k] ? '<div class="ferr">' + esc(JM.jerr[k]) + '</div>' : ''; };
     const fcls = function (k) { return JM.jerr && JM.jerr[k] ? ' field-err' : ''; };
     JM.draftRender = function () {
-      const d = JM.jd;
+      const d = JM.jd, emp = JM.me.employer;
+      const rolePk = JM.rolePicker({
+        id: 'job-role-rp',
+        value: d.role_id,
+        isOther: !!d.role_other,
+        placeholder: 'Search 100+ career roles (auto-fills category & skills)…',
+        onPick: function (rid) { applyJobRole(rid); },
+        onOther: function () { JM.jd.role_id = ''; JM.jd.role_other = true; JM.jd._roleSkills = []; JM.drawDraft(); }
+      });
+      const catTa = JM.typeahead({
+        id: 'job-cat-ta',
+        value: d.category || '',
+        label: d.category || '',
+        allowCustom: true,
+        minChars: 0,
+        placeholder: 'Select or type a category…',
+        source: (JM.categories || []).map(function (c) { return { value: c, label: c }; }),
+        onType: function (v) { JM.jd.category = v; },
+        onPick: function (it) { JM.jd.category = it.value; }
+      });
+      const areaTa = JM.typeahead({
+        id: 'job-area-ta',
+        value: d.area_id,
+        label: JM.area(d.area_id),
+        minChars: 0,
+        placeholder: 'Type city or barangay…',
+        source: JM.areaItems || [],
+        onPick: function (it) { JM.jd.area_id = it.value; }
+      });
+      const setupSeg = '<div class="grid g3">' + SETUPS.map(function (s) {
+        return '<label class="opt setup-opt"><input type="radio" name="work_setup" value="' + s + '" data-in="jdsetup"' + ((d.work_setup || 'On-site') === s ? ' checked' : '') + '>' +
+          '<span><b class="row gap-s">' + ic(JM.setupIcon(s), 15) + s + '</b><small class="xs muted" style="display:block;margin-top:2px">' + SETUP_HELP[s] + '</small></span></label>';
+      }).join('') + '</div>';
+      const hybridDays = d.work_setup === 'Hybrid'
+        ? '<div class="row gap-s mt" style="margin-top:8px"><span class="small bold">On-site days per week:</span>' +
+          '<button type="button" class="btn secondary sm" data-act="jddays" data-d="-1">−</button>' +
+          '<b class="num" style="min-width:24px;text-align:center">' + (d.onsite_days || 3) + '</b>' +
+          '<button type="button" class="btn secondary sm" data-act="jddays" data-d="1">+</button>' +
+          '<span class="xs muted">days on-site</span></div>'
+        : '';
+      const photoPreview = '<div class="jmedia jmedia-form">' +
+        JM.img({ bucket: 'job-photos', path: d.photo_path, directUrl: d._photoBlob, shape: 'cover43', focus: d.photo_focus || '50% 50%', fallback: 'placeholder', name: d.category || d.title || 'Listing preview', icon: 'image', alt: 'Job listing photo preview' }) +
+        '<div class="jlogo">' + JM.img({ bucket: 'company-logos', path: emp.logo_path, shape: 'circle', size: 54, name: emp.name }) + '</div></div>';
+      const photoBlock = '<div class="field"><label class="label">Listing photo (shown on Discover cards, 4:3)</label>' +
+        '<div class="grid g2" style="align-items:center">' + photoPreview + '<div>' +
+        JM.uploadBtn({ in: 'jobphoto', shape: 'cover43', accept: 'image/jpeg,image/png,image/webp', label: d.photo_path ? 'Replace photo' : 'Upload listing photo', hint: 'JPG, PNG or WEBP · 4:3 crop & optimize · max 5 MB', preview: 'Crop listing photo (4:3)', size: d.photo_path ? 'sm' : '' }) +
+        (d.photo_path ? ' <button type="button" class="btn ghost sm danger" data-act="jobphotorm">Remove</button>' : '') +
+        (!emp.logo_path ? '<div class="xs muted mt">Tip: You haven\'t uploaded a company logo yet. <a href="#/employer/company">Add one on Company &amp; team</a> so it appears in the circle badge.</div>' : '<div class="xs muted mt">Preview shows your 4:3 photo with your company logo circle.</div>') +
+        '</div></div></div>';
+      const skillPk = JM.skillPicker({
+        id: 'job-sp',
+        mode: 'job',
+        selected: d.skills,
+        max: 8,
+        min: 1,
+        suggested: d._roleSkills || [],
+        emptyHint: 'Select 1 to 8 skills. Skills drive 55% of every applicant\'s match score.',
+        onAdd: function (name) {
+          if (JM.jd.skills.indexOf(name) >= 0) return;
+          if (JM.jd.skills.length >= 8) return JM.toast('Pick up to 8 skills.');
+          JM.jd.skills.push(name); JM.drawDraft();
+        },
+        onToggle: function (name) {
+          const i = JM.jd.skills.indexOf(name);
+          if (i >= 0) JM.jd.skills.splice(i, 1);
+          else if (JM.jd.skills.length < 8) JM.jd.skills.push(name);
+          else return JM.toast('Pick up to 8 skills.');
+          JM.drawDraft();
+        },
+        onRemove: function (name) {
+          const i = JM.jd.skills.indexOf(name);
+          if (i >= 0) JM.jd.skills.splice(i, 1);
+          JM.drawDraft();
+        },
+        onRedraw: function () { JM.drawDraft(); }
+      });
+
       return '<div class="card card-b"><p class="xs muted mb">Fields marked with <span class="req">*</span> are required.</p>' +
         '<div class="field' + fcls('title') + '"><label class="label">Job title ' + req + '</label><input type="text" data-in="jd" data-k="title" value="' + esc(d.title) + '" maxlength="120" placeholder="e.g. Barista">' + ferr('title') + '</div>' +
-        '<div class="grid g2"><div class="field"><label class="label">Career role</label><select data-in="jdrole"><option value="">Other / custom role</option>' + (JM.roles || []).map(function (r) { return '<option value="' + r.id + '"' + (d.role_id === r.id ? ' selected' : '') + '>' + esc(r.title) + '</option>'; }).join('') + '</select><input type="text" class="mt" style="margin-top:8px" data-in="jd" data-k="custom_role" value="' + esc(d.custom_role || '') + '" maxlength="120" placeholder="Or type another career role (optional)"><div class="help">Pick a role for automatic roadmaps, or type a custom role.</div></div>' +
-        '<div class="field' + fcls('category') + '"><label class="label">Category ' + req + '</label><input type="text" list="jm-cats" data-in="jd" data-k="category" value="' + esc(d.category || '') + '" maxlength="80" placeholder="Select or type a category"><datalist id="jm-cats">' + cats.map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>' + ferr('category') + '<div class="help">Choose a suggested category or type your own.</div></div>' +
-        '<div class="field"><label class="label">Job type ' + req + '</label><select data-in="jd" data-k="type">' + opts(JM.TYPES, d.type) + '</select></div><div class="field"><label class="label">Location ' + req + '</label><select data-in="jd" data-k="area_id">' + areaOpts(d.area_id) + '</select></div>' +
-        '<div class="field' + fcls('salary_min') + '"><label class="label">Minimum pay (₱ per month) ' + req + '</label><input type="number" data-in="jd" data-k="salary_min" value="' + esc(d.salary_min) + '" min="1" step="500">' + ferr('salary_min') + '</div><div class="field' + fcls('salary_max') + '"><label class="label">Maximum pay (₱ per month) ' + req + '</label><input type="number" data-in="jd" data-k="salary_max" value="' + esc(d.salary_max) + '" min="1" step="500">' + ferr('salary_max') + '</div></div>' +
-        '<div class="field"><label class="label">Specific requirements / Intern & OJT details (optional)</label><input type="text" data-in="jd" data-k="intern_requirements" value="' + esc(d.intern_requirements || '') + '" maxlength="300" placeholder="e.g. BSIT/ABM students, 300 OJT hours, or specific shift/credential"></div>' +
+        '<div class="field"><label class="label">Career role</label>' + rolePk +
+        (d.role_other || d.custom_role ? '<input type="text" class="mt" style="margin-top:8px" data-in="jd" data-k="custom_role" value="' + esc(d.custom_role || '') + '" maxlength="120" placeholder="Specify custom career role">' : '') +
+        '<div class="help">Pick a role for automatic roadmaps and skill suggestions, or pick "Other / not listed" to specify.</div></div>' +
+        '<div class="field' + fcls('work_setup') + '"><label class="label">Work setup ' + req + '</label>' + setupSeg + hybridDays + ferr('work_setup') + '</div>' +
+        '<div class="grid g2"><div class="field' + fcls('category') + '"><label class="label">Category ' + req + '</label>' + catTa + ferr('category') + '</div>' +
+        '<div class="field"><label class="label">Employment type ' + req + '</label><select data-in="jd" data-k="type">' + opts(JM.TYPES, d.type) + '</select></div>' +
+        '<div class="field' + fcls('area_id') + '"><label class="label">' + (d.work_setup === 'Remote' ? 'Hiring area / company base' : 'Location') + ' ' + req + '</label>' + areaTa + (d.work_setup === 'Remote' ? '<div class="help">Remote jobs are shown to seekers regardless of commute distance.</div>' : '') + ferr('area_id') + '</div>' +
+        '<div class="grid g2 keep" style="gap:10px"><div class="field' + fcls('salary_min') + '"><label class="label">Min pay (₱/mo) ' + req + '</label><input type="number" data-in="jd" data-k="salary_min" value="' + esc(d.salary_min) + '" min="1" step="500">' + ferr('salary_min') + '</div><div class="field' + fcls('salary_max') + '"><label class="label">Max pay (₱/mo) ' + req + '</label><input type="number" data-in="jd" data-k="salary_max" value="' + esc(d.salary_max) + '" min="1" step="500">' + ferr('salary_max') + '</div></div></div>' +
+        photoBlock +
+        '<div class="field"><label class="label">Specific requirements / Intern &amp; OJT details (optional)</label><input type="text" data-in="jd" data-k="intern_requirements" value="' + esc(d.intern_requirements || '') + '" maxlength="300" placeholder="e.g. BSIT/ABM students, 300 OJT hours, or specific shift/credential"></div>' +
         '<div class="field' + fcls('description') + '"><label class="label">Description ' + req + '</label><textarea data-in="jd" data-k="description" style="min-height:140px" maxlength="5000" placeholder="What the person will do, hours, and what you are looking for.">' + esc(d.description) + '</textarea>' + ferr('description') + '</div>' +
-        '<div class="field' + fcls('skills') + '"><label class="label">Skills needed (1 to 8) ' + req + '</label><div class="chips" style="max-height:170px;overflow:auto">' + (JM.skillList || []).map(function (s) { return '<button type="button" class="chip' + (d.skills.indexOf(s) >= 0 ? ' on' : '') + '" data-act="jskill" data-v="' + esc(s) + '">' + esc(s) + '</button>'; }).join('') + '</div>' + ferr('skills') + '<div class="help">' + d.skills.length + ' selected. Skills drive 55% of every applicant\'s match score.</div></div>' +
+        '<div class="field' + fcls('skills') + '"><label class="label">Skills needed (1 to 8) ' + req + '</label>' + skillPk + ferr('skills') + '</div>' +
         '<div class="notice bad hide" id="form-err" role="alert"></div><div class="row wrap mt" style="justify-content:flex-end"><a class="btn ghost" href="#/employer/jobs">Cancel</a><button class="btn secondary" data-act="jobsave" data-publish="0">Save draft</button><button class="btn" data-act="jobsave" data-publish="1">' + (isNew || j.status === 'draft' ? 'Publish' : 'Save changes') + '</button></div></div>';
     };
     return '<div class="page narrow">' + JM.pageHead(isNew ? 'Post a job' : 'Edit job') + banner() + '<div id="draft-root">' + JM.draftRender() + '</div></div>';
   }
   JM.inputs.jd = function (el) { JM.jd[el.dataset.k] = el.type === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value; };
-  JM.inputs.jdrole = async function (el) {
-    JM.jd.role_id = el.value; if (!el.value) return;
-    const r = (JM.roles || []).find(function (x) { return x.id === el.value; }); if (r && !JM.jd.category) JM.jd.category = r.category; if (r && !JM.jd.title) JM.jd.title = r.title;
-    if (!JM.jd.skills.length) { try { const rs = await JM.q(JM.sb.from('role_skills').select('skill,weight').eq('role_id', el.value).order('weight', { ascending: false }).limit(6)); JM.jd.skills = rs.map(function (x) { return x.skill; }); } catch (e) { /* ignore */ } }
-    JM.drawDraft();
+  JM.inputs.jdsetup = function (el) { JM.jd.work_setup = el.value; if (el.value === 'Hybrid' && !JM.jd.onsite_days) JM.jd.onsite_days = 3; JM.drawDraft(); };
+  JM.actions.jddays = function (el) { JM.jd.onsite_days = Math.max(1, Math.min(5, Number(JM.jd.onsite_days || 3) + Number(el.dataset.d))); JM.drawDraft(); };
+  JM.inputs.jobphoto = async function (el) {
+    const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
+    if (JM.isHeic(f)) { JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { JM.toast('Photo must be under 5 MB.', 'bad'); el.value = ''; return; }
+    const ext = (f.name.split('.').pop() || 'webp').toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) { JM.toast('Upload JPG, PNG or WEBP.', 'bad'); el.value = ''; return; }
+    const blobUrl = el._pvExtra && el._pvExtra.blobUrl;
+    if (blobUrl) { JM.jd._photoBlob = blobUrl; JM.drawDraft(); }
+    const path = JM.me.id + '/job-' + Date.now() + '.' + ext;
+    try {
+      const r = await JM.sb.storage.from('job-photos').upload(path, f, { contentType: f.type || undefined });
+      if (r.error) throw r.error;
+      if (JM.jd.photo_path) JM.sb.storage.from('job-photos').remove([JM.jd.photo_path]);
+      JM.jd.photo_path = path;
+      JM.jd.photo_focus = (el._pvExtra && el._pvExtra.focus) || '50% 50%';
+      JM.jd._photoBlob = null;
+      JM.toast('Listing photo uploaded.', 'ok'); JM.drawDraft();
+    } catch (e) { JM.jd._photoBlob = null; JM.drawDraft(); JM.toast(JM.err(e), 'bad'); }
   };
-  JM.actions.jskill = function (el) { const a = JM.jd.skills, i = a.indexOf(el.dataset.v); if (i >= 0) a.splice(i, 1); else if (a.length < 8) a.push(el.dataset.v); else JM.toast('Pick up to 8 skills.'); JM.drawDraft(); };
-  JM.route('/employer/jobs/new', { auth: 'employer', title: 'Post a job', render: function () { return jobForm(blankJob(), true); } });
+  JM.actions.jobphotorm = function () {
+    JM.confirm({ title: 'Remove listing photo?', text: 'The card will show a clean category placeholder instead.', ok: 'Remove', danger: true, onOk: function () {
+      if (JM.jd.photo_path) JM.sb.storage.from('job-photos').remove([JM.jd.photo_path]);
+      JM.jd.photo_path = null; JM.jd.photo_focus = '50% 50%'; JM.drawDraft();
+    } });
+  };
+  JM.route('/employer/jobs/new', { auth: 'employer', title: 'Post a job', render: function () { return jobForm(blankJob(), true); }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
   JM.route('/employer/jobs/:id/edit', { auth: 'employer', title: 'Edit job', render: async function (p) {
     const j = await JM.q(JM.sb.from('jobs').select('*').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
     if (!j) return '<div class="page narrow">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
     return jobForm(j, false);
-  } });
+  }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
   JM.actions.jobsave = async function (el) {
     const d = JM.jd, publish = el.dataset.publish === '1', errs = {};
     if (String(d.title || '').trim().length < 3) errs.title = 'Job title is required (at least 3 characters).';
+    if (SETUPS.indexOf(d.work_setup) < 0) errs.work_setup = 'Choose On-site, Hybrid, or Remote.';
     if (!String(d.category || '').trim()) errs.category = 'Category is required. Select one or type your own.';
+    if (!String(d.area_id || '').trim()) errs.area_id = 'Select a location from the list.';
     if (!d.salary_min || Number(d.salary_min) <= 0) errs.salary_min = 'Enter a valid minimum monthly pay greater than ₱0.';
     if (!d.salary_max || Number(d.salary_max) <= 0) errs.salary_max = 'Enter a valid maximum monthly pay greater than ₱0.';
     else if (d.salary_min && Number(d.salary_max) < Number(d.salary_min)) errs.salary_max = 'Maximum pay (' + JM.peso(d.salary_max) + ') cannot be lower than minimum pay (' + JM.peso(d.salary_min) + ').';
@@ -182,7 +323,15 @@
       return;
     }
     await JM.busy(el, async function () {
-      const row = { title: d.title.trim(), role_id: d.role_id || null, custom_role: (d.custom_role || '').trim(), intern_requirements: (d.intern_requirements || '').trim(), category: d.category.trim(), type: d.type, salary_min: d.salary_min, salary_max: d.salary_max, area_id: d.area_id, description: d.description.trim(), skills: d.skills };
+      const row = {
+        title: d.title.trim(), role_id: d.role_id || null, custom_role: (d.custom_role || '').trim(),
+        intern_requirements: (d.intern_requirements || '').trim(), category: d.category.trim(),
+        type: d.type, work_setup: d.work_setup || 'On-site',
+        onsite_days: d.work_setup === 'Hybrid' ? Number(d.onsite_days || 3) : null,
+        photo_path: d.photo_path || null, photo_focus: d.photo_focus || '50% 50%',
+        salary_min: d.salary_min, salary_max: d.salary_max, area_id: d.area_id,
+        description: d.description.trim(), skills: d.skills
+      };
       let id = d.id;
       if (id) await JM.q(JM.sb.from('jobs').update(row).eq('id', id));
       else { const r = await JM.q(JM.sb.from('jobs').insert(Object.assign({ employer_id: JM.me.id }, row)).select('id').single()); id = r.id; }
@@ -198,11 +347,11 @@
   // ---------- applicants ----------
   JM.sel = {};
   JM.route('/employer/jobs/:id/applicants', { auth: 'employer', title: 'Applicants', render: async function (p) {
-    const job = await JM.q(JM.sb.from('jobs').select('id,title').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
+    const job = await JM.q(JM.sb.from('jobs').select('id,title,work_setup,onsite_days').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
     if (!job) return '<div class="page">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
     const r = await JM.rpc('employer_applicants', { p_job: p.id }); JM.sel = {}; JM.apps = r.items; JM.appJob = p.id; JM.filterStatus = JM.filterStatus || 'all';
     JM.appRanked = r.ranked;
-    return '<div class="page"><a class="small row gap-s" href="#/employer/jobs" style="margin-bottom:14px">' + ic('left', 16) + 'Jobs</a>' + JM.pageHead(esc(job.title), r.items.length + ' applicants' + (r.ranked ? ', ranked by match score' : ''), '') +
+    return '<div class="page"><a class="small row gap-s" href="#/employer/jobs" style="margin-bottom:14px">' + ic('left', 16) + 'Jobs</a>' + JM.pageHead(esc(job.title) + ' ' + JM.setupBadge(job.work_setup, job.onsite_days), r.items.length + ' applicants' + (r.ranked ? ', ranked by match score' : ''), '') +
       (!r.ranked ? '<div class="notice mb">' + ic('sparkle') + '<span>Applicants are in the order received. <a href="#/employer/billing">Upgrade to Growth</a> to rank them by match score and see starred candidates first.</span></div>' : '') +
       '<div class="tabs" id="app-tabs">' + [['all', 'All'], ['applied', 'New'], ['shortlisted', 'Shortlisted'], ['hired', 'Hired'], ['rejected', 'Rejected']].map(function (t) { return '<button data-act="afilter" data-s="' + t[0] + '" class="' + (JM.filterStatus === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>' +
       '<div class="row mb hide" id="sel-bar"></div><div id="app-list"></div></div>';
@@ -236,13 +385,24 @@
       const exp = (a.experience || []).map(function (x) { return '<div class="row" style="padding:6px 0"><span class="grow"><b>' + esc(x.role || '') + '</b> <span class="muted">' + esc(x.org || '') + '</span></span><span class="small muted">' + esc(x.years || '') + ' yr</span></div>'; }).join('') || '<span class="muted small">No experience listed.</span>';
       const next = a.status === 'applied' ? '<button class="btn" data-act="appstatus" data-s="shortlisted">Shortlist</button><button class="btn secondary danger" data-act="appstatus" data-s="rejected">Reject</button>' : a.status === 'shortlisted' ? '<button class="btn ok" data-act="appstatus" data-s="hired">Mark as hired</button><button class="btn secondary danger" data-act="appstatus" data-s="rejected">Reject</button>' : '';
       const st = ASTAT[a.status];
-      JM.drawer('<div class="row" style="align-items:flex-start">' + JM.avatar(a.name, 'lg') + '<div class="grow"><h2>' + esc(a.name) + '</h2><div class="small muted">' + esc(a.job.title) + ' · applied ' + JM.ago(a.created_at) + '</div><div class="row gap-s mt">' + JM.badge(st[0], st[1]) + (a.starred ? JM.badge('Starred top choice', 'star') : '') + '</div></div><button class="iconbtn" data-act="close" aria-label="Close">' + ic('x') + '</button></div>' +
+      const avEl = a.named && a.avatar_path
+        ? JM.img({ bucket: 'seeker-media', path: a.avatar_path, shape: 'circle', size: 52, name: a.name, act: 'mediaview', title: a.name })
+        : JM.avatar(a.name, 'lg');
+      const setupsHtml = (a.work_setups && a.work_setups.length)
+        ? '<h4 class="mt-l mb">Accepted work setups</h4><div class="chips">' + a.work_setups.map(function (ws) { return JM.setupBadge(ws); }).join('') + '</div>' : '';
+      const certsHtml = (a.named && Array.isArray(a.certificates) && a.certificates.length)
+        ? '<h4 class="mt-l mb">Certificates &amp; credentials</h4><div class="col gap-s">' + a.certificates.map(function (c) {
+            return '<div class="row card flat" style="padding:8px 10px">' + ic('award', 15) + '<div class="grow small"><b>' + esc(c.title || c.name) + '</b>' + (c.desc ? '<div class="xs muted">' + esc(c.desc) + '</div>' : '') + '</div><button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(c.path) + '" data-title="' + esc(c.title || 'Certificate') + '">View</button></div>';
+          }).join('') + '</div>' : '';
+      JM.drawer('<div class="row" style="align-items:flex-start">' + avEl + '<div class="grow"><h2>' + esc(a.name) + '</h2><div class="small muted">' + esc(a.job.title) + ' · applied ' + JM.ago(a.created_at) + '</div><div class="row gap-s mt">' + JM.badge(st[0], st[1]) + (a.starred ? JM.badge('Starred top choice', 'star') : '') + '</div></div><button class="iconbtn" data-act="close" aria-label="Close">' + ic('x') + '</button></div>' +
         (a.score != null ? '<div class="card flat card-b mt">' + '<div class="row">' + JM.ring(a.score, 56, '#0C70F8') + '<div class="grow"><b>Match score</b><div class="small muted">' + esc(((a.why || []).slice(0, 3)).join(', ')) + '</div></div></div>' + ((a.missing || []).length ? '<p class="small muted mt" style="margin:10px 0 0">Missing: ' + a.missing.map(esc).join(', ') + '</p>' : '') + '</div>' : '<div class="notice mt">' + ic('lock') + '<span>Match score and ranking come with the Growth plan.</span></div>') +
+        setupsHtml +
         '<h4 class="mt-l mb">Skills</h4><div class="chips">' + a.skills.map(function (s) { return '<span class="badge ' + (a.job.skills.indexOf(s.name) >= 0 ? 'ok' : '') + '">' + esc(s.name) + ' · ' + lvl(s.level) + '</span>'; }).join('') + '</div>' +
         '<h4 class="mt-l mb">Education</h4><p class="small" style="margin:0">' + esc([a.education.level, a.education.course, a.education.school].filter(Boolean).join(' · ') || 'Not provided') + '</p>' +
-        '<h4 class="mt-l mb">Experience</h4>' + exp + (a.resume_summary ? '<h4 class="mt-l mb">Summary</h4><p class="small" style="margin:0;white-space:pre-wrap">' + esc(a.resume_summary) + '</p>' : '') +
-        '<div class="divider"></div>' + (a.named ? '<h4 class="mb">Contact</h4><div class="small col gap-s"><div>' + esc(a.contact.full_name) + (a.age ? ' · ' + a.age + ' years old' : '') + (a.gender ? ' · ' + esc(a.gender) : '') + '</div>' + (a.contact.phone ? '<div>' + esc(a.contact.phone) + '</div>' : '') + (a.contact.email ? '<div><a href="mailto:' + esc(a.contact.email) + '">' + esc(a.contact.email) + '</a></div>' : '') + '</div>' + (a.resume_path ? '<button class="btn secondary sm mt" data-act="resumedl" data-path="' + esc(a.resume_path) + '">' + ic('download', 15) + 'Download résumé</button>' : '') + (a.resume_link ? '<a class="btn secondary sm mt" href="' + esc(a.resume_link) + '" target="_blank" rel="noopener">' + ic('ext', 15) + 'Open résumé link</a>' : '') :
-          '<div class="notice">' + ic('shield') + '<span>Full name, age, contact details and résumé file are hidden until you shortlist this applicant. This keeps hiring fair.</span></div>') +
+        '<h4 class="mt-l mb">Experience</h4>' + exp + (a.resume_summary ? '<h4 class="mt-l mb">Professional summary</h4>' + JM.summaryBlock(a.resume_summary) : '') +
+        certsHtml +
+        '<div class="divider"></div>' + (a.named ? '<h4 class="mb">Contact</h4><div class="small col gap-s"><div>' + esc(a.contact.full_name) + (a.age ? ' · ' + a.age + ' years old' : '') + (a.gender ? ' · ' + esc(a.gender) : '') + '</div>' + (a.contact.phone ? '<div>' + esc(a.contact.phone) + '</div>' : '') + (a.contact.email ? '<div><a href="mailto:' + esc(a.contact.email) + '">' + esc(a.contact.email) + '</a></div>' : '') + '</div><div class="row wrap gap-s mt">' + (a.resume_path ? '<button class="btn secondary sm" data-act="resumedl" data-path="' + esc(a.resume_path) + '">' + ic('download', 15) + 'Download résumé</button>' : '') + (a.resume_link ? '<a class="btn secondary sm" href="' + esc(a.resume_link) + '" target="_blank" rel="noopener">' + ic('ext', 15) + 'Open résumé link</a>' : '') + (a.photo_path ? '<button class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(a.photo_path) + '" data-title="Professional photo">' + ic('eye', 15) + 'Professional photo</button>' : '') + '</div>' :
+          '<div class="notice">' + ic('shield') + '<span>Full name, photo, age, contact details and résumé file are hidden until you shortlist this applicant. This keeps hiring fair.</span></div>') +
         '<div class="row wrap mt-l">' + next + (a.status === 'shortlisted' ? '<button class="btn secondary" data-act="schediv" data-app="' + a.id + '" data-name="' + esc(a.name) + '">' + ic('clock', 16) + 'Schedule Interview</button>' : '') + (a.conversation_id ? '<a class="btn secondary" href="#/messages/' + a.conversation_id + '" data-act="close">' + ic('chat', 16) + 'Message</a>' : '') + '</div>');
       if (JM.apps) { const x = JM.apps.find(function (q) { return q.id === a.id; }); if (x) { x.viewed = true; drawApps(); } }
     });
@@ -276,30 +436,38 @@
     const e = JM.me.employer; if (e.plan !== 'business') return '<div class="page">' + JM.pageHead('Candidate search', 'Find candidates who opted in and invite them to apply.') + lock('Candidate search is a Business feature', 'Search opted-in candidates by skill and area, see how well they fit your job, and invite them to apply.', 'Business') + '</div>';
     const jobs = await JM.q(JM.sb.from('jobs').select('id,title').eq('employer_id', JM.me.id).eq('status', 'published'));
     JM.cs = { jobs: jobs };
+    const qSource = (JM.skillsRaw || []).map(function (s) { return { value: s.name, label: s.name, group: JM.skillCatName(s.name), aliases: s.aliases || [] }; })
+      .concat((JM.roles || []).map(function (r) { return { value: r.title, label: r.title, group: 'Role · ' + r.category, aliases: r.aliases || [] }; }));
+    const qTa = JM.typeahead({ id: 'cs-q-ta', name: 'q', value: '', allowCustom: true, minChars: 1, placeholder: 'Skill or role (e.g. Excel, Barista, React)…', source: qSource });
+    const areaTa = JM.typeahead({ id: 'cs-area-ta', name: 'area', value: '', minChars: 0, placeholder: 'Anywhere (or type area)…', source: [{ value: '', label: 'Anywhere' }].concat(JM.areaItems || []) });
     return '<div class="page">' + JM.pageHead('Candidate search', 'These candidates chose to be discoverable. You see a masked name and skills until they apply and you shortlist them.') +
-      '<form data-form="csearch" class="card card-b mb"><div class="grid g3"><div class="field" style="margin:0"><label class="label">Skill</label><input type="search" name="q" placeholder="e.g. Customer service"></div><div class="field" style="margin:0"><label class="label">Area</label><select name="area"><option value="">Anywhere in Biñan</option>' + areaOpts('') + '</select></div><div class="field" style="margin:0"><label class="label">Match against job position</label><select name="job">' + (jobs.length ? jobs.map(function (j, i) { return '<option value="' + j.id + '"' + (i === 0 ? ' selected' : '') + '>' + esc(j.title) + '</option>'; }).join('') : '<option value="">No published jobs yet</option>') + '</select></div></div><div class="row mt" style="justify-content:flex-end"><button class="btn" type="submit">' + ic('search', 16) + 'Search</button></div></form><div id="cs-out"></div></div>';
-  }, after: function () { if (JM.me.employer.plan === 'business') JM.forms.csearch(document.querySelector('[data-form=csearch]'), { q: '', area: '', job: (JM.cs.jobs[0] && JM.cs.jobs[0].id) || '' }); } });
+      '<form data-form="csearch" class="card card-b mb"><div class="grid g4"><div class="field" style="margin:0"><label class="label">Skill or role</label>' + qTa + '</div><div class="field" style="margin:0"><label class="label">Area</label>' + areaTa + '</div>' +
+      '<div class="field" style="margin:0"><label class="label">Work setup</label><select name="setup"><option value="">Any setup</option>' + SETUPS.map(function (s) { return '<option>' + s + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field" style="margin:0"><label class="label">Match against job</label><select name="job">' + (jobs.length ? jobs.map(function (j, i) { return '<option value="' + j.id + '"' + (i === 0 ? ' selected' : '') + '>' + esc(j.title) + '</option>'; }).join('') : '<option value="">No published jobs yet</option>') + '</select></div></div><div class="row mt" style="justify-content:flex-end"><button class="btn" type="submit">' + ic('search', 16) + 'Search</button></div></form><div id="cs-out"></div></div>';
+  }, after: function () { if (JM.me.employer.plan === 'business') JM.forms.csearch(document.querySelector('[data-form=csearch]'), { q: '', area: '', setup: '', job: (JM.cs.jobs[0] && JM.cs.jobs[0].id) || '' }); } });
   const csScoreCol = function (s) { return s >= 75 ? '#14804F' : s >= 50 ? '#0C70F8' : '#9A5B00'; };
   const csMatchRow = function (title, score, on) { return '<div class="skill"><div class="row between small"><span>' + (on ? '<b>' + esc(title) + '</b> ' + JM.badge('Selected', 'brand') : esc(title)) + '</span><b class="num" style="color:' + csScoreCol(score) + '">' + score + '%</b></div>' + JM.bar(score, score >= 70 ? 'ok' : '') + '</div>'; };
   JM.forms.csearch = async function (form, d) {
     const out = document.getElementById('cs-out'); out.innerHTML = '<div class="skel" style="height:120px"></div>';
-    const r = await JM.rpc('candidate_search', { p_q: d.q || '', p_area: d.area || '', p_job: d.job || null });
+    const r = await JM.rpc('candidate_search', { p_q: d.q || '', p_area: d.area || '', p_job: d.job || null, p_setup: d.setup || '' });
     JM.cs.job = d.job || (r[0] && r[0].ref_job_id) || null;
     JM.cs.results = r;
     const jobT = ((JM.cs.jobs || []).find(function (j) { return j.id === JM.cs.job; }) || {}).title || 'your latest job';
     JM.cs.jobTitle = jobT;
     const head = JM.cs.job
-      ? '<div class="notice mb">' + ic('sparkle') + '<span>Match rates are calculated against <b>' + esc(jobT) + '</b> using skills (55%), location (20%), interests (15%) and pay (10%), the same scoring job seekers see. Change "Match against job position" to compare another role.</span></div>'
+      ? '<div class="notice mb">' + ic('sparkle') + '<span>Match rates are calculated against <b>' + esc(jobT) + '</b> using skills (55%), location (20%), interests (15%) and pay (10%), the same scoring job seekers see. Change "Match against job" to compare another role.</span></div>'
       : '<div class="notice warn mb">' + ic('flag') + '<span>Publish a job to see each candidate\'s match rate for that position.</span></div>';
     out.innerHTML = head + (r.length ? '<div class="grid g2">' + r.map(function (c, idx) {
       const m = c.match || {}, have = m.have || [], miss = m.missing || [], p = m.parts;
       const scoreBox = c.score != null ? '<div class="center" style="flex:none">' + JM.ring(c.score, 52, csScoreCol(c.score)) + '<div class="xs muted" style="margin-top:2px">match</div></div>' : '<span class="badge dash">No job selected</span>';
+      const setupChips = (c.work_setups || []).length ? '<div class="chips" style="margin-top:8px">' + c.work_setups.map(function (ws) { return JM.setupBadge(ws); }).join('') + '</div>' : '';
       return '<div class="card card-b" style="cursor:pointer" data-act="opencand" data-i="' + idx + '"><div class="row" style="align-items:flex-start">' + JM.avatar(c.name) + '<div class="grow"><b>' + esc(c.name) + '</b><div class="small muted">' + esc(JM.area(c.area_id)) + (c.education ? ' · ' + esc(c.education) : '') + '</div></div>' + scoreBox + '</div>' +
         (c.score != null ? '<div class="xs mt" style="color:var(--ink2)"><b>' + c.score + '% match</b> for ' + esc(jobT) + (p ? ' · Skills ' + p.skills + '% · Location ' + p.location + '% · Interests ' + p.interest + '% · Pay ' + p.salary + '%' : '') + '</div>' + (miss.length ? '<div class="xs muted">Missing for this job: ' + esc(miss.join(', ')) + '</div>' : '') : '') +
+        setupChips +
         '<div class="chips mt">' + c.skills.slice(0, 6).map(function (s) { return JM.badge(s.name, have.indexOf(s.name) >= 0 ? 'ok' : ''); }).join('') + '</div>' +
         (c.resume_summary ? '<p class="xs muted mt" style="margin-bottom:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(c.resume_summary) + '</p>' : '') +
         '<div class="row wrap gap-s mt">' + (c.invited ? '<span class="badge ok">Invited</span>' : '<button type="button" class="btn secondary sm" data-act="invite" data-id="' + c.id + '">Invite to apply</button>') + '<button type="button" class="btn sm" data-act="msgcand" data-id="' + c.id + '">' + ic('chat', 14) + 'Message</button><span class="xs muted" style="margin-left:auto">Click card for AI overview →</span></div></div>';
-    }).join('') + '</div>' : '<div class="card">' + JM.empty('search', 'No candidates found', 'Try a different skill or area.') + '</div>');
+    }).join('') + '</div>' : '<div class="card">' + JM.empty('search', 'No candidates found', 'Try a different skill, area, or work setup.') + '</div>');
   };
   JM.actions.opencand = async function (el, ev) {
     if (ev && ev.target.closest('button')) return;
@@ -312,9 +480,10 @@
       '<div class="card flat tint card-b mt" id="ai-cand-box"><div class="row gap-s">' + ic('sparkle', 16) + '<b>AI-Powered Applicant Overview</b></div><p class="small muted mt" style="margin-bottom:0">Generating suitability overview…</p></div>' +
       '<h4 class="mt-l mb">Match by job position</h4><div id="cand-jobmatch">' + (c.score != null ? csMatchRow(jobT, c.score, true) : '<p class="small muted">Loading match rates…</p>') + '</div>' + breakdown +
       '<h4 class="mt-l mb">Skills</h4><div class="chips">' + (c.skills || []).map(function (s) { return JM.badge(s.name + ' · ' + (s.level >= 90 ? 'Advanced' : s.level >= 60 ? 'Intermediate' : 'Beginner')); }).join('') + '</div>' +
+      ((c.work_setups && c.work_setups.length) ? '<h4 class="mt-l mb">Accepted work setups</h4><div class="chips">' + c.work_setups.map(function (ws) { return JM.setupBadge(ws); }).join('') + '</div>' : '') +
       '<h4 class="mt-l mb">Education</h4><p class="small" style="margin:0">' + esc([c.education, c.course, c.school].filter(Boolean).join(' · ') || 'Not provided') + '</p>' +
       '<h4 class="mt-l mb">Work Experience</h4>' + exp +
-      (c.resume_summary ? '<h4 class="mt-l mb">Résumé Summary</h4><p class="small" style="margin:0;white-space:pre-wrap">' + esc(c.resume_summary) + '</p>' : '') +
+      (c.resume_summary ? '<h4 class="mt-l mb">Professional summary</h4>' + JM.summaryBlock(c.resume_summary) : '') +
       '<div class="row wrap mt-l">' + (c.invited ? '<span class="badge ok">Invited</span>' : '<button class="btn secondary" data-act="invite" data-id="' + c.id + '">Invite to apply</button>') + '<button class="btn" data-act="msgcand" data-id="' + c.id + '">' + ic('chat', 16) + 'Direct Message</button></div>');
     JM.rpc('candidate_job_matches', { p_seeker: c.id }).then(function (rows) {
       const box = document.getElementById('cand-jobmatch'); if (!box) return;
@@ -510,18 +679,19 @@
     const e = JM.me.employer, team = await JM.q(JM.sb.from('employer_team').select('*').eq('employer_id', JM.me.id).order('name')), docs = await JM.q(JM.sb.from('employer_docs').select('*').eq('employer_id', JM.me.id).order('created_at')), n = e.notif || {};
     const sw = function (k, t) { return '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><b class="grow">' + t + '</b><span class="switch"><input type="checkbox" data-act="enotif" data-k="' + k + '"' + (n[k] !== false ? ' checked' : '') + '><i></i></span></label>'; };
     const findDoc = function (k) { return docs.find(function (d) { return d.kind === k; }); };
-    const logoUrl = e.logo_path ? JM.sb.storage.from('company-logos').getPublicUrl(e.logo_path).data.publicUrl : '';
     const docRow = function (kind, label) {
       const doc = findDoc(kind);
       return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + label + '</b><div class="xs muted">' + (doc ? esc(doc.file_name) : 'Not uploaded yet') + '</div></div>' +
-        (doc ? JM.badge('Uploaded', 'ok') + '<button type="button" class="btn secondary sm" data-act="empviewdoc" data-path="' + esc(doc.file_path) + '">View</button>' : JM.badge('Missing', 'warn')) +
-        JM.uploadBtn({ in: 'compdoc', kind: kind, accept: '.pdf,.jpg,.jpeg,.png', label: doc ? 'Replace' : 'Upload', size: 'sm', preview: 'Preview: ' + label }) + '</div>';
+        (doc ? JM.badge('Uploaded', 'ok') + '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="verification-docs" data-path="' + esc(doc.file_path) + '" data-title="' + esc(label) + '">View</button>' : JM.badge('Missing', 'warn')) +
+        JM.uploadBtn({ in: 'compdoc', kind: kind, accept: '.pdf,.jpg,.jpeg,.png,.webp', label: doc ? 'Replace' : 'Upload', size: 'sm', preview: 'Preview: ' + label }) + '</div>';
     };
+    const bizTa = JM.typeahead({ id: 'comp-biz-ta', name: 'type', value: e.type || '', label: e.type || '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type…', source: BIZ_ITEMS });
+    const areaTa = JM.typeahead({ id: 'comp-area-ta', name: 'area_id', value: e.area_id, label: JM.area(e.area_id), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [] });
     return '<div class="page narrow">' + JM.pageHead('Company and team') +
       '<div class="card mb"><div class="card-h"><h3 class="grow">Business profile</h3>' + (e.verification_status === 'verified' ? JM.badge('Verified', 'ok') : JM.badge(e.verification_status === 'pending' ? 'Pending review' : 'Not approved', e.verification_status === 'pending' ? 'warn' : 'bad')) + '</div><div class="card-b">' +
-      '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)">' + (logoUrl ? '<img class="thumb clickable" src="' + esc(logoUrl) + '" alt="Company logo" title="Click to preview" data-act="imgview" data-src="' + esc(logoUrl) + '" data-title="Company logo">' : JM.avatar(e.name, 'lg')) + '<div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP up to 5 MB. Shown on your business profile.' + (logoUrl ? ' Click the logo to preview it.' : '') + '</div></div>' + JM.uploadBtn({ in: 'emplogo', accept: 'image/jpeg,image/png,image/webp', label: logoUrl ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Preview company logo' }) + '</div>' +
-      '<form data-form="company"><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" value="' + esc(e.name) + '" required></div><div class="field"><label class="label">Type</label><select name="type">' + opts(BIZ, e.type) + '</select></div>' +
-      '<div class="field"><label class="label">Area</label><select name="area_id">' + areaOpts(e.area_id) + '</select></div><div class="field"><label class="label">Address</label><input type="text" name="address" value="' + esc(e.address) + '"></div>' +
+      '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)">' + JM.img({ bucket: 'company-logos', path: e.logo_path, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: e.logo_path ? 'imgview' : '', title: 'Company logo' }) + '<div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP · square/circle crop · max 5 MB. Shown on your Discover cards and profile.</div></div>' + JM.uploadBtn({ in: 'emplogo', shape: 'circle', accept: 'image/jpeg,image/png,image/webp', label: e.logo_path ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Crop company logo' }) + '</div>' +
+      '<form data-form="company"><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" value="' + esc(e.name) + '" required></div><div class="field"><label class="label">Type</label>' + bizTa + '</div>' +
+      '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Address</label><input type="text" name="address" value="' + esc(e.address) + '"></div>' +
       '<div class="field"><label class="label">Contact person</label><input type="text" name="contact_name" value="' + esc(e.contact_name) + '"></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="contact_phone" value="' + esc(e.contact_phone) + '"></div></div>' +
       '<div class="field"><label class="label">Contact email</label><input type="email" name="contact_email" value="' + esc(e.contact_email) + '"></div><div class="field"><label class="label">About</label><textarea name="about" maxlength="600">' + esc(e.about) + '</textarea></div><button class="btn" type="submit">Save changes</button></form></div></div>' +
       '<div class="card mb"><div class="card-h"><h3 class="grow">Company Documents (BIR, DTI, Mayor\'s Permit)</h3>' + (e.verification_status === 'rejected' ? '<button class="btn sm" data-act="resubmit">Resubmit</button>' : '') + '</div><div class="list">' +
@@ -541,20 +711,23 @@
     } catch (e) { el.checked = !el.checked; JM.toast(JM.err(e), 'bad'); }
   };
   JM.inputs.emplogo = async function (el) {
-    const f = el.files[0]; if (!f) return;
+    const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
+    if (JM.isHeic(f)) { JM.toast(JM.HEIC_MSG, 'bad'); el.value = ''; return; }
     if (f.size > 5 * 1024 * 1024) { JM.toast('Logo must be under 5 MB.', 'bad'); el.value = ''; return; }
-    const ext = (f.name.split('.').pop() || 'png').toLowerCase();
+    const ext = (f.name.split('.').pop() || 'webp').toLowerCase();
     if (['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) < 0) { JM.toast('Upload JPG, PNG or WEBP.', 'bad'); el.value = ''; return; }
+    const oldPath = JM.me.employer && JM.me.employer.logo_path;
     const path = JM.me.id + '/logo-' + Date.now() + '.' + ext;
     try {
       const r = await JM.sb.storage.from('company-logos').upload(path, f, { contentType: f.type || undefined });
       if (r.error) throw r.error;
       await JM.q(JM.sb.from('employers').update({ logo_path: path }).eq('user_id', JM.me.id));
-      await JM.loadMe(); JM.toast('Company logo updated.', 'ok'); JM.render();
+      if (oldPath && oldPath !== path) JM.sb.storage.from('company-logos').remove([oldPath]);
+      await JM.loadMe(); JM.refreshShellAvatar(); JM.toast('Company logo updated.', 'ok'); JM.render();
     } catch (e) { JM.toast(JM.err(e), 'bad'); }
   };
   JM.inputs.compdoc = async function (el) {
-    const f = el.files[0]; if (!f) return;
+    const f = (el._pvExtra && el._pvExtra.file) || el.files[0]; if (!f) return;
     try {
       const up = await uploadDoc(f);
       await JM.rpc('employer_upsert_doc', { p_kind: el.dataset.kind, p_path: up.path, p_name: up.name });

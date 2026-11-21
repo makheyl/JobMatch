@@ -40,9 +40,10 @@ Deno.serve(async (req) => {
     const promptText = [
       job ? `Target Role: ${job.title} (${job.type}, ${job.category}). Required skills: ${jobSkills.join(', ')}` : 'General candidate evaluation',
       `Education: ${sp.edu_level || 'Not specified'}, ${sp.course || ''} at ${sp.school || ''}`,
+      `Accepted Work Setups: ${(sp.work_setups ?? []).join(', ') || 'Any'}`,
       `Skills: ${skills.join(', ') || 'None listed'}`,
       `Experience: ${exp.map((e) => `${e.role} at ${e.org} (${e.years} yr)`).join('; ') || 'Entry-level / no prior formal experience listed'}`,
-      `Summary: ${sp.resume_summary || 'No summary provided'}`,
+      `Professional Summary: ${sp.resume_summary || 'No summary provided'}`,
       `Career Goal: ${sp.goal_text || 'Not specified'}`,
     ].join('\n');
 
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({
-            model: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-3-5-haiku-latest',
+            model: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-haiku-4-5-20251001',
             max_tokens: 450,
             system: 'Summarize this job candidate for a Filipino MSME employer in a fair, objective way (never mention age, gender, or appearance). Reply with JSON: {"overview":"2-3 sentences","highlights":["..."],"gaps":["..."],"suitability":"High|Moderate|Developing"}.',
             messages: [{ role: 'user', content: promptText }],

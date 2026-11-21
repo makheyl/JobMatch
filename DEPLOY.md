@@ -51,7 +51,7 @@ Dashboard, Edge Functions, Secrets (or `supabase secrets set NAME=value`).
 
 | Secret | Purpose |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Turns on AI résumé review. Without it the built-in rule review is used. Optional `ANTHROPIC_MODEL`. |
+| `ANTHROPIC_API_KEY` | Turns on AI résumé parsing (including image OCR), detailed summary generation, résumé review, and candidate overviews. Without it the built-in rule engine is used. Optional `ANTHROPIC_MODEL` (defaults to `claude-haiku-4-5-20251001`). |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push. Generate keys once with `npx web-push generate-vapid-keys`. `VAPID_SUBJECT` looks like `mailto:support@yourdomain.ph`. Also paste the **public** key into `vapidPublicKey` in `web/config.js`. |
 | `PAYMENTS_MODE` | `sandbox` (default) or `live`. See section 6. |
 
@@ -88,4 +88,4 @@ delete from auth.users where email like '%@jobmatch.demo';
 
 ## Re-creating the backend in a new project
 
-Run `supabase/migrations/001` to `005` in order in the SQL editor, deploy the four functions in `supabase/functions` (JWT verification off: they check the token themselves), update the URL and publishable key in `web/config.js` and the two project URLs in `web/_headers` and `firebase.json`.
+Run `supabase/migrations/001` to `011` in order in the SQL editor (or `npx supabase db push --remote`), deploy the six functions in `supabase/functions` (JWT verification off: they check the token themselves), update the URL and publishable key in `web/config.js`, and update the Supabase project URL in `img-src` and `connect-src` across `web/_headers`, `firebase.json`, and `web/vercel.json`.
