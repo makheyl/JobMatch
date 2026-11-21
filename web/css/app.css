@@ -2750,8 +2750,14 @@ input[type=range] {
   overflow: visible
 }
 
+.page.narrow.job-detail-page {
+  max-width: 608px
+}
+
 .jmedia-detail {
-  max-width: 520px
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto
 }
 
 .jmedia-form {
