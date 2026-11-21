@@ -126,7 +126,7 @@
       '</div>';
   };
   JM.skeleton = function () {
-    const thinker = (JM.system && JM.system.thinkingSpinnerHtml) ? JM.system.thinkingSpinnerHtml('Jobi is thinking…') : '';
+    const thinker = (JM.system && JM.system.thinkingSpinnerHtml) ? JM.system.thinkingSpinnerHtml('Jomo is thinking…') : '';
     return '<div class="page">' + thinker + '<div class="skel" style="height:30px;width:240px;margin-bottom:22px"></div><div class="grid g3"><div class="skel" style="height:110px"></div><div class="skel" style="height:110px"></div><div class="skel" style="height:110px"></div></div><div class="skel" style="height:240px;margin-top:16px"></div></div>';
   };
   JM.pageHead = function (title, sub, actions) { return '<div class="page-h"><div class="grow"><h1>' + title + '</h1>' + (sub ? '<p>' + sub + '</p>' : '') + '</div>' + (actions ? '<div class="row wrap">' + actions + '</div>' : '') + '</div>'; };

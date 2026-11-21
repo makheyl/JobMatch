@@ -831,7 +831,7 @@
           emotion: 'waving',
           prop: 'none',
           animation: 'wave',
-          title: "Hi, I'm Jobi!",
+          title: "Hi, I'm Jomo!",
           copy: 'Let’s set up your skills and preferences in 5 quick steps.'
         });
       }
@@ -1010,7 +1010,7 @@
     bindTop();
 
     if (stack.length > 0) {
-      // 1. Discover first visit: curious Jobi demonstrates swipe gestures once (Tier 2)
+      // 1. Discover first visit: curious Jomo demonstrates swipe gestures once (Tier 2)
       if (JM.reward && JM.milestones && !JM.milestones.has('seeker_discover_first_visit')) {
         JM.reward({
           id: 'seeker_discover_first_visit',
@@ -1426,7 +1426,7 @@ JM.actions.startmsg = async function (el) {
   });
 };
 
-// celebration when an employer shortlists the seeker (upgraded with Jobi jump, card flip, confetti & padlock contact unlock)
+// celebration when an employer shortlists the seeker (upgraded with Jomo jump, card flip, confetti & padlock contact unlock)
 let lastCheck = 0;
 JM.checkMatch = async function (force) {
   if (!JM.me || JM.me.role !== 'seeker' || (!force && Date.now() - lastCheck < 20000) || document.getElementById('overlay-root').classList.contains('open')) return; lastCheck = Date.now();

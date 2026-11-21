@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Jobi Mascot & Reward System — Kinematic Multi-Joint Spring Stylesheet
+   Jomo Mascot & Reward System — Kinematic Multi-Joint Spring Stylesheet
    Strict GPU-Only Rule: Animates ONLY `transform` and `opacity`.
    Strict Easing Rule: Spring / cubic-bezier curves only (ZERO `linear` easing).
    Uses Disney-style overlapping action, follow-through, anticipation squash,
@@ -1790,7 +1790,7 @@
   }
 }
 
-/* ---------- Tier 2: Mini Bottom-Edge Jobi Peek Banner (1.2s - 2.0s) ---------- */
+/* ---------- Tier 2: Mini Bottom-Edge Jomo Peek Banner (1.2s - 2.0s) ---------- */
 .jobi-tier2-banner {
   position: fixed;
   left: 50%;
@@ -1878,7 +1878,7 @@
   }
 }
 
-/* ---------- Tier 3: Major Full-Body Jobi Celebration Overlay (2.5s - 4.0s) ---------- */
+/* ---------- Tier 3: Major Full-Body Jomo Celebration Overlay (2.5s - 4.0s) ---------- */
 .jobi-tier3-ov {
   position: fixed;
   inset: 0;
@@ -2309,7 +2309,7 @@
   }
 }
 
-/* 4. Undo Swipe — Jobi .jobi-anim-rewind spin pop */
+/* 4. Undo Swipe — Jomo .jobi-anim-rewind spin pop */
 .jobi-rewind-pop {
   position: fixed;
   z-index: 255;
@@ -2417,7 +2417,7 @@
   }
 }
 
-/* 6. Tier 1 Non-Blocking Jobi Corner Peek (90%+ match, employer reply, profile strength 25/50/75% nod) */
+/* 6. Tier 1 Non-Blocking Jomo Corner Peek (90%+ match, employer reply, profile strength 25/50/75% nod) */
 .jobi-corner-peek {
   position: fixed;
   right: 18px;
@@ -2942,7 +2942,7 @@
   white-space: nowrap;
 }
 
-/* Mounted Jobi perched on the active node */
+/* Mounted Jomo perched on the active node */
 .jobi-node-mascot-slot {
   position: absolute;
   top: -54px;
@@ -3035,7 +3035,7 @@
   100% { opacity: 0; transform: translate3d(-50%, -38px, 0) scale(0.92); }
 }
 
-/* Chapter Banner when walking Jobi to the next week node */
+/* Chapter Banner when walking Jomo to the next week node */
 .jobi-chapter-banner {
   position: fixed;
   top: 78px;
@@ -3057,7 +3057,7 @@
   animation: jobiMilestoneChipIn 2.2s var(--jobi-ease-spring) both;
 }
 
-/* Quiz Answer Micro-Feedback: Correct green pop-line sparkle & Wrong soft coral #FF7A6B shake + oops Jobi */
+/* Quiz Answer Micro-Feedback: Correct green pop-line sparkle & Wrong soft coral #FF7A6B shake + oops Jomo */
 .opt.jobi-opt-correct {
   position: relative;
   border-color: var(--jobi-green, #14804F) !important;
@@ -3446,7 +3446,7 @@
   100% { opacity: 0; transform: translate3d(-50%, -16px, 0) rotateX(20deg) scale(0.94); }
 }
 
-/* 7. Candidate Search Loading: Scanning Jobi + Radar Ring */
+/* 7. Candidate Search Loading: Scanning Jomo + Radar Ring */
 .jobi-radar-loader {
   position: relative;
   display: flex;
@@ -3562,7 +3562,7 @@
   margin: -6px 0 -4px;
 }
 
-/* 2. Pull-to-Refresh & Global Thinking Jobi Spinner */
+/* 2. Pull-to-Refresh & Global Thinking Jomo Spinner */
 .jobi-thinking-spinner {
   display: inline-flex;
   align-items: center;

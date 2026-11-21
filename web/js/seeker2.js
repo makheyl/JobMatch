@@ -512,7 +512,7 @@
   };
   JM.QUIZ_ANSWER_BANK = QUIZ_ANSWER_BANK;
 
-  // Bind keyboard navigation (ArrowUp/ArrowDown/ArrowLeft/ArrowRight/Home/End) & mount Jobi on active winding roadmap node
+  // Bind keyboard navigation (ArrowUp/ArrowDown/ArrowLeft/ArrowRight/Home/End) & mount Jomo on active winding roadmap node
   JM.mountCareerRoadmap = function (root) {
     const scope = root || document;
     const winding = scope.querySelector ? scope.querySelector('.jobi-roadmap-winding') : null;
@@ -527,7 +527,7 @@
         prop: isQuizSlot ? 'graduation-cap' : 'map',
         animation: isQuizSlot ? 'bounce' : 'idle',
         size: 62,
-        ariaLabel: 'Jobi on your current active learning node'
+        ariaLabel: 'Jomo on your current active learning node'
       });
     }
 
@@ -656,7 +656,7 @@
     JM.bd = b; const r = b.role, rd = b.readiness, s = b.salary, pro = b.pro;
     const needs = rd.skills.filter(function (x) { return x.pct < 70; });
 
-    // Determine the active week node where Jobi should perch
+    // Determine the active week node where Jomo should perch
     const activeWeekObj = b.weeks.find(function (x) { return !x.locked && (x.tasks || []).some(function (t) { return !t.done; }); }) ||
       b.weeks.filter(function (x) { return !x.locked; }).slice(-1)[0] ||
       b.weeks[0] || { week: 1 };
@@ -677,7 +677,7 @@
         const quizDone = !!(quizTask && quizTask.done);
         const quizIlluminated = !w.locked && quizReady && !quizDone;
 
-        // Mount Jobi on the illuminated quiz node if preliminary tasks are done, otherwise on the active week node
+        // Mount Jomo on the illuminated quiz node if preliminary tasks are done, otherwise on the active week node
         const mountOnQuiz = isCurrentWeek && quizIlluminated;
         const mountOnWeek = isCurrentWeek && !mountOnQuiz;
 
@@ -837,7 +837,7 @@
               animation: 'cheer',
               badge: 'Week ' + completedWeek + ' Complete!',
               title: 'You finished Week ' + completedWeek + '!',
-              copy: (nextWeekTitle ? 'Jobi walked to ' + nextWeekTitle + '. ' : '') + 'Your skill readiness score climbed!',
+              copy: (nextWeekTitle ? 'Jomo walked to ' + nextWeekTitle + '. ' : '') + 'Your skill readiness score climbed!',
               confetti: true
             });
           } else if (quizJustUnlockedWeek && JM.micro && JM.micro.hopToQuizNode) {
@@ -954,7 +954,7 @@
         animation: 'cheer',
         badge: 'Week ' + (weekNum || 1) + ' Complete!',
         title: 'Quiz passed (' + r.score + '/' + r.total + ') & Week ' + (weekNum || 1) + ' complete!',
-        copy: (nextWeekTitle ? 'Jobi walked along the path to ' + nextWeekTitle + '! ' : '') + 'Your skill readiness went up.',
+        copy: (nextWeekTitle ? 'Jomo walked along the path to ' + nextWeekTitle + '! ' : '') + 'Your skill readiness went up.',
         extraHtml: '<div class="center">' + scoreRingHtml + starsRowHtml + '</div>',
         confetti: true,
         cta: { label: 'Continue on roadmap', onClick: function () { JM.render(); } },
@@ -974,7 +974,7 @@
         prop: r.passed ? 'graduation-cap' : 'clipboard',
         animation: r.passed ? 'cheer' : 'nod',
         size: 128,
-        ariaLabel: r.passed ? 'Jobi celebrating quiz pass' : 'Jobi encouraging you to try again'
+        ariaLabel: r.passed ? 'Jomo celebrating quiz pass' : 'Jomo encouraging you to try again'
       });
     }
     const ringEl = document.querySelector('#quiz-res-ring .ring');
@@ -1242,7 +1242,7 @@
   JM.animPrefsCard = function () {
     const p = JM.prefs || { animations: true, haptics: true, sound: false };
     return '<div class="card mb"><div class="card-h"><h3>Animations and sounds</h3></div><div class="card-b" style="padding-top:0">' +
-      '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><div class="grow"><b>Animations and sounds</b><div class="small muted">Enable Jobi mascot spring animations and milestone celebrations. Automatically respects your device’s reduced-motion setting.</div></div><span class="switch"><input type="checkbox" data-act="jobipref" data-k="animations"' + (p.animations !== false ? ' checked' : '') + '><i></i></span></label>' +
+      '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><div class="grow"><b>Animations and sounds</b><div class="small muted">Enable Jomo mascot spring animations and milestone celebrations. Automatically respects your device’s reduced-motion setting.</div></div><span class="switch"><input type="checkbox" data-act="jobipref" data-k="animations"' + (p.animations !== false ? ' checked' : '') + '><i></i></span></label>' +
       '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><div class="grow"><b>Celebration sound ("bloop")</b><div class="small muted">Play a soft synthesized chime on milestone rewards.</div></div><span class="switch"><input type="checkbox" data-act="jobipref" data-k="sound"' + (p.sound === true ? ' checked' : '') + '><i></i></span></label>' +
       '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><div class="grow"><b>Haptic feedback</b><div class="small muted">Subtle 12ms vibration tick on mobile actions and toasts.</div></div><span class="switch"><input type="checkbox" data-act="jobipref" data-k="haptics"' + (p.haptics !== false ? ' checked' : '') + '><i></i></span></label>' +
       '</div></div>';

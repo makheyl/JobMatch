@@ -125,7 +125,7 @@
         prop: 'clipboard',
         animation: 'nod',
         size: 68,
-        ariaLabel: 'Comforting Jobi with verification checklist'
+        ariaLabel: 'Comforting Jomo with verification checklist'
       });
     });
   }
