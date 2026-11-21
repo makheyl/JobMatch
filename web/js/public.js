@@ -5,7 +5,8 @@
 
   // ---------- landing ----------
   function nav() {
-    return '<header class="lnav"><div class="lwrap"><a class="brand" href="#/" style="padding:0"><img src="assets/logo.png" alt="">JobMatch</a>' +
+    const homeHref = '#' + JM.home();
+    return '<header class="lnav"><div class="lwrap"><a class="brand" href="' + homeHref + '" data-act="brandhome" style="padding:0"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<nav aria-label="Sections"><a href="#/" data-scroll="how">How it works</a><a href="#/" data-scroll="employers">For employers</a><a href="#/" data-scroll="pricing">Pricing</a><a href="#/" data-scroll="faq">FAQ</a></nav>' +
       '<div class="grow"></div><a class="btn ghost sm" href="#/login">Sign in</a><a class="btn sm" href="#/signup">Get started</a></div></header>';
   }
@@ -90,8 +91,9 @@
 
   // ---------- auth ----------
   function authShell(inner, headline, sub) {
-    return '<div class="auth"><div class="auth-main"><div class="auth-box"><a class="brand" href="#/" style="padding:0 0 28px"><img src="assets/logo.png" alt="">JobMatch</a>' + inner + '</div></div>' +
-      '<aside class="auth-side"><div class="brand" style="color:#fff;padding:0"><img src="assets/logo.png" alt="">JobMatch</div><div><h1>' + headline + '</h1><p class="mt">' + sub + '</p></div>' +
+    const homeHref = '#' + JM.home();
+    return '<div class="auth"><div class="auth-main"><div class="auth-box"><a class="brand" href="' + homeHref + '" data-act="brandhome" style="padding:0 0 28px"><img src="assets/logo.png" alt="">JobMatch</a>' + inner + '</div></div>' +
+      '<aside class="auth-side"><a class="brand" href="' + homeHref + '" data-act="brandhome" style="color:#fff;padding:0"><img src="assets/logo.png" alt="">JobMatch</a><div><h1>' + headline + '</h1><p class="mt">' + sub + '</p></div>' +
       '<div class="small" style="color:#9DB4E0">Built in Biñan for StartUP City of Biñan.</div></aside></div>';
   }
   const DEMO = [
@@ -190,7 +192,7 @@
   JM.route('/role', { auth: 'any', plain: true, pre: true, title: 'Choose account type', render: function () {
     if (JM.me.role) { JM.go(JM.home()); return ''; }
     const card = function (role, icon, t, p) { return '<button class="card card-b" data-act="pickrole" data-role="' + role + '" style="text-align:left;width:100%;cursor:pointer"><div class="avatar" style="margin-bottom:14px;border-radius:10px;width:42px;height:42px">' + ic(icon) + '</div><h3>' + t + '</h3><p class="muted small" style="margin:6px 0 0">' + p + '</p></button>'; };
-    return '<div class="auth-main" style="min-height:100vh;background:var(--bg)"><div class="auth-box" style="max-width:640px"><a class="brand" href="#/" style="padding:0 0 24px"><img src="assets/logo.png" alt="">JobMatch</a>' +
+    return '<div class="auth-main" style="min-height:100vh;background:var(--bg)"><div class="auth-box" style="max-width:640px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:0 0 24px"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<h2 style="font-size:24px">How will you use JobMatch?</h2><p class="muted mt mb">This cannot be changed later, so pick the one that fits.</p>' +
       '<div class="grid g2">' + card('seeker', 'user', 'I am looking for a job', 'Get matched to local jobs and a plan to grow your skills.') + card('employer', 'briefcase', 'I am hiring', 'Post jobs and review applicants. Verification required.') + '</div>' +
       '<p class="small center mt-l"><button class="btn ghost sm" data-act="logout">Sign out</button></p></div></div>';
@@ -200,7 +202,7 @@
   };
   JM.route('/consent', { auth: 'any', plain: true, pre: true, title: 'Privacy consent', render: function () {
     if (!JM.me.role) { JM.go('/role'); return ''; } if (JM.me.consent_at) { JM.go(JM.home()); return ''; }
-    return '<div class="auth-main" style="min-height:100vh;background:var(--bg)"><div class="auth-box" style="max-width:560px"><a class="brand" href="#/" style="padding:0 0 24px"><img src="assets/logo.png" alt="">JobMatch</a>' +
+    return '<div class="auth-main" style="min-height:100vh;background:var(--bg)"><div class="auth-box" style="max-width:560px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:0 0 24px"><img src="assets/logo.png" alt="">JobMatch</a>' +
       '<div class="card card-b"><h2>Before you continue</h2><p class="muted mt">JobMatch collects the information you enter to match you with jobs. We follow the Data Privacy Act of 2012 (RA 10173).</p>' +
       '<ul class="small" style="padding-left:18px;color:var(--ink2);line-height:1.7"><li>Employers see only a first name, last initial, skills and experience until they shortlist you.</li><li>We never use age, gender or photos to rank you.</li><li>You can download or delete your data at any time in Settings.</li></ul>' +
       '<form data-form="consent"><label class="check mt"><input type="checkbox" name="agree" required><span class="small">I have read and agree to the <a href="#/terms" target="_blank">Terms</a> and <a href="#/privacy" target="_blank">Privacy Notice</a>, and I consent to the processing of my personal data as described.</span></label>' +

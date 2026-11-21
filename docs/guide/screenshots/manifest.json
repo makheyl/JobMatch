@@ -1,0 +1,277 @@
+{
+  "generatedAt": "2026-11-21T09:29:58.725Z",
+  "device": "iPhone 16 Pro Max (440x956 pt @ 3x = 1320x2868 px raw)",
+  "count": 27,
+  "screenshots": [
+    {
+      "file": "seeker-01-welcome.png",
+      "perspective": "seeker",
+      "title": "Welcome to JobMatch",
+      "route": "#/",
+      "caption": "Start your job search with transparent match scores built for Biñan and Laguna.",
+      "guideStep": "Hero / Phase 1",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-03-signup.png",
+      "perspective": "seeker",
+      "title": "Create your account",
+      "route": "#/signup",
+      "caption": "Enter your full name, email, and an 8+ character password to create your account.",
+      "guideStep": "Phase 1 – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-02-choose-role.png",
+      "perspective": "seeker",
+      "title": "Choose account type",
+      "route": "#/role",
+      "caption": "Pick \"I am looking for a job\" to start your personal job matching and career plan.",
+      "guideStep": "Phase 1 – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-04-onboarding-skills.png",
+      "perspective": "seeker",
+      "title": "Onboarding – Skills (categorized picker)",
+      "route": "#/onboarding (Step 3 of 5)",
+      "caption": "Browse 300+ categorized skills, pick Suggested for you, and set your level for each skill.",
+      "guideStep": "Phase 2 – Step 3",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-05-onboarding-resume.png",
+      "perspective": "seeker",
+      "title": "Onboarding – Résumé auto-fill result",
+      "route": "#/onboarding (Step 4 of 5)",
+      "caption": "Tap Update All Info to auto-fill skills, education, and summary while keeping personal details protected.",
+      "guideStep": "Phase 2 – Step 4",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-06-onboarding-goals.png",
+      "perspective": "seeker",
+      "title": "Onboarding – Goals & work setups",
+      "route": "#/onboarding (Step 5 of 5)",
+      "caption": "Pick your target career role, accepted work setups (On-site, Hybrid, Remote), and pay goal.",
+      "guideStep": "Phase 2 – Step 5",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-07-profile-hero.png",
+      "perspective": "seeker",
+      "title": "Your profile",
+      "route": "#/profile",
+      "caption": "Complete your circular profile photo, 3:4 portrait, and details to reach 100% profile strength.",
+      "guideStep": "Phase 3 – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-08-discover-card.png",
+      "perspective": "seeker",
+      "title": "Discover – matched job card",
+      "route": "#/deck",
+      "caption": "Swipe right to save, left to pass, up to star, or tap any card to see your full match breakdown.",
+      "guideStep": "Phase 4 – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-09-discover-filters.png",
+      "perspective": "seeker",
+      "title": "Discover – Filter jobs",
+      "route": "#/deck (Filters modal)",
+      "caption": "Filter jobs by commute limit, work setup (On-site, Hybrid, Remote), employment type, area, and minimum pay.",
+      "guideStep": "Phase 4 – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-17-upcoming-interview.png",
+      "perspective": "seeker",
+      "title": "Upcoming interview on Discover",
+      "route": "#/deck (Upcoming Interviews)",
+      "caption": "Scheduled interviews appear at the top of Discover so you can review details and tap Confirm in one tap.",
+      "guideStep": "Phase 8 – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-10-job-details.png",
+      "perspective": "seeker",
+      "title": "Job details & match breakdown",
+      "route": "#/jobs/:id",
+      "caption": "See exactly how your skills (55%), location (20%), interests (15%), and pay (10%) build your match score.",
+      "guideStep": "Phase 5 – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-11-career-job.png",
+      "perspective": "seeker",
+      "title": "Career breakdown for a job",
+      "route": "#/career/job/:id",
+      "caption": "Check your readiness ring, learning progress, and exact skills needed for any job listing.",
+      "guideStep": "Phase 5 – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-12-career-roadmap.png",
+      "perspective": "seeker",
+      "title": "Career roadmap & career path",
+      "route": "#/career/role/:id",
+      "caption": "Follow weekly Learn and Practice tasks, pass skill quizzes, and track your Entry-to-Senior career path.",
+      "guideStep": "Phase 9 – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "seeker-13-resume-review.png",
+      "perspective": "seeker",
+      "title": "Résumé review results",
+      "route": "#/resume-review",
+      "caption": "Get an instant score, strong areas, specific fixes with examples, and employer-appeal tips.",
+      "guideStep": "Phase 3 – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-14-applications.png",
+      "perspective": "seeker",
+      "title": "Applications & status timeline",
+      "route": "#/applications",
+      "caption": "Track every application from Applied to Shortlisted or Hired, plus employer view status and Insights.",
+      "guideStep": "Phase 6 – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-15-matches.png",
+      "perspective": "seeker",
+      "title": "Matches – contact details shared",
+      "route": "#/matches",
+      "caption": "Once shortlisted, employer contact details appear and a direct chat opens.",
+      "guideStep": "Phase 6 – Step 3",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "seeker-16-messages-menu.png",
+      "perspective": "seeker",
+      "title": "Messages – long-press options",
+      "route": "#/messages/:id",
+      "caption": "Press and hold any message to Reply, Copy, Edit, Unsend, or Remove for you.",
+      "guideStep": "Phase 7 – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-01-overview.png",
+      "perspective": "employer",
+      "title": "Employer overview dashboard",
+      "route": "#/employer",
+      "caption": "Employers see live jobs, applicants, matches, views, and upcoming interviews in one dashboard.",
+      "guideStep": "Appendix – Employer Overview",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-02-post-job.png",
+      "perspective": "employer",
+      "title": "Post a job",
+      "route": "#/employer/jobs/new",
+      "caption": "Employers pick a career role, work setup (On-site, Hybrid, or Remote), 4:3 photo, and required skills.",
+      "guideStep": "Appendix – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "employer-03-jobs-list.png",
+      "perspective": "employer",
+      "title": "Employer jobs list",
+      "route": "#/employer/jobs",
+      "caption": "Every live listing shows work setup, pay range, status, and total applicant count.",
+      "guideStep": "Appendix – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-04-applicants.png",
+      "perspective": "employer",
+      "title": "Ranked applicants with match scores",
+      "route": "#/employer/jobs/:id/applicants",
+      "caption": "Applicants are ranked by fit with masked names until the employer chooses to shortlist.",
+      "guideStep": "Appendix – Step 3",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-05-applicant-drawer.png",
+      "perspective": "employer",
+      "title": "Applicant review drawer",
+      "route": "#/employer/jobs/:id/applicants (Drawer)",
+      "caption": "Employers review skills, work setups, education, and summary fairly—contact details appear only after shortlisting.",
+      "guideStep": "Appendix – Step 3",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-06-schedule-interview.png",
+      "perspective": "employer",
+      "title": "Schedule interview modal",
+      "route": "#/employer/jobs/:id/applicants (Modal)",
+      "caption": "Once shortlisted, employers schedule an Online or On-site interview and send an instant invite.",
+      "guideStep": "Appendix – Step 4",
+      "rawPx": "1320x2868",
+      "mocked": true
+    },
+    {
+      "file": "employer-07-candidate-search.png",
+      "perspective": "employer",
+      "title": "Candidate search & invites",
+      "route": "#/employer/candidates",
+      "caption": "Employers can discover opted-in seekers matched to their open roles and invite them to apply.",
+      "guideStep": "Appendix – Step 2",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-08-analytics.png",
+      "perspective": "employer",
+      "title": "Employer analytics",
+      "route": "#/employer/analytics",
+      "caption": "Hiring trends, views, saves, and application rates help employers improve their job listings.",
+      "guideStep": "Appendix – Step 5",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-09-company.png",
+      "perspective": "employer",
+      "title": "Verified company profile",
+      "route": "#/employer/company",
+      "caption": "Every employer completes document verification to earn the Verified badge shown to seekers.",
+      "guideStep": "Appendix – Step 1",
+      "rawPx": "1320x2868",
+      "mocked": false
+    },
+    {
+      "file": "employer-10-messages.png",
+      "perspective": "employer",
+      "title": "Messages with a candidate",
+      "route": "#/messages/:id",
+      "caption": "Employers chat directly with shortlisted candidates using quick replies and message tools.",
+      "guideStep": "Appendix – Step 4",
+      "rawPx": "1320x2868",
+      "mocked": true
+    }
+  ]
+}

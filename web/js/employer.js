@@ -55,19 +55,21 @@
   };
 
   // ---------- setup ----------
-  JM.route('/employer/setup', { auth: 'employer', plain: true, pre: true, title: 'Register your business', render: function () {
-    if (JM.me.employer) { JM.go('/employer'); return ''; } JM.docs = {};
-    const bizTa = JM.typeahead({ id: 'setup-biz-ta', name: 'type', value: '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type (e.g. Café, Retail, BPO)…', source: BIZ_ITEMS, required: true });
-    const areaTa = JM.typeahead({ id: 'setup-area-ta', name: 'area', value: 'bin-poblacion', label: JM.area('bin-poblacion'), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [], required: true });
-    return '<div class="auth-main" style="min-height:100vh;background:var(--bg);align-items:flex-start"><div style="width:100%;max-width:680px"><a class="brand" href="#/" style="padding:8px 0 22px"><img src="assets/logo.png" alt="">JobMatch</a>' +
-      '<h2 style="font-size:24px">Register your business</h2><p class="muted mt mb">We verify every employer by hand so job seekers can trust listings. Review usually takes one business day. You can draft jobs while you wait.</p>' +
-      '<form data-form="setup" class="card card-b" novalidate><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" required></div><div class="field"><label class="label">Type of business</label>' + bizTa + '</div>' +
-      '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Street address</label><input type="text" name="address" required></div>' +
-      '<div class="field"><label class="label">Contact person</label><input type="text" name="cname" value="' + esc(JM.me.full_name) + '" required></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="cphone" required></div></div>' +
-      '<div class="field"><label class="label">Contact email</label><input type="email" name="cemail" required></div><div class="field"><label class="label">About the business</label><textarea name="about" maxlength="600" placeholder="What you do and what working here is like."></textarea></div>' +
-      '<div class="divider"></div><h3 class="mb">Verification documents</h3><p class="small muted">Upload clear photos (JPG, PNG, WEBP) or PDFs, up to 5 MB each. Only you and JobMatch administrators can see them.</p><div class="grid g2">' + docPick('DTI certificate', 'DTI / SEC / CDA Certificate') + docPick("Mayor's permit", "Mayor's / Business Permit") + '</div>' + docPick('Valid ID', "Owner's valid government ID") +
-      '<div class="err hide" id="form-err" role="alert"></div><div class="row mt" style="justify-content:space-between"><button type="button" class="btn ghost" data-act="logout">Sign out</button><button class="btn lg" type="submit">Submit for verification</button></div></form></div></div>';
-  } });
+  JM.route('/employer/setup', {
+    auth: 'employer', plain: true, pre: true, title: 'Register your business', render: function () {
+      if (JM.me.employer) { JM.go('/employer'); return ''; } JM.docs = {};
+      const bizTa = JM.typeahead({ id: 'setup-biz-ta', name: 'type', value: '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type (e.g. Café, Retail, BPO)…', source: BIZ_ITEMS, required: true });
+      const areaTa = JM.typeahead({ id: 'setup-area-ta', name: 'area', value: 'bin-poblacion', label: JM.area('bin-poblacion'), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [], required: true });
+      return '<div class="auth-main" style="min-height:100vh;background:var(--bg);align-items:flex-start"><div style="width:100%;max-width:680px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:8px 0 22px"><img src="assets/logo.png" alt="">JobMatch</a>' +
+        '<h2 style="font-size:24px">Register your business</h2><p class="muted mt mb">We verify every employer by hand so job seekers can trust listings. Review usually takes one business day. You can draft jobs while you wait.</p>' +
+        '<form data-form="setup" class="card card-b" novalidate><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" required></div><div class="field"><label class="label">Type of business</label>' + bizTa + '</div>' +
+        '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Street address</label><input type="text" name="address" required></div>' +
+        '<div class="field"><label class="label">Contact person</label><input type="text" name="cname" value="' + esc(JM.me.full_name) + '" required></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="cphone" required></div></div>' +
+        '<div class="field"><label class="label">Contact email</label><input type="email" name="cemail" required></div><div class="field"><label class="label">About the business</label><textarea name="about" maxlength="600" placeholder="What you do and what working here is like."></textarea></div>' +
+        '<div class="divider"></div><h3 class="mb">Verification documents</h3><p class="small muted">Upload clear photos (JPG, PNG, WEBP) or PDFs, up to 5 MB each. Only you and JobMatch administrators can see them.</p><div class="grid g2">' + docPick('DTI certificate', 'DTI / SEC / CDA Certificate') + docPick("Mayor's permit", "Mayor's / Business Permit") + '</div>' + docPick('Valid ID', "Owner's valid government ID") +
+        '<div class="err hide" id="form-err" role="alert"></div><div class="row mt" style="justify-content:space-between"><button type="button" class="btn ghost" data-act="logout">Sign out</button><button class="btn lg" type="submit">Submit for verification</button></div></form></div></div>';
+    }
+  });
   JM.forms.setup = async function (form, d) {
     const err = function (m) { const e = form.querySelector('#form-err'); e.textContent = m; e.classList.remove('hide'); };
     if (!d.name.trim() || !String(d.type || '').trim() || !String(d.area || '').trim() || !d.address.trim() || !d.cname.trim() || !d.cphone.trim() || !/^\S+@\S+\.\S+$/.test(d.cemail || '')) return err('Fill in every required field with valid details.');
@@ -93,23 +95,25 @@
   }
 
   // ---------- overview ----------
-  JM.route('/employer', { auth: 'employer', title: 'Overview', render: async function () {
-    const o = await JM.rpc('employer_overview'), e = JM.me.employer, ranked = e.plan !== 'starter';
-    let interviews = [];
-    try { interviews = await JM.rpc('employer_interviews'); } catch (x) { interviews = []; }
-    const upcomingIv = interviews.filter(function (iv) { return iv.status !== 'cancelled' && iv.status !== 'completed'; });
-    const ivCard = '<div class="card mt"><div class="card-h"><h3 class="grow">Scheduled Interviews</h3><span class="badge brand">' + upcomingIv.length + ' upcoming</span></div>' +
-      (upcomingIv.length ? '<div class="list">' + upcomingIv.map(function (iv) {
-        const stCls = iv.status === 'confirmed' ? 'ok' : iv.status === 'rescheduled' ? 'warn' : 'brand';
-        return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + esc(iv.applicant_name) + '</b> <span class="small muted">· ' + esc(iv.job_title) + '</span><div class="xs muted">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + esc(iv.interview_type) + (iv.location_or_link ? ' · ' + esc(iv.location_or_link) : '') + '</div></div>' +
-          JM.badge(iv.status, stCls) + '<button class="btn secondary sm" data-act="empivstatus" data-id="' + iv.id + '" data-s="completed">Complete</button><button class="btn ghost sm danger" data-act="empivstatus" data-id="' + iv.id + '" data-s="cancelled">Cancel</button></div>';
-      }).join('') + '</div>' : '<div class="card-b small muted">No upcoming interviews scheduled. Open any shortlisted applicant to schedule an interview.</div>') + '</div>';
-    return '<div class="page">' + JM.pageHead('Welcome, ' + esc(e.name), 'Here is what is happening with your hiring.', '<a class="btn" href="#/employer/jobs/new">' + ic('plus', 16) + 'Post a job</a>') + banner() +
-      '<div class="grid g4 mb">' + stat(o.live, 'Live jobs') + stat(o.applicants, 'Applicants') + stat(o.matched, 'Shortlisted or hired') + stat(o.views, 'Job views') + '</div>' +
-      '<div class="grid g2" style="align-items:start"><div class="card"><div class="card-h"><h3 class="grow">Recent applicants</h3></div>' +
-      (o.recent.length ? '<div class="list">' + o.recent.map(function (r) { return '<a class="li" href="#/employer/jobs/' + r.job_id + '/applicants" style="color:inherit">' + JM.avatar(r.name) + '<div class="grow"><div class="bold">' + esc(r.name) + (r.starred ? ' ' + JM.badge('Starred', 'star') : '') + '</div><div class="small muted">' + esc(r.job_title) + ' · ' + JM.ago(r.created_at) + '</div></div>' + (r.score != null ? '<b class="num">' + r.score + '%</b>' : '') + ic('right', 16) + '</a>'; }).join('') + '</div>' : JM.empty('users', 'No applicants yet', 'Publish a job and applicants appear here.')) + '</div>' +
-      '<div class="card card-b"><div class="row between"><h3>Your plan</h3>' + JM.badge(PLAN[e.plan].name, e.plan === 'starter' ? '' : 'brand') + '</div><p class="small muted mt">' + (ranked ? 'Applicants are ranked by match score, with starred candidates first.' : 'Applicants are shown in the order received. Upgrade to Growth to rank them by match score.') + '</p><a class="btn secondary" href="#/employer/billing">Plans and billing</a></div></div>' + ivCard + '</div>';
-  } });
+  JM.route('/employer', {
+    auth: 'employer', title: 'Overview', render: async function () {
+      const o = await JM.rpc('employer_overview'), e = JM.me.employer, ranked = e.plan !== 'starter';
+      let interviews = [];
+      try { interviews = await JM.rpc('employer_interviews'); } catch (x) { interviews = []; }
+      const upcomingIv = interviews.filter(function (iv) { return iv.status !== 'cancelled' && iv.status !== 'completed'; });
+      const ivCard = '<div class="card mt"><div class="card-h"><h3 class="grow">Scheduled Interviews</h3><span class="badge brand">' + upcomingIv.length + ' upcoming</span></div>' +
+        (upcomingIv.length ? '<div class="list">' + upcomingIv.map(function (iv) {
+          const stCls = iv.status === 'confirmed' ? 'ok' : iv.status === 'rescheduled' ? 'warn' : 'brand';
+          return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + esc(iv.applicant_name) + '</b> <span class="small muted">· ' + esc(iv.job_title) + '</span><div class="xs muted">' + JM.date(iv.scheduled_date) + ' at ' + esc(iv.scheduled_time) + ' · ' + esc(iv.interview_type) + (iv.location_or_link ? ' · ' + esc(iv.location_or_link) : '') + '</div></div>' +
+            JM.badge(iv.status, stCls) + '<button class="btn secondary sm" data-act="empivstatus" data-id="' + iv.id + '" data-s="completed">Complete</button><button class="btn ghost sm danger" data-act="empivstatus" data-id="' + iv.id + '" data-s="cancelled">Cancel</button></div>';
+        }).join('') + '</div>' : '<div class="card-b small muted">No upcoming interviews scheduled. Open any shortlisted applicant to schedule an interview.</div>') + '</div>';
+      return '<div class="page">' + JM.pageHead('Welcome, ' + esc(e.name), 'Here is what is happening with your hiring.', '<a class="btn" href="#/employer/jobs/new">' + ic('plus', 16) + 'Post a job</a>') + banner() +
+        '<div class="grid g4 mb">' + stat(o.live, 'Live jobs') + stat(o.applicants, 'Applicants') + stat(o.matched, 'Shortlisted or hired') + stat(o.views, 'Job views') + '</div>' +
+        '<div class="grid g2" style="align-items:start"><div class="card"><div class="card-h"><h3 class="grow">Recent applicants</h3></div>' +
+        (o.recent.length ? '<div class="list">' + o.recent.map(function (r) { return '<a class="li" href="#/employer/jobs/' + r.job_id + '/applicants" style="color:inherit">' + JM.avatar(r.name) + '<div class="grow"><div class="bold">' + esc(r.name) + (r.starred ? ' ' + JM.badge('Starred', 'star') : '') + '</div><div class="small muted">' + esc(r.job_title) + ' · ' + JM.ago(r.created_at) + '</div></div>' + (r.score != null ? '<b class="num">' + r.score + '%</b>' : '') + ic('right', 16) + '</a>'; }).join('') + '</div>' : JM.empty('users', 'No applicants yet', 'Publish a job and applicants appear here.')) + '</div>' +
+        '<div class="card card-b"><div class="row between"><h3>Your plan</h3>' + JM.badge(PLAN[e.plan].name, e.plan === 'starter' ? '' : 'brand') + '</div><p class="small muted mt">' + (ranked ? 'Applicants are ranked by match score, with starred candidates first.' : 'Applicants are shown in the order received. Upgrade to Growth to rank them by match score.') + '</p><a class="btn secondary" href="#/employer/billing">Plans and billing</a></div></div>' + ivCard + '</div>';
+    }
+  });
   JM.actions.empivstatus = async function (el) {
     await JM.busy(el, async function () {
       await JM.rpc('update_interview_status', { p_id: el.dataset.id, p_status: el.dataset.s });
@@ -118,21 +122,23 @@
   };
 
   // ---------- jobs list ----------
-  JM.route('/employer/jobs', { auth: 'employer', title: 'Jobs', render: async function () {
-    const jobs = await JM.q(JM.sb.from('jobs').select('id,title,status,type,work_setup,onsite_days,salary_min,salary_max,posted_at,boosted_until,area_id').eq('employer_id', JM.me.id).order('created_at', { ascending: false }));
-    const live = jobs.filter(function (j) { return j.status !== 'draft' && j.status !== 'removed'; });
-    const counts = {}; await Promise.all(live.map(async function (j) { try { counts[j.id] = (await JM.rpc('employer_applicants', { p_job: j.id })).items.length; } catch (e) { counts[j.id] = 0; } }));
-    const e = JM.me.employer, publishedN = jobs.filter(function (j) { return j.status === 'published'; }).length, lim = PLAN[e.plan].posts;
-    const rows = jobs.map(function (j) {
-      const s = JSTAT[j.status], boosted = j.boosted_until && new Date(j.boosted_until) > new Date();
-      const act = j.status === 'published' ? '<button class="btn secondary sm" data-act="jobstatus" data-id="' + j.id + '" data-s="paused">Pause</button><button class="btn secondary sm" data-act="jobstatus" data-id="' + j.id + '" data-s="closed">Close</button>' :
-        j.status === 'removed' ? '' : '<button class="btn sm" data-act="jobstatus" data-id="' + j.id + '" data-s="published">' + (j.status === 'draft' ? 'Publish' : 'Reopen') + '</button>' + (j.status === 'draft' ? '<button class="iconbtn" data-act="jobdel" data-id="' + j.id + '" aria-label="Delete draft" style="width:32px;height:32px">' + ic('trash', 15) + '</button>' : '');
-      return '<tr><td><a class="bold" href="#/employer/jobs/' + j.id + '/edit" style="color:var(--ink)">' + esc(j.title) + '</a><div class="xs muted row gap-s wrap" style="margin-top:3px"><span>' + esc(j.type) + ' · ' + JM.salary(j) + '</span>' + JM.setupBadge(j.work_setup, j.onsite_days) + '</div></td><td>' + JM.badge(s[0], s[1]) + (boosted ? ' ' + JM.badge('Boosted', 'star') : '') + '</td>' +
-        '<td class="num">' + (counts[j.id] != null ? '<a href="#/employer/jobs/' + j.id + '/applicants">' + counts[j.id] + '</a>' : '–') + '</td><td><div class="row gap-s" style="justify-content:flex-end">' + act + '<a class="iconbtn" href="#/employer/jobs/' + j.id + '/edit" aria-label="Edit" style="width:32px;height:32px">' + ic('edit', 15) + '</a></div></td></tr>';
-    }).join('');
-    return '<div class="page">' + JM.pageHead('Jobs', publishedN + ' of ' + (lim === Infinity ? 'unlimited' : lim) + ' live listings used', '<a class="btn" href="#/employer/jobs/new">' + ic('plus', 16) + 'Post a job</a>') + banner() +
-      (jobs.length ? '<div class="card"><div class="tablewrap"><table><thead><tr><th>Job</th><th>Status</th><th>Applicants</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' : '<div class="card">' + JM.empty('briefcase', 'No jobs yet', 'Post your first job. It takes about three minutes.', '<a class="btn" href="#/employer/jobs/new">Post a job</a>') + '</div>') + '</div>';
-  } });
+  JM.route('/employer/jobs', {
+    auth: 'employer', title: 'Jobs', render: async function () {
+      const jobs = await JM.q(JM.sb.from('jobs').select('id,title,status,type,work_setup,onsite_days,salary_min,salary_max,posted_at,boosted_until,area_id').eq('employer_id', JM.me.id).order('created_at', { ascending: false }));
+      const live = jobs.filter(function (j) { return j.status !== 'draft' && j.status !== 'removed'; });
+      const counts = {}; await Promise.all(live.map(async function (j) { try { counts[j.id] = (await JM.rpc('employer_applicants', { p_job: j.id })).items.length; } catch (e) { counts[j.id] = 0; } }));
+      const e = JM.me.employer, publishedN = jobs.filter(function (j) { return j.status === 'published'; }).length, lim = PLAN[e.plan].posts;
+      const rows = jobs.map(function (j) {
+        const s = JSTAT[j.status], boosted = j.boosted_until && new Date(j.boosted_until) > new Date();
+        const act = j.status === 'published' ? '<button class="btn secondary sm" data-act="jobstatus" data-id="' + j.id + '" data-s="paused">Pause</button><button class="btn secondary sm" data-act="jobstatus" data-id="' + j.id + '" data-s="closed">Close</button>' :
+          j.status === 'removed' ? '' : '<button class="btn sm" data-act="jobstatus" data-id="' + j.id + '" data-s="published">' + (j.status === 'draft' ? 'Publish' : 'Reopen') + '</button>' + (j.status === 'draft' ? '<button class="iconbtn" data-act="jobdel" data-id="' + j.id + '" aria-label="Delete draft" style="width:32px;height:32px">' + ic('trash', 15) + '</button>' : '');
+        return '<tr><td><a class="bold" href="#/employer/jobs/' + j.id + '/edit" style="color:var(--ink)">' + esc(j.title) + '</a><div class="xs muted row gap-s wrap" style="margin-top:3px"><span>' + esc(j.type) + ' · ' + JM.salary(j) + '</span>' + JM.setupBadge(j.work_setup, j.onsite_days) + '</div></td><td>' + JM.badge(s[0], s[1]) + (boosted ? ' ' + JM.badge('Boosted', 'star') : '') + '</td>' +
+          '<td class="num">' + (counts[j.id] != null ? '<a href="#/employer/jobs/' + j.id + '/applicants">' + counts[j.id] + '</a>' : '–') + '</td><td><div class="row gap-s" style="justify-content:flex-end">' + act + '<a class="iconbtn" href="#/employer/jobs/' + j.id + '/edit" aria-label="Edit" style="width:32px;height:32px">' + ic('edit', 15) + '</a></div></td></tr>';
+      }).join('');
+      return '<div class="page">' + JM.pageHead('Jobs', publishedN + ' of ' + (lim === Infinity ? 'unlimited' : lim) + ' live listings used', '<a class="btn" href="#/employer/jobs/new">' + ic('plus', 16) + 'Post a job</a>') + banner() +
+        (jobs.length ? '<div class="card"><div class="tablewrap"><table><thead><tr><th>Job</th><th>Status</th><th>Applicants</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' : '<div class="card">' + JM.empty('briefcase', 'No jobs yet', 'Post your first job. It takes about three minutes.', '<a class="btn" href="#/employer/jobs/new">Post a job</a>') + '</div>') + '</div>';
+    }
+  });
   JM.actions.jobstatus = async function (el) {
     await JM.busy(el, async function () {
       const r = await JM.rpc('set_job_status', { p_job: el.dataset.id, p_status: el.dataset.s });
@@ -208,10 +214,10 @@
       }).join('') + '</div>';
       const hybridDays = d.work_setup === 'Hybrid'
         ? '<div class="row gap-s mt" style="margin-top:8px"><span class="small bold">On-site days per week:</span>' +
-          '<button type="button" class="btn secondary sm" data-act="jddays" data-d="-1">−</button>' +
-          '<b class="num" style="min-width:24px;text-align:center">' + (d.onsite_days || 3) + '</b>' +
-          '<button type="button" class="btn secondary sm" data-act="jddays" data-d="1">+</button>' +
-          '<span class="xs muted">days on-site</span></div>'
+        '<button type="button" class="btn secondary sm" data-act="jddays" data-d="-1">−</button>' +
+        '<b class="num" style="min-width:24px;text-align:center">' + (d.onsite_days || 3) + '</b>' +
+        '<button type="button" class="btn secondary sm" data-act="jddays" data-d="1">+</button>' +
+        '<span class="xs muted">days on-site</span></div>'
         : '';
       const photoPreview = '<div class="jmedia jmedia-form">' +
         JM.img({ bucket: 'job-photos', path: d.photo_path, directUrl: d._photoBlob, uploading: !!d._photoUploading, shape: 'cover43', focus: d.photo_focus || '50% 50%', fallback: 'placeholder', name: d.category || d.title || 'Listing preview', icon: 'image', alt: 'Job listing photo preview' }) +
@@ -312,17 +318,21 @@
     }
   };
   JM.actions.jobphotorm = function () {
-    JM.confirm({ title: 'Remove listing photo?', text: 'The card will show a clean category placeholder instead.', ok: 'Remove', danger: true, onOk: function () {
-      if (JM.jd.photo_path) JM.sb.storage.from('job-photos').remove([JM.jd.photo_path]);
-      JM.jd.photo_path = null; JM.jd.photo_focus = '50% 50%'; JM.drawDraft();
-    } });
+    JM.confirm({
+      title: 'Remove listing photo?', text: 'The card will show a clean category placeholder instead.', ok: 'Remove', danger: true, onOk: function () {
+        if (JM.jd.photo_path) JM.sb.storage.from('job-photos').remove([JM.jd.photo_path]);
+        JM.jd.photo_path = null; JM.jd.photo_focus = '50% 50%'; JM.drawDraft();
+      }
+    });
   };
   JM.route('/employer/jobs/new', { auth: 'employer', title: 'Post a job', render: function () { return jobForm(blankJob(), true); }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
-  JM.route('/employer/jobs/:id/edit', { auth: 'employer', title: 'Edit job', render: async function (p) {
-    const j = await JM.q(JM.sb.from('jobs').select('*').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
-    if (!j) return '<div class="page narrow">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
-    return jobForm(j, false);
-  }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
+  JM.route('/employer/jobs/:id/edit', {
+    auth: 'employer', title: 'Edit job', render: async function (p) {
+      const j = await JM.q(JM.sb.from('jobs').select('*').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
+      if (!j) return '<div class="page narrow">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
+      return jobForm(j, false);
+    }, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); }
+  });
   JM.actions.jobsave = async function (el) {
     const d = JM.jd, publish = el.dataset.publish === '1', errs = {};
     if (String(d.title || '').trim().length < 3) errs.title = 'Job title is required (at least 3 characters).';
@@ -371,16 +381,18 @@
 
   // ---------- applicants ----------
   JM.sel = {};
-  JM.route('/employer/jobs/:id/applicants', { auth: 'employer', title: 'Applicants', render: async function (p) {
-    const job = await JM.q(JM.sb.from('jobs').select('id,title,work_setup,onsite_days').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
-    if (!job) return '<div class="page">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
-    const r = await JM.rpc('employer_applicants', { p_job: p.id }); JM.sel = {}; JM.apps = r.items; JM.appJob = p.id; JM.filterStatus = JM.filterStatus || 'all';
-    JM.appRanked = r.ranked;
-    return '<div class="page"><a class="small row gap-s" href="#/employer/jobs" style="margin-bottom:14px">' + ic('left', 16) + 'Jobs</a>' + JM.pageHead(esc(job.title) + ' ' + JM.setupBadge(job.work_setup, job.onsite_days), r.items.length + ' applicants' + (r.ranked ? ', ranked by match score' : ''), '') +
-      (!r.ranked ? '<div class="notice mb">' + ic('sparkle') + '<span>Applicants are in the order received. <a href="#/employer/billing">Upgrade to Growth</a> to rank them by match score and see starred candidates first.</span></div>' : '') +
-      '<div class="tabs" id="app-tabs">' + [['all', 'All'], ['applied', 'New'], ['shortlisted', 'Shortlisted'], ['hired', 'Hired'], ['rejected', 'Rejected']].map(function (t) { return '<button data-act="afilter" data-s="' + t[0] + '" class="' + (JM.filterStatus === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>' +
-      '<div class="row mb hide" id="sel-bar"></div><div id="app-list"></div></div>';
-  }, after: function () { drawApps(); } });
+  JM.route('/employer/jobs/:id/applicants', {
+    auth: 'employer', title: 'Applicants', render: async function (p) {
+      const job = await JM.q(JM.sb.from('jobs').select('id,title,work_setup,onsite_days').eq('id', p.id).eq('employer_id', JM.me.id).maybeSingle());
+      if (!job) return '<div class="page">' + JM.empty('briefcase', 'Job not found', '', '<a class="btn" href="#/employer/jobs">Back to jobs</a>') + '</div>';
+      const r = await JM.rpc('employer_applicants', { p_job: p.id }); JM.sel = {}; JM.apps = r.items; JM.appJob = p.id; JM.filterStatus = JM.filterStatus || 'all';
+      JM.appRanked = r.ranked;
+      return '<div class="page"><a class="small row gap-s" href="#/employer/jobs" style="margin-bottom:14px">' + ic('left', 16) + 'Jobs</a>' + JM.pageHead(esc(job.title) + ' ' + JM.setupBadge(job.work_setup, job.onsite_days), r.items.length + ' applicants' + (r.ranked ? ', ranked by match score' : ''), '') +
+        (!r.ranked ? '<div class="notice mb">' + ic('sparkle') + '<span>Applicants are in the order received. <a href="#/employer/billing">Upgrade to Growth</a> to rank them by match score and see starred candidates first.</span></div>' : '') +
+        '<div class="tabs" id="app-tabs">' + [['all', 'All'], ['applied', 'New'], ['shortlisted', 'Shortlisted'], ['hired', 'Hired'], ['rejected', 'Rejected']].map(function (t) { return '<button data-act="afilter" data-s="' + t[0] + '" class="' + (JM.filterStatus === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="row mb hide" id="sel-bar"></div><div id="app-list"></div></div>';
+    }, after: function () { drawApps(); }
+  });
   function drawApps() {
     const box = document.getElementById('app-list'); if (!box) return;
     const items = JM.apps.filter(function (a) { return JM.filterStatus === 'all' || a.status === JM.filterStatus; });
@@ -400,8 +412,10 @@
   };
   JM.actions.bulk = function (el) {
     const ids = Object.keys(JM.sel), s = el.dataset.s;
-    JM.confirm({ title: (s === 'shortlisted' ? 'Shortlist ' : 'Reject ') + ids.length + ' applicants?', text: s === 'shortlisted' ? 'They are notified, you see their full profile and contact details, and a chat opens.' : 'They are notified that they were not selected.', ok: s === 'shortlisted' ? 'Shortlist' : 'Reject', danger: s === 'rejected',
-      onOk: function () { JM.busy(null, async function () { for (const id of ids) { try { await JM.rpc('set_application_status', { p_app: id, p_status: s }); } catch (e) { /* skip */ } } JM.toast('Updated ' + ids.length + ' applicants.', 'ok'); JM.render(); }); } });
+    JM.confirm({
+      title: (s === 'shortlisted' ? 'Shortlist ' : 'Reject ') + ids.length + ' applicants?', text: s === 'shortlisted' ? 'They are notified, you see their full profile and contact details, and a chat opens.' : 'They are notified that they were not selected.', ok: s === 'shortlisted' ? 'Shortlist' : 'Reject', danger: s === 'rejected',
+      onOk: function () { JM.busy(null, async function () { for (const id of ids) { try { await JM.rpc('set_application_status', { p_app: id, p_status: s }); } catch (e) { /* skip */ } } JM.toast('Updated ' + ids.length + ' applicants.', 'ok'); JM.render(); }); }
+    });
   };
   JM.actions.openapp = async function (el) {
     await JM.busy(el, async function () {
@@ -417,8 +431,8 @@
         ? '<h4 class="mt-l mb">Accepted work setups</h4><div class="chips">' + a.work_setups.map(function (ws) { return JM.setupBadge(ws); }).join('') + '</div>' : '';
       const certsHtml = (a.named && Array.isArray(a.certificates) && a.certificates.length)
         ? '<h4 class="mt-l mb">Certificates &amp; credentials</h4><div class="col gap-s">' + a.certificates.map(function (c) {
-            return '<div class="row card flat" style="padding:8px 10px">' + ic('award', 15) + '<div class="grow small"><b>' + esc(c.title || c.name) + '</b>' + (c.desc ? '<div class="xs muted">' + esc(c.desc) + '</div>' : '') + '</div><button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(c.path) + '" data-title="' + esc(c.title || 'Certificate') + '">View</button></div>';
-          }).join('') + '</div>' : '';
+          return '<div class="row card flat" style="padding:8px 10px">' + ic('award', 15) + '<div class="grow small"><b>' + esc(c.title || c.name) + '</b>' + (c.desc ? '<div class="xs muted">' + esc(c.desc) + '</div>' : '') + '</div><button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="seeker-media" data-path="' + esc(c.path) + '" data-title="' + esc(c.title || 'Certificate') + '">View</button></div>';
+        }).join('') + '</div>' : '';
       JM.drawer('<div class="row" style="align-items:flex-start">' + avEl + '<div class="grow"><h2>' + esc(a.name) + '</h2><div class="small muted">' + esc(a.job.title) + ' · applied ' + JM.ago(a.created_at) + '</div><div class="row gap-s mt">' + JM.badge(st[0], st[1]) + (a.starred ? JM.badge('Starred top choice', 'star') : '') + '</div></div><button class="iconbtn" data-act="close" aria-label="Close">' + ic('x') + '</button></div>' +
         (a.score != null ? '<div class="card flat card-b mt">' + '<div class="row">' + JM.ring(a.score, 56, '#0C70F8') + '<div class="grow"><b>Match score</b><div class="small muted">' + esc(((a.why || []).slice(0, 3)).join(', ')) + '</div></div></div>' + ((a.missing || []).length ? '<p class="small muted mt" style="margin:10px 0 0">Missing: ' + a.missing.map(esc).join(', ') + '</p>' : '') + '</div>' : '<div class="notice mt">' + ic('lock') + '<span>Match score and ranking come with the Growth plan.</span></div>') +
         setupsHtml +
@@ -449,27 +463,31 @@
   };
   JM.actions.appstatus = function (el) {
     const s = el.dataset.s, a = JM.curApp;
-    JM.confirm({ title: s === 'shortlisted' ? 'Shortlist this applicant?' : s === 'hired' ? 'Mark as hired?' : 'Reject this applicant?', text: s === 'shortlisted' ? 'They are notified, you see their full profile and contact details, and a chat opens.' : s === 'hired' ? 'They are notified. Close the job if the position is filled.' : 'They are notified that they were not selected.', ok: s === 'rejected' ? 'Reject' : 'Confirm', danger: s === 'rejected',
-      onOk: function () { JM.busy(null, async function () { await JM.rpc('set_application_status', { p_app: a.id, p_status: s }); JM.toast('Updated.', 'ok'); JM.close(); JM.render(); }); } });
+    JM.confirm({
+      title: s === 'shortlisted' ? 'Shortlist this applicant?' : s === 'hired' ? 'Mark as hired?' : 'Reject this applicant?', text: s === 'shortlisted' ? 'They are notified, you see their full profile and contact details, and a chat opens.' : s === 'hired' ? 'They are notified. Close the job if the position is filled.' : 'They are notified that they were not selected.', ok: s === 'rejected' ? 'Reject' : 'Confirm', danger: s === 'rejected',
+      onOk: function () { JM.busy(null, async function () { await JM.rpc('set_application_status', { p_app: a.id, p_status: s }); JM.toast('Updated.', 'ok'); JM.close(); JM.render(); }); }
+    });
   };
   JM.actions.resumedl = async function (el) {
     await JM.busy(el, async function () { const r = await JM.sb.storage.from('resumes').createSignedUrl(el.dataset.path, 120); if (r.error) throw r.error; window.open(r.data.signedUrl, '_blank', 'noopener'); });
   };
 
   // ---------- candidate search ----------
-  JM.route('/employer/candidates', { auth: 'employer', title: 'Candidate search', render: async function () {
-    const e = JM.me.employer; if (e.plan !== 'business') return '<div class="page">' + JM.pageHead('Candidate search', 'Find candidates who opted in and invite them to apply.') + lock('Candidate search is a Business feature', 'Search opted-in candidates by skill and area, see how well they fit your job, and invite them to apply.', 'Business') + '</div>';
-    const jobs = await JM.q(JM.sb.from('jobs').select('id,title').eq('employer_id', JM.me.id).eq('status', 'published'));
-    JM.cs = { jobs: jobs };
-    const qSource = (JM.skillsRaw || []).map(function (s) { return { value: s.name, label: s.name, group: JM.skillCatName(s.name), aliases: s.aliases || [] }; })
-      .concat((JM.roles || []).map(function (r) { return { value: r.title, label: r.title, group: 'Role · ' + r.category, aliases: r.aliases || [] }; }));
-    const qTa = JM.typeahead({ id: 'cs-q-ta', name: 'q', value: '', allowCustom: true, minChars: 1, placeholder: 'e.g. Excel, Barista, React…', source: qSource });
-    const areaTa = JM.typeahead({ id: 'cs-area-ta', name: 'area', value: '', minChars: 0, placeholder: 'Anywhere (or type area)…', source: [{ value: '', label: 'Anywhere' }].concat(JM.areaItems || []) });
-    return '<div class="page">' + JM.pageHead('Candidate search', 'These candidates chose to be discoverable. You see a masked name and skills until they apply and you shortlist them.') +
-      '<form data-form="csearch" class="card card-b mb"><div class="grid g4"><div class="field" style="margin:0"><label class="label">Skill or role</label>' + qTa + '</div><div class="field" style="margin:0"><label class="label">Area</label>' + areaTa + '</div>' +
-      '<div class="field" style="margin:0"><label class="label">Work setup</label><select name="setup"><option value="">Any setup</option>' + SETUPS.map(function (s) { return '<option>' + s + '</option>'; }).join('') + '</select></div>' +
-      '<div class="field" style="margin:0"><label class="label">Match against job</label><select name="job">' + (jobs.length ? jobs.map(function (j, i) { return '<option value="' + j.id + '"' + (i === 0 ? ' selected' : '') + '>' + esc(j.title) + '</option>'; }).join('') : '<option value="">No published jobs yet</option>') + '</select></div></div><div class="row mt" style="justify-content:flex-end"><button class="btn" type="submit">' + ic('search', 16) + 'Search</button></div></form><div id="cs-out"></div></div>';
-  }, after: function () { if (JM.me.employer.plan === 'business') JM.forms.csearch(document.querySelector('[data-form=csearch]'), { q: '', area: '', setup: '', job: (JM.cs.jobs[0] && JM.cs.jobs[0].id) || '' }); } });
+  JM.route('/employer/candidates', {
+    auth: 'employer', title: 'Candidate search', render: async function () {
+      const e = JM.me.employer; if (e.plan !== 'business') return '<div class="page">' + JM.pageHead('Candidate search', 'Find candidates who opted in and invite them to apply.') + lock('Candidate search is a Business feature', 'Search opted-in candidates by skill and area, see how well they fit your job, and invite them to apply.', 'Business') + '</div>';
+      const jobs = await JM.q(JM.sb.from('jobs').select('id,title').eq('employer_id', JM.me.id).eq('status', 'published'));
+      JM.cs = { jobs: jobs };
+      const qSource = (JM.skillsRaw || []).map(function (s) { return { value: s.name, label: s.name, group: JM.skillCatName(s.name), aliases: s.aliases || [] }; })
+        .concat((JM.roles || []).map(function (r) { return { value: r.title, label: r.title, group: 'Role · ' + r.category, aliases: r.aliases || [] }; }));
+      const qTa = JM.typeahead({ id: 'cs-q-ta', name: 'q', value: '', allowCustom: true, minChars: 1, placeholder: 'e.g. Excel, Barista, React…', source: qSource });
+      const areaTa = JM.typeahead({ id: 'cs-area-ta', name: 'area', value: '', minChars: 0, placeholder: 'Anywhere (or type area)…', source: [{ value: '', label: 'Anywhere' }].concat(JM.areaItems || []) });
+      return '<div class="page">' + JM.pageHead('Candidate search', 'These candidates chose to be discoverable. You see a masked name and skills until they apply and you shortlist them.') +
+        '<form data-form="csearch" class="card card-b mb"><div class="grid g4"><div class="field" style="margin:0"><label class="label">Skill or role</label>' + qTa + '</div><div class="field" style="margin:0"><label class="label">Area</label>' + areaTa + '</div>' +
+        '<div class="field" style="margin:0"><label class="label">Work setup</label><select name="setup"><option value="">Any setup</option>' + SETUPS.map(function (s) { return '<option>' + s + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field" style="margin:0"><label class="label">Match against job</label><select name="job">' + (jobs.length ? jobs.map(function (j, i) { return '<option value="' + j.id + '"' + (i === 0 ? ' selected' : '') + '>' + esc(j.title) + '</option>'; }).join('') : '<option value="">No published jobs yet</option>') + '</select></div></div><div class="row mt" style="justify-content:flex-end"><button class="btn" type="submit">' + ic('search', 16) + 'Search</button></div></form><div id="cs-out"></div></div>';
+    }, after: function () { if (JM.me.employer.plan === 'business') JM.forms.csearch(document.querySelector('[data-form=csearch]'), { q: '', area: '', setup: '', job: (JM.cs.jobs[0] && JM.cs.jobs[0].id) || '' }); }
+  });
   const csScoreCol = function (s) { return s >= 75 ? '#14804F' : s >= 50 ? '#0C70F8' : '#9A5B00'; };
   const csMatchRow = function (title, score, on) { return '<div class="skill"><div class="row between small"><span>' + (on ? '<b>' + esc(title) + '</b> ' + JM.badge('Selected', 'brand') : esc(title)) + '</span><b class="num" style="color:' + csScoreCol(score) + '">' + score + '%</b></div>' + JM.bar(score, score >= 70 ? 'ok' : '') + '</div>'; };
   JM.forms.csearch = async function (form, d) {
@@ -583,60 +601,62 @@
       labels + '</svg></div>' +
       '<div class="row gap-l mt xs muted"><span class="row gap-s"><i style="width:12px;height:3px;background:#0C70F8;display:inline-block"></i>Job Views</span><span class="row gap-s"><i style="width:12px;height:3px;background:#14804F;display:inline-block"></i>Applications</span></div>';
   }
-  JM.route('/employer/analytics', { auth: 'employer', title: 'Analytics', render: async function () {
-    if (JM.me.employer.plan === 'starter') return '<div class="page">' + JM.pageHead('Analytics', 'See how each listing performs.') + lock('Analytics come with Growth', 'Track views, saves, stars, applications, trends, insights and report exports for every listing.', 'Growth') + '</div>';
-    const rng = rangeDates();
-    let data;
-    try {
-      data = await JM.rpc('employer_analytics_v2', { p_start: rng.start, p_end: rng.end });
-    } catch (e) {
-      const legacy = await JM.rpc('employer_analytics');
-      const tv = legacy.reduce(function (a, r) { return a + r.views; }, 0), ta = legacy.reduce(function (a, r) { return a + r.applications; }, 0), ts = legacy.reduce(function (a, r) { return a + r.right + r.star; }, 0);
-      data = { range: rng, summary: { views: tv, applications: ta, saved: ts, app_rate: tv ? Math.round(ta / tv * 1000) / 10 : 0 }, trends: [], listings: legacy.map(function (r) { return Object.assign({}, r, { skipped: r.left, saved: r.right, starred: r.star, app_rate: r.views ? Math.round(r.applications / r.views * 1000) / 10 : 0, conv_rate: r.applications ? Math.round(r.matched / r.applications * 1000) / 10 : 0 }); }) };
+  JM.route('/employer/analytics', {
+    auth: 'employer', title: 'Analytics', render: async function () {
+      if (JM.me.employer.plan === 'starter') return '<div class="page">' + JM.pageHead('Analytics', 'See how each listing performs.') + lock('Analytics come with Growth', 'Track views, saves, stars, applications, trends, insights and report exports for every listing.', 'Growth') + '</div>';
+      const rng = rangeDates();
+      let data;
+      try {
+        data = await JM.rpc('employer_analytics_v2', { p_start: rng.start, p_end: rng.end });
+      } catch (e) {
+        const legacy = await JM.rpc('employer_analytics');
+        const tv = legacy.reduce(function (a, r) { return a + r.views; }, 0), ta = legacy.reduce(function (a, r) { return a + r.applications; }, 0), ts = legacy.reduce(function (a, r) { return a + r.right + r.star; }, 0);
+        data = { range: rng, summary: { views: tv, applications: ta, saved: ts, app_rate: tv ? Math.round(ta / tv * 1000) / 10 : 0 }, trends: [], listings: legacy.map(function (r) { return Object.assign({}, r, { skipped: r.left, saved: r.right, starred: r.star, app_rate: r.views ? Math.round(r.applications / r.views * 1000) / 10 : 0, conv_rate: r.applications ? Math.round(r.matched / r.applications * 1000) / 10 : 0 }); }) };
+      }
+      JM.anData = data;
+      const rows = data.listings || [], s = data.summary || { views: 0, applications: 0, saved: 0, app_rate: 0 };
+      const mxV = Math.max.apply(null, [1].concat(rows.map(function (r) { return r.views; })));
+      const topBy = function (fn) { return rows.slice().sort(function (a, b) { return fn(b) - fn(a); })[0]; };
+      const mostViewed = topBy(function (r) { return r.views; });
+      const mostSaved = topBy(function (r) { return r.saved + r.starred; });
+      const mostApplied = topBy(function (r) { return r.applications; });
+      const highestRate = topBy(function (r) { return r.app_rate; });
+      const zeroApps = rows.filter(function (r) { return r.applications === 0; });
+      const suggestions = [];
+      zeroApps.forEach(function (z) {
+        if (z.views >= 3) suggestions.push('"' + z.title + '" has ' + z.views + ' views but 0 applications — consider reviewing its job description, qualifications, or salary range.');
+        else suggestions.push('"' + z.title + '" has 0 applications so far — consider boosting the listing or adding clearer skills.');
+      });
+      if (highestRate && highestRate.app_rate >= 20) suggestions.push('"' + highestRate.title + '" leads with a ' + highestRate.app_rate + '% application rate — reuse its clear format for future posts.');
+      if (!suggestions.length && rows.length) suggestions.push('Your listings are receiving steady engagement across ' + rng.start + ' to ' + rng.end + '.');
+      JM.anData.insights = { mostViewed: mostViewed, mostSaved: mostSaved, mostApplied: mostApplied, highestRate: highestRate, zeroApps: zeroApps, suggestions: suggestions };
+
+      const rangeBar = '<div class="row wrap gap-s mb">' +
+        [['7', 'Last 7 Days'], ['30', 'Last 30 Days'], ['90', 'Last 90 Days']].map(function (p) {
+          return '<button type="button" class="chip' + (JM.anRange.preset === p[0] ? ' on' : '') + '" data-act="anpreset" data-p="' + p[0] + '">' + p[1] + '</button>';
+        }).join('') +
+        '<form data-form="ancustom" class="row gap-s wrap" style="margin-left:auto"><input type="date" name="start" value="' + esc(rng.start) + '" style="height:32px;width:140px"><span class="xs muted">to</span><input type="date" name="end" value="' + esc(rng.end) + '" style="height:32px;width:140px"><button class="btn secondary sm" type="submit">Apply</button></form></div>';
+
+      const exportBar = '<div class="row gap-s wrap"><button class="btn secondary sm" data-act="anexport" data-fmt="pdf">' + ic('download', 14) + 'PDF</button><button class="btn secondary sm" data-act="anexport" data-fmt="xls">' + ic('download', 14) + 'Excel</button><button class="btn secondary sm" data-act="anexport" data-fmt="csv">' + ic('download', 14) + 'CSV</button></div>';
+
+      return '<div class="page print">' + JM.pageHead('Analytics', 'Recruitment performance (' + rng.start + ' to ' + rng.end + ')', exportBar) + rangeBar +
+        '<div class="grid g4 mb">' + stat(s.views, 'Total Job Views') + stat(s.applications, 'Total Applications') + stat(s.saved, 'Total Saved Jobs') + stat(s.app_rate + '%', 'Application Rate') + '</div>' +
+        '<div class="card card-b mb"><h3 class="mb">Application Trends</h3>' + svgLineChart(data.trends || []) + '</div>' +
+        (rows.length ? '<div class="card mb"><div class="card-h"><h3 class="grow">Funnel by Listing</h3><span class="xs muted">Click any job title for detailed metrics</span></div><div class="tablewrap"><table><thead><tr><th>Listing</th><th class="num" title="Unique seekers who viewed this listing">Views</th><th class="num" title="Seekers who swiped left / skipped">Skipped</th><th class="num" title="Seekers who saved to Preferred">Saved</th><th class="num" title="Seekers who starred as top choice">Starred</th><th class="num" title="Total applications received">Applied</th><th class="num" title="Shortlisted or hired applicants">Matched</th><th class="num" title="Applied / Views">App Rate</th><th class="num" title="Matched / Applied">Conv Rate</th></tr></thead><tbody>' +
+          rows.map(function (r, i) { return '<tr><td><button type="button" class="btn ghost sm" style="padding:0 4px;height:auto;font-weight:600;color:var(--brand)" data-act="anjob" data-i="' + i + '">' + esc(r.title) + '</button> ' + JM.badge(r.status === 'published' ? 'Live' : r.status) + '</td><td class="num">' + r.views + '</td><td class="num">' + r.skipped + '</td><td class="num">' + r.saved + '</td><td class="num">' + r.starred + '</td><td class="num">' + r.applications + '</td><td class="num">' + r.matched + '</td><td class="num bold">' + r.app_rate + '%</td><td class="num">' + r.conv_rate + '%</td></tr>'; }).join('') +
+          '</tbody></table></div></div>' +
+          '<div class="grid g2 mb"><div class="card card-b"><h3 class="mb">Job Performance Comparison</h3>' + rows.map(function (r) {
+            return '<div class="skill"><div class="row between small"><b>' + esc(r.title) + '</b><span class="xs muted">' + r.views + ' views · ' + r.applications + ' apps · <b>' + r.app_rate + '%</b></span></div>' + JM.bar(Math.round(r.views / mxV * 100)) + '</div>';
+          }).join('') + '</div>' +
+          '<div class="card card-b"><h3 class="mb">Candidate Engagement Insights</h3><div class="col gap-s small">' +
+          '<div><b>Most Viewed:</b> ' + esc(mostViewed ? mostViewed.title + ' (' + mostViewed.views + ')' : '–') + '</div>' +
+          '<div><b>Most Saved:</b> ' + esc(mostSaved ? mostSaved.title + ' (' + (mostSaved.saved + mostSaved.starred) + ')' : '–') + '</div>' +
+          '<div><b>Most Applied:</b> ' + esc(mostApplied ? mostApplied.title + ' (' + mostApplied.applications + ')' : '–') + '</div>' +
+          '<div><b>Highest App Rate:</b> ' + esc(highestRate ? highestRate.title + ' (' + highestRate.app_rate + '%)' : '–') + '</div>' +
+          '<div><b>Zero Applications:</b> ' + (zeroApps.length ? esc(zeroApps.map(function (z) { return z.title; }).join(', ')) : 'None') + '</div>' +
+          '<div class="divider"></div><div class="bold">Automated Suggestions</div><ul class="xs muted" style="margin:0;padding-left:16px;line-height:1.6">' + suggestions.map(function (sg) { return '<li>' + esc(sg) + '</li>'; }).join('') + '</ul></div></div></div>' : '<div class="card">' + JM.empty('chart', 'No data yet', 'Publish a job to start collecting insights.') + '</div>') + '</div>';
     }
-    JM.anData = data;
-    const rows = data.listings || [], s = data.summary || { views: 0, applications: 0, saved: 0, app_rate: 0 };
-    const mxV = Math.max.apply(null, [1].concat(rows.map(function (r) { return r.views; })));
-    const topBy = function (fn) { return rows.slice().sort(function (a, b) { return fn(b) - fn(a); })[0]; };
-    const mostViewed = topBy(function (r) { return r.views; });
-    const mostSaved = topBy(function (r) { return r.saved + r.starred; });
-    const mostApplied = topBy(function (r) { return r.applications; });
-    const highestRate = topBy(function (r) { return r.app_rate; });
-    const zeroApps = rows.filter(function (r) { return r.applications === 0; });
-    const suggestions = [];
-    zeroApps.forEach(function (z) {
-      if (z.views >= 3) suggestions.push('"' + z.title + '" has ' + z.views + ' views but 0 applications — consider reviewing its job description, qualifications, or salary range.');
-      else suggestions.push('"' + z.title + '" has 0 applications so far — consider boosting the listing or adding clearer skills.');
-    });
-    if (highestRate && highestRate.app_rate >= 20) suggestions.push('"' + highestRate.title + '" leads with a ' + highestRate.app_rate + '% application rate — reuse its clear format for future posts.');
-    if (!suggestions.length && rows.length) suggestions.push('Your listings are receiving steady engagement across ' + rng.start + ' to ' + rng.end + '.');
-    JM.anData.insights = { mostViewed: mostViewed, mostSaved: mostSaved, mostApplied: mostApplied, highestRate: highestRate, zeroApps: zeroApps, suggestions: suggestions };
-
-    const rangeBar = '<div class="row wrap gap-s mb">' +
-      [['7', 'Last 7 Days'], ['30', 'Last 30 Days'], ['90', 'Last 90 Days']].map(function (p) {
-        return '<button type="button" class="chip' + (JM.anRange.preset === p[0] ? ' on' : '') + '" data-act="anpreset" data-p="' + p[0] + '">' + p[1] + '</button>';
-      }).join('') +
-      '<form data-form="ancustom" class="row gap-s wrap" style="margin-left:auto"><input type="date" name="start" value="' + esc(rng.start) + '" style="height:32px;width:140px"><span class="xs muted">to</span><input type="date" name="end" value="' + esc(rng.end) + '" style="height:32px;width:140px"><button class="btn secondary sm" type="submit">Apply</button></form></div>';
-
-    const exportBar = '<div class="row gap-s wrap"><button class="btn secondary sm" data-act="anexport" data-fmt="pdf">' + ic('download', 14) + 'PDF</button><button class="btn secondary sm" data-act="anexport" data-fmt="xls">' + ic('download', 14) + 'Excel</button><button class="btn secondary sm" data-act="anexport" data-fmt="csv">' + ic('download', 14) + 'CSV</button></div>';
-
-    return '<div class="page print">' + JM.pageHead('Analytics', 'Recruitment performance (' + rng.start + ' to ' + rng.end + ')', exportBar) + rangeBar +
-      '<div class="grid g4 mb">' + stat(s.views, 'Total Job Views') + stat(s.applications, 'Total Applications') + stat(s.saved, 'Total Saved Jobs') + stat(s.app_rate + '%', 'Application Rate') + '</div>' +
-      '<div class="card card-b mb"><h3 class="mb">Application Trends</h3>' + svgLineChart(data.trends || []) + '</div>' +
-      (rows.length ? '<div class="card mb"><div class="card-h"><h3 class="grow">Funnel by Listing</h3><span class="xs muted">Click any job title for detailed metrics</span></div><div class="tablewrap"><table><thead><tr><th>Listing</th><th class="num" title="Unique seekers who viewed this listing">Views</th><th class="num" title="Seekers who swiped left / skipped">Skipped</th><th class="num" title="Seekers who saved to Preferred">Saved</th><th class="num" title="Seekers who starred as top choice">Starred</th><th class="num" title="Total applications received">Applied</th><th class="num" title="Shortlisted or hired applicants">Matched</th><th class="num" title="Applied / Views">App Rate</th><th class="num" title="Matched / Applied">Conv Rate</th></tr></thead><tbody>' +
-        rows.map(function (r, i) { return '<tr><td><button type="button" class="btn ghost sm" style="padding:0 4px;height:auto;font-weight:600;color:var(--brand)" data-act="anjob" data-i="' + i + '">' + esc(r.title) + '</button> ' + JM.badge(r.status === 'published' ? 'Live' : r.status) + '</td><td class="num">' + r.views + '</td><td class="num">' + r.skipped + '</td><td class="num">' + r.saved + '</td><td class="num">' + r.starred + '</td><td class="num">' + r.applications + '</td><td class="num">' + r.matched + '</td><td class="num bold">' + r.app_rate + '%</td><td class="num">' + r.conv_rate + '%</td></tr>'; }).join('') +
-        '</tbody></table></div></div>' +
-        '<div class="grid g2 mb"><div class="card card-b"><h3 class="mb">Job Performance Comparison</h3>' + rows.map(function (r) {
-          return '<div class="skill"><div class="row between small"><b>' + esc(r.title) + '</b><span class="xs muted">' + r.views + ' views · ' + r.applications + ' apps · <b>' + r.app_rate + '%</b></span></div>' + JM.bar(Math.round(r.views / mxV * 100)) + '</div>';
-        }).join('') + '</div>' +
-        '<div class="card card-b"><h3 class="mb">Candidate Engagement Insights</h3><div class="col gap-s small">' +
-        '<div><b>Most Viewed:</b> ' + esc(mostViewed ? mostViewed.title + ' (' + mostViewed.views + ')' : '–') + '</div>' +
-        '<div><b>Most Saved:</b> ' + esc(mostSaved ? mostSaved.title + ' (' + (mostSaved.saved + mostSaved.starred) + ')' : '–') + '</div>' +
-        '<div><b>Most Applied:</b> ' + esc(mostApplied ? mostApplied.title + ' (' + mostApplied.applications + ')' : '–') + '</div>' +
-        '<div><b>Highest App Rate:</b> ' + esc(highestRate ? highestRate.title + ' (' + highestRate.app_rate + '%)' : '–') + '</div>' +
-        '<div><b>Zero Applications:</b> ' + (zeroApps.length ? esc(zeroApps.map(function (z) { return z.title; }).join(', ')) : 'None') + '</div>' +
-        '<div class="divider"></div><div class="bold">Automated Suggestions</div><ul class="xs muted" style="margin:0;padding-left:16px;line-height:1.6">' + suggestions.map(function (sg) { return '<li>' + esc(sg) + '</li>'; }).join('') + '</ul></div></div></div>' : '<div class="card">' + JM.empty('chart', 'No data yet', 'Publish a job to start collecting insights.') + '</div>') + '</div>';
-  } });
+  });
   JM.actions.anpreset = function (el) { JM.anRange = { preset: el.dataset.p, start: '', end: '' }; JM.render(); };
   JM.forms.ancustom = function (form, d) {
     if (!d.start || !d.end || d.end < d.start) return JM.toast('Select a valid start and end date.', 'bad');
@@ -655,8 +675,8 @@
     if (!d) return;
     if (fmt === 'pdf') { window.print(); return; }
     const rows = [['JobMatch Employer Analytics Report (' + d.range.start + ' to ' + d.range.end + ')'], [],
-      ['Total Views', d.summary.views], ['Total Applications', d.summary.applications], ['Total Saved', d.summary.saved], ['Application Rate (%)', d.summary.app_rate], [],
-      ['Listing', 'Status', 'Views', 'Skipped', 'Saved', 'Starred', 'Applied', 'Matched', 'App Rate (%)', 'Conv Rate (%)']];
+    ['Total Views', d.summary.views], ['Total Applications', d.summary.applications], ['Total Saved', d.summary.saved], ['Application Rate (%)', d.summary.app_rate], [],
+    ['Listing', 'Status', 'Views', 'Skipped', 'Saved', 'Starred', 'Applied', 'Matched', 'App Rate (%)', 'Conv Rate (%)']];
     (d.listings || []).forEach(function (r) { rows.push([r.title, r.status, r.views, r.skipped, r.saved, r.starred, r.applications, r.matched, r.app_rate, r.conv_rate]); });
     rows.push([], ['Date', 'Views', 'Applications']);
     (d.trends || []).forEach(function (t) { rows.push([t.day, t.views, t.applications]); });
@@ -674,59 +694,63 @@
   };
 
   // ---------- billing ----------
-  JM.route('/employer/billing', { auth: 'employer', title: 'Plans and billing', render: async function () {
-    const e = JM.me.employer, jobs = await JM.q(JM.sb.from('jobs').select('id,title,boosted_until').eq('employer_id', JM.me.id).eq('status', 'published')), pays = await JM.q(JM.sb.from('payments').select('*').order('created_at', { ascending: false }).limit(12));
-    const li = function (t) { return '<li style="display:flex;gap:8px">' + ic('check', 16) + '<span>' + t + '</span></li>'; };
-    const yes = '<span style="color:var(--ok)">' + ic('check', 17) + '</span>', no = '<span class="muted">–</span>';
-    const cmp = function (a, b, c, d) { return '<tr><td>' + a + '</td><td class="center">' + b + '</td><td class="center">' + c + '</td><td class="center">' + d + '</td></tr>'; };
-    const card = function (k, price, perks, item) {
-      const cur = e.plan === k, amt = k === 'growth' ? 999 : 2499;
-      return '<div class="card price' + (k === 'growth' ? ' pop' : '') + '"><div class="row between"><b>' + PLAN[k].name + '</b>' + (cur ? JM.badge('Current plan', 'ok') : '') + '</div><div class="amt">' + price + '</div><ul>' + perks.map(li).join('') + '</ul>' +
-        (cur ? '<button class="btn secondary block" disabled>' + (e.plan_renews_at ? 'Next billing: ' + JM.date(nextBill(e)) : 'Free forever') + '</button>' + (e.plan_renews_at ? '<label class="row mt small" style="cursor:pointer"><span class="grow">Auto-renew monthly</span><span class="switch"><input type="checkbox" data-act="empautorenew"' + (e.auto_renew !== false ? ' checked' : '') + '><i></i></span></label>' : '') : k === 'starter' ? '<div class="small muted center">Your plan returns to Starter when a paid plan ends.</div>' : '<button class="btn block" data-act="buy" data-item="' + item + '" data-label="' + PLAN[k].name + ' Plan (monthly)" data-amount="' + amt + '" data-period="Billed monthly">' + (e.plan === 'business' && k === 'growth' ? 'Switch to Growth' : 'Choose ' + PLAN[k].name) + '</button>') + '</div>';
-    };
-    const boostable = jobs.map(function (j) { const on = j.boosted_until && new Date(j.boosted_until) > new Date(); return '<div class="li"><div class="grow"><b>' + esc(j.title) + '</b><div class="small muted">' + (on ? 'Boosted until ' + JM.date(j.boosted_until) : 'Not boosted') + '</div></div><button class="btn secondary sm" data-act="buy" data-item="boost" data-job="' + j.id + '" data-label="Boost: ' + esc(j.title) + '" data-amount="299" data-period="7-day boost">' + (on ? 'Extend 7 days' : 'Boost for ₱299') + '</button></div>'; }).join('');
-    return '<div class="page">' + JM.pageHead('Plans and billing', 'Prices in Philippine pesos. Cancel any time.') +
-      '<div class="grid g3 mb">' + card('starter', '₱0', ['2 active listings', 'Applicants in order received', 'Verified badge'], '') + card('growth', '₱999<span class="small muted" style="font-weight:500"> / mo</span>', ['10 active listings', 'Ranked applicants and match scores', 'Starred candidates first', 'Full analytics, trends &amp; exports'], 'employer_growth') + card('business', '₱2,499<span class="small muted" style="font-weight:500"> / mo</span>', ['Unlimited listings', 'Candidate search &amp; AI overviews', 'Direct candidate messaging &amp; invites', 'Everything in Growth'], 'employer_business') + '</div>' +
-      '<div class="card mb"><div class="card-h"><h3>Employer Plan Comparison</h3></div><div class="tablewrap"><table><thead><tr><th>Feature</th><th class="center">Starter (₱0)</th><th class="center">Growth (₱999)</th><th class="center">Business (₱2,499)</th></tr></thead><tbody>' +
-      cmp('Active job listings', '2', '10', 'Unlimited') +
-      cmp('Ranked applicants &amp; match scores', no, yes, yes) +
-      cmp('Analytics, trends &amp; CSV/Excel/PDF export', no, yes, yes) +
-      cmp('Interview scheduling', yes, yes, yes) +
-      cmp('Candidate search &amp; AI Applicant Overview', no, no, yes) +
-      cmp('Direct messaging from Candidate Search', no, no, yes) +
-      '</tbody></table></div></div>' +
-      '<div class="card mb"><div class="card-h"><h3>Boost a listing</h3><span class="small muted">Top of every deck for 7 days. ₱299.</span></div>' + (jobs.length ? '<div class="list">' + boostable + '</div>' : '<div class="card-b small muted">Publish a job to boost it.</div>') + '</div>' +
-      '<div class="card"><div class="card-h"><h3>Payment history</h3></div>' + (pays.length ? '<div class="tablewrap"><table><tbody>' + pays.map(function (p) { return '<tr><td>' + JM.date(p.created_at) + '</td><td>' + esc(p.item) + '</td><td class="xs muted">' + esc(p.provider_ref) + (p.payment_method ? ' · ' + esc(p.payment_method.toUpperCase()) : '') + '</td><td>' + JM.badge(p.status, p.status === 'paid' ? 'ok' : p.status === 'pending' ? 'warn' : 'bad') + '</td><td style="text-align:right">' + JM.peso(p.amount) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="card-b small muted">No payments yet.</div>') + '</div></div>';
-  } });
+  JM.route('/employer/billing', {
+    auth: 'employer', title: 'Plans and billing', render: async function () {
+      const e = JM.me.employer, jobs = await JM.q(JM.sb.from('jobs').select('id,title,boosted_until').eq('employer_id', JM.me.id).eq('status', 'published')), pays = await JM.q(JM.sb.from('payments').select('*').order('created_at', { ascending: false }).limit(12));
+      const li = function (t) { return '<li style="display:flex;gap:8px">' + ic('check', 16) + '<span>' + t + '</span></li>'; };
+      const yes = '<span style="color:var(--ok)">' + ic('check', 17) + '</span>', no = '<span class="muted">–</span>';
+      const cmp = function (a, b, c, d) { return '<tr><td>' + a + '</td><td class="center">' + b + '</td><td class="center">' + c + '</td><td class="center">' + d + '</td></tr>'; };
+      const card = function (k, price, perks, item) {
+        const cur = e.plan === k, amt = k === 'growth' ? 999 : 2499;
+        return '<div class="card price' + (k === 'growth' ? ' pop' : '') + '"><div class="row between"><b>' + PLAN[k].name + '</b>' + (cur ? JM.badge('Current plan', 'ok') : '') + '</div><div class="amt">' + price + '</div><ul>' + perks.map(li).join('') + '</ul>' +
+          (cur ? '<button class="btn secondary block" disabled>' + (e.plan_renews_at ? 'Next billing: ' + JM.date(nextBill(e)) : 'Free forever') + '</button>' + (e.plan_renews_at ? '<label class="row mt small" style="cursor:pointer"><span class="grow">Auto-renew monthly</span><span class="switch"><input type="checkbox" data-act="empautorenew"' + (e.auto_renew !== false ? ' checked' : '') + '><i></i></span></label>' : '') : k === 'starter' ? '<div class="small muted center">Your plan returns to Starter when a paid plan ends.</div>' : '<button class="btn block" data-act="buy" data-item="' + item + '" data-label="' + PLAN[k].name + ' Plan (monthly)" data-amount="' + amt + '" data-period="Billed monthly">' + (e.plan === 'business' && k === 'growth' ? 'Switch to Growth' : 'Choose ' + PLAN[k].name) + '</button>') + '</div>';
+      };
+      const boostable = jobs.map(function (j) { const on = j.boosted_until && new Date(j.boosted_until) > new Date(); return '<div class="li"><div class="grow"><b>' + esc(j.title) + '</b><div class="small muted">' + (on ? 'Boosted until ' + JM.date(j.boosted_until) : 'Not boosted') + '</div></div><button class="btn secondary sm" data-act="buy" data-item="boost" data-job="' + j.id + '" data-label="Boost: ' + esc(j.title) + '" data-amount="299" data-period="7-day boost">' + (on ? 'Extend 7 days' : 'Boost for ₱299') + '</button></div>'; }).join('');
+      return '<div class="page">' + JM.pageHead('Plans and billing', 'Prices in Philippine pesos. Cancel any time.') +
+        '<div class="grid g3 mb">' + card('starter', '₱0', ['2 active listings', 'Applicants in order received', 'Verified badge'], '') + card('growth', '₱999<span class="small muted" style="font-weight:500"> / mo</span>', ['10 active listings', 'Ranked applicants and match scores', 'Starred candidates first', 'Full analytics, trends &amp; exports'], 'employer_growth') + card('business', '₱2,499<span class="small muted" style="font-weight:500"> / mo</span>', ['Unlimited listings', 'Candidate search &amp; AI overviews', 'Direct candidate messaging &amp; invites', 'Everything in Growth'], 'employer_business') + '</div>' +
+        '<div class="card mb"><div class="card-h"><h3>Employer Plan Comparison</h3></div><div class="tablewrap"><table><thead><tr><th>Feature</th><th class="center">Starter (₱0)</th><th class="center">Growth (₱999)</th><th class="center">Business (₱2,499)</th></tr></thead><tbody>' +
+        cmp('Active job listings', '2', '10', 'Unlimited') +
+        cmp('Ranked applicants &amp; match scores', no, yes, yes) +
+        cmp('Analytics, trends &amp; CSV/Excel/PDF export', no, yes, yes) +
+        cmp('Interview scheduling', yes, yes, yes) +
+        cmp('Candidate search &amp; AI Applicant Overview', no, no, yes) +
+        cmp('Direct messaging from Candidate Search', no, no, yes) +
+        '</tbody></table></div></div>' +
+        '<div class="card mb"><div class="card-h"><h3>Boost a listing</h3><span class="small muted">Top of every deck for 7 days. ₱299.</span></div>' + (jobs.length ? '<div class="list">' + boostable + '</div>' : '<div class="card-b small muted">Publish a job to boost it.</div>') + '</div>' +
+        '<div class="card"><div class="card-h"><h3>Payment history</h3></div>' + (pays.length ? '<div class="tablewrap"><table><tbody>' + pays.map(function (p) { return '<tr><td>' + JM.date(p.created_at) + '</td><td>' + esc(p.item) + '</td><td class="xs muted">' + esc(p.provider_ref) + (p.payment_method ? ' · ' + esc(p.payment_method.toUpperCase()) : '') + '</td><td>' + JM.badge(p.status, p.status === 'paid' ? 'ok' : p.status === 'pending' ? 'warn' : 'bad') + '</td><td style="text-align:right">' + JM.peso(p.amount) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="card-b small muted">No payments yet.</div>') + '</div></div>';
+    }
+  });
 
   // ---------- company ----------
-  JM.route('/employer/company', { auth: 'employer', title: 'Company and team', render: async function () {
-    const e = JM.me.employer, team = await JM.q(JM.sb.from('employer_team').select('*').eq('employer_id', JM.me.id).order('name')), docs = await JM.q(JM.sb.from('employer_docs').select('*').eq('employer_id', JM.me.id).order('created_at')), n = e.notif || {};
-    const sw = function (k, t) { return '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><b class="grow">' + t + '</b><span class="switch"><input type="checkbox" data-act="enotif" data-k="' + k + '"' + (n[k] !== false ? ' checked' : '') + '><i></i></span></label>'; };
-    const findDoc = function (k) { return docs.find(function (d) { return d.kind === k; }); };
-    const docRow = function (kind, label) {
-      const doc = findDoc(kind);
-      return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + label + '</b><div class="xs muted">' + (doc ? esc(doc.file_name) : 'Not uploaded yet') + '</div></div>' +
-        (doc ? JM.badge('Uploaded', 'ok') + '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="verification-docs" data-path="' + esc(doc.file_path) + '" data-title="' + esc(label) + '">View</button>' : JM.badge('Missing', 'warn')) +
-        JM.uploadBtn({ in: 'compdoc', kind: kind, target: 'vdoc', label: doc ? 'Replace' : 'Upload', size: 'sm', preview: 'Preview: ' + label }) + '</div>';
-    };
-    const bizTa = JM.typeahead({ id: 'comp-biz-ta', name: 'type', value: e.type || '', label: e.type || '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type…', source: BIZ_ITEMS });
-    const areaTa = JM.typeahead({ id: 'comp-area-ta', name: 'area_id', value: e.area_id, label: JM.area(e.area_id), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [] });
-    return '<div class="page narrow">' + JM.pageHead('Company and team') +
-      '<div class="card mb"><div class="card-h"><h3 class="grow">Business profile</h3>' + (e.verification_status === 'verified' ? JM.badge('Verified', 'ok') : JM.badge(e.verification_status === 'pending' ? 'Pending review' : 'Not approved', e.verification_status === 'pending' ? 'warn' : 'bad')) + '</div><div class="card-b">' +
-      '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)"><span id="emp-logo-slot">' + JM.img({ bucket: 'company-logos', path: e.logo_path, directUrl: JM._logoBlob, uploading: !!JM._logoUploading, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: (e.logo_path && !JM._logoUploading) ? 'imgview' : '', title: 'Company logo' }) + '</span><div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP · square/circle crop · max 5 MB. Shown on your Discover cards and profile.</div></div>' + JM.uploadBtn({ in: 'emplogo', target: 'logo', label: e.logo_path ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Crop company logo' }) + '</div>' +
-      '<form data-form="company"><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" value="' + esc(e.name) + '" required></div><div class="field"><label class="label">Type</label>' + bizTa + '</div>' +
-      '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Address</label><input type="text" name="address" value="' + esc(e.address) + '"></div>' +
-      '<div class="field"><label class="label">Contact person</label><input type="text" name="contact_name" value="' + esc(e.contact_name) + '"></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="contact_phone" value="' + esc(e.contact_phone) + '"></div></div>' +
-      '<div class="field"><label class="label">Contact email</label><input type="email" name="contact_email" value="' + esc(e.contact_email) + '"></div><div class="field"><label class="label">About</label><textarea name="about" maxlength="600">' + esc(e.about) + '</textarea></div><button class="btn" type="submit">Save changes</button></form></div></div>' +
-      '<div class="card mb"><div class="card-h"><h3 class="grow">Company Documents (BIR, DTI, Mayor\'s Permit)</h3>' + (e.verification_status === 'rejected' ? '<button class="btn sm" data-act="resubmit">Resubmit</button>' : '') + '</div><div class="list">' +
-      docRow('BIR certificate', 'BIR Registration Document') +
-      docRow('DTI certificate', 'DTI Registration Document') +
-      docRow("Mayor's permit", "Mayor's Permit") +
-      '</div></div>' +
-      '<div class="card mb"><div class="card-h"><h3 class="grow">Team</h3><button class="btn secondary sm" data-act="addmember">' + ic('plus', 15) + 'Add member</button></div><div class="list">' + team.map(function (t) { return '<div class="li">' + JM.avatar(t.name) + '<div class="grow"><b>' + esc(t.name) + '</b><div class="small muted">' + esc(t.email) + '</div></div>' + JM.badge(t.role) + (t.role === 'Owner' ? '' : '<button class="iconbtn" data-act="rmmember" data-id="' + t.id + '" data-name="' + esc(t.name) + '" aria-label="Remove ' + esc(t.name) + '" style="width:32px;height:32px">' + ic('trash', 15) + '</button>') + '</div>'; }).join('') + '</div><div class="card-b small muted">Team members are listed for your reference. They sign in with their own JobMatch accounts in a future update.</div></div>' +
-      '<div class="card mb"><div class="card-h"><h3>Notifications</h3></div><div class="card-b" style="padding-top:0">' + sw('applicants', 'New applicants') + sw('messages', 'New messages') + sw('weekly', 'Weekly summary') + '</div></div>' + JM.accountCards() + '</div>';
-  } });
+  JM.route('/employer/company', {
+    auth: 'employer', title: 'Company and team', render: async function () {
+      const e = JM.me.employer, team = await JM.q(JM.sb.from('employer_team').select('*').eq('employer_id', JM.me.id).order('name')), docs = await JM.q(JM.sb.from('employer_docs').select('*').eq('employer_id', JM.me.id).order('created_at')), n = e.notif || {};
+      const sw = function (k, t) { return '<label class="row" style="padding:12px 0;border-top:1px solid var(--line)"><b class="grow">' + t + '</b><span class="switch"><input type="checkbox" data-act="enotif" data-k="' + k + '"' + (n[k] !== false ? ' checked' : '') + '><i></i></span></label>'; };
+      const findDoc = function (k) { return docs.find(function (d) { return d.kind === k; }); };
+      const docRow = function (kind, label) {
+        const doc = findDoc(kind);
+        return '<div class="li" style="flex-wrap:wrap"><div class="grow"><b>' + label + '</b><div class="xs muted">' + (doc ? esc(doc.file_name) : 'Not uploaded yet') + '</div></div>' +
+          (doc ? JM.badge('Uploaded', 'ok') + '<button type="button" class="btn secondary sm" data-act="mediaview" data-bucket="verification-docs" data-path="' + esc(doc.file_path) + '" data-title="' + esc(label) + '">View</button>' : JM.badge('Missing', 'warn')) +
+          JM.uploadBtn({ in: 'compdoc', kind: kind, target: 'vdoc', label: doc ? 'Replace' : 'Upload', size: 'sm', preview: 'Preview: ' + label }) + '</div>';
+      };
+      const bizTa = JM.typeahead({ id: 'comp-biz-ta', name: 'type', value: e.type || '', label: e.type || '', allowCustom: true, minChars: 0, placeholder: 'Select or type business type…', source: BIZ_ITEMS });
+      const areaTa = JM.typeahead({ id: 'comp-area-ta', name: 'area_id', value: e.area_id, label: JM.area(e.area_id), minChars: 0, placeholder: 'Type city or barangay…', source: JM.areaItems || [] });
+      return '<div class="page narrow">' + JM.pageHead('Company and team') +
+        '<div class="card mb"><div class="card-h"><h3 class="grow">Business profile</h3>' + (e.verification_status === 'verified' ? JM.badge('Verified', 'ok') : JM.badge(e.verification_status === 'pending' ? 'Pending review' : 'Not approved', e.verification_status === 'pending' ? 'warn' : 'bad')) + '</div><div class="card-b">' +
+        '<div class="row wrap mb" style="padding-bottom:14px;border-bottom:1px solid var(--line)"><span id="emp-logo-slot">' + JM.img({ bucket: 'company-logos', path: e.logo_path, directUrl: JM._logoBlob, uploading: !!JM._logoUploading, shape: 'circle', size: 72, name: e.name, alt: 'Company logo', act: (e.logo_path && !JM._logoUploading) ? 'imgview' : '', title: 'Company logo' }) + '</span><div class="grow"><b>Company Logo</b><div class="xs muted">JPG, PNG or WEBP · square/circle crop · max 5 MB. Shown on your Discover cards and profile.</div></div>' + JM.uploadBtn({ in: 'emplogo', target: 'logo', label: e.logo_path ? 'Change logo' : 'Upload logo', size: 'sm', preview: 'Crop company logo' }) + '</div>' +
+        '<form data-form="company"><div class="grid g2"><div class="field"><label class="label">Business name</label><input type="text" name="name" value="' + esc(e.name) + '" required></div><div class="field"><label class="label">Type</label>' + bizTa + '</div>' +
+        '<div class="field"><label class="label">Area</label>' + areaTa + '</div><div class="field"><label class="label">Address</label><input type="text" name="address" value="' + esc(e.address) + '"></div>' +
+        '<div class="field"><label class="label">Contact person</label><input type="text" name="contact_name" value="' + esc(e.contact_name) + '"></div><div class="field"><label class="label">Contact mobile</label><input type="tel" name="contact_phone" value="' + esc(e.contact_phone) + '"></div></div>' +
+        '<div class="field"><label class="label">Contact email</label><input type="email" name="contact_email" value="' + esc(e.contact_email) + '"></div><div class="field"><label class="label">About</label><textarea name="about" maxlength="600">' + esc(e.about) + '</textarea></div><button class="btn" type="submit">Save changes</button></form></div></div>' +
+        '<div class="card mb"><div class="card-h"><h3 class="grow">Company Documents (BIR, DTI, Mayor\'s Permit)</h3>' + (e.verification_status === 'rejected' ? '<button class="btn sm" data-act="resubmit">Resubmit</button>' : '') + '</div><div class="list">' +
+        docRow('BIR certificate', 'BIR Registration Document') +
+        docRow('DTI certificate', 'DTI Registration Document') +
+        docRow("Mayor's permit", "Mayor's Permit") +
+        '</div></div>' +
+        '<div class="card mb"><div class="card-h"><h3 class="grow">Team</h3><button class="btn secondary sm" data-act="addmember">' + ic('plus', 15) + 'Add member</button></div><div class="list">' + team.map(function (t) { return '<div class="li">' + JM.avatar(t.name) + '<div class="grow"><b>' + esc(t.name) + '</b><div class="small muted">' + esc(t.email) + '</div></div>' + JM.badge(t.role) + (t.role === 'Owner' ? '' : '<button class="iconbtn" data-act="rmmember" data-id="' + t.id + '" data-name="' + esc(t.name) + '" aria-label="Remove ' + esc(t.name) + '" style="width:32px;height:32px">' + ic('trash', 15) + '</button>') + '</div>'; }).join('') + '</div><div class="card-b small muted">Team members are listed for your reference. They sign in with their own JobMatch accounts in a future update.</div></div>' +
+        '<div class="card mb"><div class="card-h"><h3>Notifications</h3></div><div class="card-b" style="padding-top:0">' + sw('applicants', 'New applicants') + sw('messages', 'New messages') + sw('weekly', 'Weekly summary') + '</div></div>' + JM.accountCards() + '</div>';
+    }
+  });
   JM.actions.empviewdoc = async function (el) { await JM.busy(el, async function () { const r = await JM.sb.storage.from('verification-docs').createSignedUrl(el.dataset.path, 120); if (r.error) throw r.error; window.open(r.data.signedUrl, '_blank', 'noopener'); }); };
   JM.actions.empautorenew = async function (el) {
     try {

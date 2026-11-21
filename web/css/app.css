@@ -926,7 +926,14 @@ div.brand {
   font-size: 16px;
   letter-spacing: -.02em;
   padding: 4px 10px 16px;
-  color: var(--ink)
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer
+}
+
+a.brand:hover {
+  text-decoration: none;
+  opacity: .88
 }
 
 a.brand img,
@@ -1030,7 +1037,15 @@ div.brand img {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 700
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer
+}
+
+.topbar a.mbrand:hover {
+  text-decoration: none;
+  opacity: .88
 }
 
 .topbar .mbrand img {

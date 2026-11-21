@@ -1,0 +1,13 @@
+{
+  "name": "jobmatch-mockups",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Playwright iPhone 16 Pro Max mockup screenshot capture and compositor for JobMatch guide",
+  "scripts": {
+    "capture": "node capture.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

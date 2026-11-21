@@ -122,13 +122,13 @@
   const PUB_BUCKETS = { 'company-logos': 1, 'job-photos': 1 };
   const MIME_EXT = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' };
   JM.IMG_TARGETS = {
-    avatar:   { bucket: 'seeker-media',      pub: false, shape: 'circle',   ratio: 1,     w: 512,  h: 512,  maxSide: 512,  alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
-    photo:    { bucket: 'seeker-media',      pub: false, shape: 'portrait', ratio: 3 / 4, w: 900,  h: 1200, maxSide: 1200, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
-    cert:     { bucket: 'seeker-media',      pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: '.jpg,.jpeg,.png,.webp,.pdf' },
-    resume:   { bucket: 'resumes',           pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'],               accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
-    logo:     { bucket: 'company-logos',     pub: true,  shape: 'circle',   ratio: 1,     w: 512,  h: 512,  maxSide: 512,  alpha: true,  formats: ['image/webp', 'image/png'],  accept: 'image/jpeg,image/png,image/webp' },
-    jobphoto: { bucket: 'job-photos',        pub: true,  shape: 'cover43',  ratio: 4 / 3, w: 1600, h: 1200, maxSide: 1600, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
-    vdoc:     { bucket: 'verification-docs', pub: false, shape: 'contain',  ratio: null,  w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'],               accept: '.pdf,.jpg,.jpeg,.png' }
+    avatar: { bucket: 'seeker-media', pub: false, shape: 'circle', ratio: 1, w: 512, h: 512, maxSide: 512, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
+    photo: { bucket: 'seeker-media', pub: false, shape: 'portrait', ratio: 3 / 4, w: 900, h: 1200, maxSide: 1200, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
+    cert: { bucket: 'seeker-media', pub: false, shape: 'contain', ratio: null, w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: '.jpg,.jpeg,.png,.webp,.pdf' },
+    resume: { bucket: 'resumes', pub: false, shape: 'contain', ratio: null, w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'], accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    logo: { bucket: 'company-logos', pub: true, shape: 'circle', ratio: 1, w: 512, h: 512, maxSide: 512, alpha: true, formats: ['image/webp', 'image/png'], accept: 'image/jpeg,image/png,image/webp' },
+    jobphoto: { bucket: 'job-photos', pub: true, shape: 'cover43', ratio: 4 / 3, w: 1600, h: 1200, maxSide: 1600, alpha: false, formats: ['image/webp', 'image/jpeg'], accept: 'image/jpeg,image/png,image/webp' },
+    vdoc: { bucket: 'verification-docs', pub: false, shape: 'contain', ratio: null, w: null, h: null, maxSide: 2000, alpha: false, formats: ['image/jpeg'], accept: '.pdf,.jpg,.jpeg,.png' }
   };
   JM.urlCache = {};
   JM.blobCache = {};
@@ -487,7 +487,7 @@
     const root = document.getElementById('overlay-root');
     root.innerHTML = '<div class="ov" data-ov="1"><div class="modal ' + (cls || '') + '" role="dialog" aria-modal="true">' + html + '</div></div>'; root.classList.add('open');
     JM.mountTypeaheads(root); JM.hydrateImages(root);
-    const f = root.querySelector('input:not([type=hidden]),select,textarea'); if (f && !cls) setTimeout(function () { try { f.focus(); } catch (e) {} }, 30);
+    const f = root.querySelector('input:not([type=hidden]),select,textarea'); if (f && !cls) setTimeout(function () { try { f.focus(); } catch (e) { } }, 30);
   };
   JM.drawer = function (html) {
     const root = document.getElementById('overlay-root');
@@ -500,7 +500,7 @@
       JM._pv = null;
       if (pv.raf) cancelAnimationFrame(pv.raf);
       if (pv.srcUrl) URL.revokeObjectURL(pv.srcUrl);
-      if (pv.o && pv.o.onCancel) { try { pv.o.onCancel(); } catch (e) {} }
+      if (pv.o && pv.o.onCancel) { try { pv.o.onCancel(); } catch (e) { } }
     }
     const r = document.getElementById('overlay-root'); r.classList.remove('open'); r.innerHTML = '';
   };
@@ -631,7 +631,7 @@
             const lbl = it._custom
               ? (cfg.customLabel ? JM.esc(cfg.customLabel.replace('{q}', it.label)) : 'Add "<b>' + JM.esc(it.label) + '</b>"')
               : it._extra ? '<b>' + JM.esc(it.label) + '</b>'
-              : highlightMatch(it.label, q);
+                : highlightMatch(it.label, q);
             return '<div class="ta-item' + (i === active ? ' on' : '') + (it._extra ? ' ta-extra' : '') + '" role="option" aria-selected="' + (i === active) + '" data-ti="' + i + '">' +
               '<span class="ta-lbl">' + lbl + (it.hint ? '<small class="xs muted"> · ' + JM.esc(it.hint) + '</small>' : '') + '</span>' +
               (it.group ? '<span class="ta-group">' + JM.esc(it.group) + '</span>' : '') + '</div>';
@@ -796,9 +796,9 @@
     const suggested = (o.suggested || []).filter(function (s, i, a) { return s && a.indexOf(s) === i; }).slice(0, 10);
     const sugHtml = suggested.length
       ? '<div class="sp-sug"><div class="xs muted bold mb" style="margin-bottom:6px">' + ic('sparkle', 13) + ' Suggested for you</div><div class="chips">' +
-        suggested.map(function (s) {
-          return '<button type="button" class="chip' + (has(s) ? ' on' : '') + '" data-act="sptoggle" data-sp="' + JM.esc(id) + '" data-v="' + JM.esc(s) + '">' + (has(s) ? ic('check', 12) : ic('plus', 12)) + JM.esc(s) + '</button>';
-        }).join('') + '</div></div>'
+      suggested.map(function (s) {
+        return '<button type="button" class="chip' + (has(s) ? ' on' : '') + '" data-act="sptoggle" data-sp="' + JM.esc(id) + '" data-v="' + JM.esc(s) + '">' + (has(s) ? ic('check', 12) : ic('plus', 12)) + JM.esc(s) + '</button>';
+      }).join('') + '</div></div>'
       : '';
 
     // Determine default open categories
@@ -855,14 +855,14 @@
         return '<div class="sp-tgrp"><div class="xs muted bold" style="margin-bottom:4px">' + JM.esc(gk) + '</div>' +
           (isSeeker
             ? groups[gk].map(function (n) {
-                return '<div class="row" style="padding:6px 0;border-top:1px solid var(--line)"><span class="grow small">' + JM.esc(n) + '</span>' +
-                  '<select style="width:142px;height:32px;font-size:13px" data-in="splevel" data-sp="' + JM.esc(id) + '" data-skill="' + JM.esc(n) + '">' +
-                  LEVELS.map(function (l) { return '<option value="' + l[0] + '"' + (selectedMap[n] === l[0] ? ' selected' : '') + '>' + l[1] + '</option>'; }).join('') +
-                  '</select><button type="button" class="iconbtn" data-act="spremove" data-sp="' + JM.esc(id) + '" data-v="' + JM.esc(n) + '" aria-label="Remove ' + JM.esc(n) + '" style="width:32px;height:32px">' + ic('x', 15) + '</button></div>';
-              }).join('')
+              return '<div class="row" style="padding:6px 0;border-top:1px solid var(--line)"><span class="grow small">' + JM.esc(n) + '</span>' +
+                '<select style="width:142px;height:32px;font-size:13px" data-in="splevel" data-sp="' + JM.esc(id) + '" data-skill="' + JM.esc(n) + '">' +
+                LEVELS.map(function (l) { return '<option value="' + l[0] + '"' + (selectedMap[n] === l[0] ? ' selected' : '') + '>' + l[1] + '</option>'; }).join('') +
+                '</select><button type="button" class="iconbtn" data-act="spremove" data-sp="' + JM.esc(id) + '" data-v="' + JM.esc(n) + '" aria-label="Remove ' + JM.esc(n) + '" style="width:32px;height:32px">' + ic('x', 15) + '</button></div>';
+            }).join('')
             : '<div class="chips" style="margin-bottom:8px">' + groups[gk].map(function (n) {
-                return '<span class="badge brand">' + JM.esc(n) + ' <button type="button" class="sp-x" data-act="spremove" data-sp="' + JM.esc(id) + '" data-v="' + JM.esc(n) + '" aria-label="Remove ' + JM.esc(n) + '">×</button></span>';
-              }).join('') + '</div>') +
+              return '<span class="badge brand">' + JM.esc(n) + ' <button type="button" class="sp-x" data-act="spremove" data-sp="' + JM.esc(id) + '" data-v="' + JM.esc(n) + '" aria-label="Remove ' + JM.esc(n) + '">×</button></span>';
+            }).join('') + '</div>') +
           '</div>';
       }).join('') : '<p class="small muted" style="margin:0">' + JM.esc(o.emptyHint || 'Pick skills above or search to add.') + '</p>') + '</div>';
 
@@ -919,10 +919,10 @@
     });
     const popHtml = popRoles.length
       ? '<div class="xs muted mt" style="margin-top:8px;margin-bottom:4px">Popular near you:</div><div class="chips">' +
-        popRoles.map(function (r) {
-          return '<button type="button" class="chip' + (o.value === r.id ? ' on' : '') + '" data-act="rppop" data-rp="' + JM.esc(id) + '" data-v="' + JM.esc(r.id) + '">' + JM.esc(r.title) + '</button>';
-        }).join('') +
-        '<button type="button" class="chip' + (o.isOther ? ' on' : '') + '" data-act="rppop" data-rp="' + JM.esc(id) + '" data-v="__other__">Other / specify</button></div>'
+      popRoles.map(function (r) {
+        return '<button type="button" class="chip' + (o.value === r.id ? ' on' : '') + '" data-act="rppop" data-rp="' + JM.esc(id) + '" data-v="' + JM.esc(r.id) + '">' + JM.esc(r.title) + '</button>';
+      }).join('') +
+      '<button type="button" class="chip' + (o.isOther ? ' on' : '') + '" data-act="rppop" data-rp="' + JM.esc(id) + '" data-v="__other__">Other / specify</button></div>'
       : '';
     return '<div class="rp">' + ta + popHtml + '</div>';
   };
@@ -935,11 +935,11 @@
   // ---------- shells ----------
   const NAV = {
     seeker: [['/deck', 'layers', 'Discover'], ['/preferred', 'heart', 'Preferred'], ['/matches', 'users', 'Matches'], ['/messages', 'chat', 'Messages'], ['/career', 'award', 'Career'],
-      ['H', 'More'], ['/applications', 'briefcase', 'Applications'], ['/resume-review', 'sparkle', 'Résumé review'], ['/checklist', 'file', 'First-time jobseeker'], ['/pro', 'crown', 'JobMatch Pro'], ['/profile', 'user', 'Profile'], ['/settings', 'settings', 'Settings'], ['/help', 'help', 'Help']],
+    ['H', 'More'], ['/applications', 'briefcase', 'Applications'], ['/resume-review', 'sparkle', 'Résumé review'], ['/checklist', 'file', 'First-time jobseeker'], ['/pro', 'crown', 'JobMatch Pro'], ['/profile', 'user', 'Profile'], ['/settings', 'settings', 'Settings'], ['/help', 'help', 'Help']],
     employer: [['/employer', 'home', 'Overview'], ['/employer/jobs', 'briefcase', 'Jobs'], ['/messages', 'chat', 'Messages'], ['/employer/candidates', 'search', 'Candidate search'], ['/employer/analytics', 'chart', 'Analytics'],
-      ['H', 'Account'], ['/employer/billing', 'card', 'Plans and billing'], ['/employer/company', 'settings', 'Company and team'], ['/employer/help', 'help', 'Help']],
+    ['H', 'Account'], ['/employer/billing', 'card', 'Plans and billing'], ['/employer/company', 'settings', 'Company and team'], ['/employer/help', 'help', 'Help']],
     admin: [['/admin', 'home', 'Overview'], ['/admin/verification', 'shield', 'Verification'], ['/admin/moderation', 'flag', 'Moderation'], ['/admin/users', 'users', 'Users'],
-      ['H', 'Platform'], ['/admin/career', 'book', 'Career data'], ['/admin/payments', 'card', 'Payments'], ['/admin/analytics', 'chart', 'Analytics'], ['/admin/courses', 'dollar', 'Course partners'], ['/admin/announcements', 'megaphone', 'Announcements']]
+    ['H', 'Platform'], ['/admin/career', 'book', 'Career data'], ['/admin/payments', 'card', 'Payments'], ['/admin/analytics', 'chart', 'Analytics'], ['/admin/courses', 'dollar', 'Course partners'], ['/admin/announcements', 'megaphone', 'Announcements']]
   };
   const TABS = [['/deck', 'layers', 'Discover'], ['/preferred', 'heart', 'Preferred'], ['/matches', 'users', 'Matches'], ['/career', 'award', 'Career'], ['/profile', 'user', 'Profile']];
   JM.activeNav = function (path, items) {
@@ -971,9 +971,10 @@
     }).join('');
     const tabs = role === 'seeker' ? '<nav class="tabbar" aria-label="Main">' + TABS.map(function (n) { return '<a data-tab="' + n[0] + '" href="#' + n[0] + '">' + ic(n[1], 21) + '<span>' + n[2] + '</span>' + (n[0] === '/matches' ? '<span class="dot hide" id="nb-match"></span>' : '') + '</a>'; }).join('') + '</nav>' : '';
     const menu = role !== 'seeker' ? '<button class="iconbtn menu" data-act="menu" aria-label="Open menu">' + ic('menu') + '</button>' : '';
-    return '<div class="shell" id="shell" data-role="' + role + '"><aside class="sidebar" aria-label="Navigation"><div class="brand"><img src="assets/logo.png" alt="">JobMatch</div>' + links +
+    const homeHref = '#' + (role === 'seeker' ? '/deck' : role === 'employer' ? '/employer' : '/admin');
+    return '<div class="shell" id="shell" data-role="' + role + '"><aside class="sidebar" aria-label="Navigation"><a class="brand" href="' + homeHref + '" data-act="brandhome" aria-label="JobMatch home"><img src="assets/logo.png" alt="">JobMatch</a>' + links +
       '<div class="grow"></div><div class="userbox"><span id="shell-av">' + JM.shellAvatar(36) + '</span><div class="grow"><div class="bold small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + JM.esc(name) + '</div><div class="xs muted">' + sub + '</div></div><button class="iconbtn" data-act="logout" aria-label="Sign out" title="Sign out">' + ic('logout') + '</button></div></aside><div class="scrim" data-act="menu"></div>' +
-      '<div class="main"><header class="topbar">' + menu + '<span class="mbrand"><img src="assets/logo.png" alt="">JobMatch</span><div class="title" id="ptitle"></div>' +
+      '<div class="main"><header class="topbar">' + menu + '<a class="mbrand" href="' + homeHref + '" data-act="brandhome" aria-label="JobMatch home"><img src="assets/logo.png" alt="">JobMatch</a><div class="title" id="ptitle"></div>' +
       (role === 'seeker' ? '<a class="iconbtn" href="#/messages" aria-label="Messages">' + ic('chat') + '<span class="dot hide" id="tb-msg"></span></a>' : '') +
       '<a class="iconbtn" href="#/notifications" aria-label="Notifications">' + ic('bell') + '<span class="dot hide" id="tb-bell"></span></a>' +
       (role === 'seeker' ? '<a href="#/profile" aria-label="Profile" id="tb-av" style="display:inline-flex">' + JM.shellAvatar(32) + '</a>' : '') +
@@ -1011,6 +1012,14 @@
     if (me.role === 'seeker') return me.seeker && me.seeker.onboarded ? '/deck' : '/onboarding';
     if (me.role === 'employer') return me.employer ? '/employer' : '/employer/setup';
     return '/admin';
+  };
+  JM.actions.brandhome = function (el, ev) {
+    if (ev) ev.preventDefault();
+    const target = JM.home();
+    const shell = document.getElementById('shell');
+    if (shell) shell.classList.remove('drawer-open');
+    if (location.hash === '#' + target) window.scrollTo({ top: 0, behavior: 'smooth' });
+    else JM.go(target);
   };
   let seq = 0, lastPath = null;
   JM.render = async function () {
@@ -1246,18 +1255,18 @@
 
     const pvVisual = isImg
       ? (canCrop
-          ? '<div class="pv-crop-wrap mt"><div class="pv-frame pv-' + cfg.shape + (cfg.alpha ? ' pv-alpha' : '') + '" id="pv-frame">' +
-              '<canvas class="pv-canvas" id="pv-canvas"></canvas>' +
-              '<div class="pv-loading" id="pv-loading"><span class="jm-spin dark"></span></div>' +
-            '</div>' +
-            '<div class="row gap-s mt" style="width:100%;max-width:340px"><span class="xs muted">Zoom</span>' +
-              '<input type="range" id="pv-zoom" min="1" max="4" step="0.05" value="1" disabled>' +
-              '<span class="xs muted" id="pv-zoom-lbl" style="min-width:34px;text-align:right">1.0×</span>' +
-              '<button type="button" class="btn ghost sm" id="pv-reset" disabled style="padding:0 8px;height:28px">Reset</button></div>' +
-            '<div class="xs muted">Drag to move · pinch, scroll or use slider to zoom</div></div>'
-          : '<div class="pv-box mt" id="pv-contain-box"><div class="skel" id="pv-loading" style="width:280px;height:220px;border-radius:10px"></div><img class="pv-img hide" id="pv-img" alt="Selected image preview"></div>') +
-        '<div class="notice bad hide mt" id="pv-err" role="alert"></div>' +
-        '<div class="xs muted mt">' + JM.esc(file.name) + ' · ' + JM.fileSize(file.size) + '</div>'
+        ? '<div class="pv-crop-wrap mt"><div class="pv-frame pv-' + cfg.shape + (cfg.alpha ? ' pv-alpha' : '') + '" id="pv-frame">' +
+        '<canvas class="pv-canvas" id="pv-canvas"></canvas>' +
+        '<div class="pv-loading" id="pv-loading"><span class="jm-spin dark"></span></div>' +
+        '</div>' +
+        '<div class="row gap-s mt" style="width:100%;max-width:340px"><span class="xs muted">Zoom</span>' +
+        '<input type="range" id="pv-zoom" min="1" max="4" step="0.05" value="1" disabled>' +
+        '<span class="xs muted" id="pv-zoom-lbl" style="min-width:34px;text-align:right">1.0×</span>' +
+        '<button type="button" class="btn ghost sm" id="pv-reset" disabled style="padding:0 8px;height:28px">Reset</button></div>' +
+        '<div class="xs muted">Drag to move · pinch, scroll or use slider to zoom</div></div>'
+        : '<div class="pv-box mt" id="pv-contain-box"><div class="skel" id="pv-loading" style="width:280px;height:220px;border-radius:10px"></div><img class="pv-img hide" id="pv-img" alt="Selected image preview"></div>') +
+      '<div class="notice bad hide mt" id="pv-err" role="alert"></div>' +
+      '<div class="xs muted mt">' + JM.esc(file.name) + ' · ' + JM.fileSize(file.size) + '</div>'
       : '<div class="pv-file mt"><span class="upl-ic">' + ic('file', 22) + '</span><div class="grow"><b>' + JM.esc(file.name) + '</b><div class="xs muted">' + JM.fileSize(file.size) + ' · ' + JM.esc(file.type || 'document') + '</div></div></div>';
 
     JM.modal('<h2>' + JM.esc(o.title || 'Preview before uploading') + '</h2><p class="small muted mt">Check how it looks, then confirm the upload.</p>' +
@@ -1363,7 +1372,7 @@
         };
         frame.addEventListener('pointerdown', function (e) {
           e.preventDefault();
-          try { frame.setPointerCapture(e.pointerId); } catch (err) {}
+          try { frame.setPointerCapture(e.pointerId); } catch (err) { }
           ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
           if (ptrs.size === 1) {
             lastPt = { x: e.clientX, y: e.clientY };
@@ -1487,7 +1496,7 @@
     if (!directUrl && (!bucket || !path)) { JM.toast('Image unavailable.', 'bad'); return; }
     JM.modal('<h2>' + JM.esc(title) + '</h2>' + (desc ? '<p class="small muted mt">' + JM.esc(desc) + '</p>' : '') +
       '<div class="pv-box pv-box-full mt">' +
-        JM.img({ bucket: bucket, path: path, directUrl: directUrl, shape: 'contain', modal: true, alt: title }) +
+      JM.img({ bucket: bucket, path: path, directUrl: directUrl, shape: 'contain', modal: true, alt: title }) +
       '</div><div class="row mt-l" style="justify-content:flex-end"><button class="btn secondary" data-act="close">Close</button></div>', 'wide');
   }
 

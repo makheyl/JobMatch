@@ -718,7 +718,7 @@
         '<div class="card card-b">' + SEC[s[0]](JM.draft) + '</div><div class="err hide" id="ob-err" role="alert" style="margin-top:12px"></div>' +
         '<div class="row mt" style="justify-content:space-between">' + (i > 0 ? '<button class="btn secondary" data-act="obback">Back</button>' : '<span></span>') + '<button class="btn" data-act="obnext">' + (i === STEPS.length - 1 ? 'Finish and see my matches' : 'Continue') + '</button></div>';
     };
-    return '<div class="auth-main" style="min-height:100vh;background:var(--bg);align-items:flex-start"><div style="width:100%;max-width:680px"><a class="brand" href="#/" style="padding:8px 0 22px"><img src="assets/logo.png" alt="">JobMatch</a><div id="draft-root">' + JM.draftRender() + '</div></div></div>';
+    return '<div class="auth-main" style="min-height:100vh;background:var(--bg);align-items:flex-start"><div style="width:100%;max-width:680px"><a class="brand" href="#' + JM.home() + '" data-act="brandhome" style="padding:8px 0 22px"><img src="assets/logo.png" alt="">JobMatch</a><div id="draft-root">' + JM.draftRender() + '</div></div></div>';
   }
   JM.route('/onboarding', { auth: 'seeker', plain: true, pre: true, title: 'Set up your profile', render: onboardHtml, after: function () { JM.mountTypeaheads(); JM.hydrateImages(); } });
   JM.actions.obback = function () { JM.obStep--; JM.drawDraft(); window.scrollTo(0, 0); };
