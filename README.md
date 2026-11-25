@@ -2,6 +2,8 @@
 
 Job matching and career guidance for Biñan, Laguna. A static website (installable as an app) backed by Supabase.
 
+**Finalist, Biñan StartUp Competition.**
+
 ## What is in this folder
 
 | Path | What it is |
